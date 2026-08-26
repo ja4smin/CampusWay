@@ -597,7 +597,7 @@ async function loadPublishedBuildingGraph(building){
   }
 }
 
-function loadBuilding(){
+async function loadBuilding(){
 
   const building =
     document.getElementById('buildingSelect').value;
@@ -640,8 +640,28 @@ function loadBuilding(){
     Load this building's own graph data.
   */
 
+const savedData =
+  loadSavedData();
+
+if(
+  Object.keys(savedData).length
+){
+
   floorData =
-    loadSavedData();
+    savedData;
+
+}
+else{
+
+  const publishedData =
+    await loadPublishedBuildingGraph(
+      building
+    );
+
+  floorData =
+    publishedData || {};
+
+}
 
 
   selectedNode = null;
