@@ -1,0 +1,1135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CampusWay Live Indoor Navigation</title>
+<style>
+*{box-sizing:border-box}
+:root{
+  --navy:#0D1B3E;
+  --teal:#0891B2;
+  --mint:#00B09B;
+  --bg:#eef4f7;
+  --panel:#ffffff;
+  --muted:#667085;
+  --line:#d9e2e8;
+}
+body{
+  margin:0;
+  font-family:Inter,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--navy);
+}
+.app{
+  min-height:100vh;
+  display:grid;
+  grid-template-rows:auto 1fr;
+}
+.topbar{
+  background:var(--panel);
+  border-bottom:1px solid #dde5eb;
+  padding:12px 16px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.brand{
+  font-size:20px;
+  font-weight:800;
+  margin-right:8px;
+}
+.brand span{color:var(--teal)}
+.controls{
+  display:flex;
+  gap:10px;
+  align-items:flex-end;
+  flex:1;
+  flex-wrap:wrap;
+}
+.controlGroup{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.controlGroup label{
+  font-size:11px;
+  font-weight:700;
+  color:#64748b;
+  padding-left:2px;
+}
+select,button{
+  font:inherit;
+  border-radius:12px;
+  border:1px solid #cfd8df;
+  background:white;
+  padding:10px 12px;
+}
+select{min-width:170px;max-width:230px}
+button{cursor:pointer;font-weight:700}
+.primary{background:var(--teal);color:white;border-color:var(--teal)}
+.secondary{background:#f8fafc}
+.shell{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 320px;
+  min-height:0;
+}
+.mapwrap{
+  position:relative;
+  min-width:0;
+  min-height:0;
+  overflow:hidden;
+}
+#mapViewport{
+  position:relative;
+  width:100%;
+  height:calc(100vh - 78px);
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(0,176,155,.05), transparent 25%),
+    linear-gradient(#f7fbfc,#edf4f7);
+}
+#mapSvg{
+  width:100%;
+  height:100%;
+  display:block;
+  background:#f8fbfc;
+}
+.floorPill{
+  position:absolute;
+  top:14px;
+  left:14px;
+  z-index:2;
+  background:white;
+  border:1px solid #d8e1e7;
+  border-radius:14px;
+  padding:8px 10px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  box-shadow:0 4px 16px rgba(13,27,62,.07);
+}
+.floorPill strong{font-size:14px}
+.floorPill button{
+  border:0;
+  padding:6px 9px;
+  background:#f2f5f7;
+}
+.floorPill button.active{
+  background:var(--navy);
+  color:white;
+}
+.zoomPill{
+  position:absolute;
+  right:14px;
+  top:14px;
+  z-index:2;
+  background:white;
+  border:1px solid #d8e1e7;
+  border-radius:14px;
+  padding:6px;
+  display:flex;
+  gap:5px;
+  box-shadow:0 4px 16px rgba(13,27,62,.07);
+}
+.zoomPill button{
+  border:0;
+  min-width:42px;
+  padding:8px 10px;
+  background:#f2f5f7;
+}
+.recenterBtn{
+  position:absolute;
+  right:14px;
+  bottom:92px;
+  z-index:2;
+  border:1px solid #d8e1e7;
+  background:white;
+  border-radius:14px;
+  padding:10px 12px;
+  box-shadow:0 4px 16px rgba(13,27,62,.07);
+  display:none;
+}
+.navBanner{
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  bottom:18px;
+  z-index:2;
+  width:min(620px,calc(100% - 28px));
+  background:white;
+  border:1px solid #d8e1e7;
+  border-radius:18px;
+  padding:14px 16px;
+  box-shadow:0 8px 28px rgba(13,27,62,.12);
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  gap:12px;
+  align-items:center;
+}
+.turnIcon{
+  width:42px;height:42px;border-radius:12px;
+  background:#e8f7f5;color:var(--mint);
+  display:grid;place-items:center;
+  font-size:24px;font-weight:800;
+}
+.bannerText strong{display:block;font-size:16px;margin-bottom:2px}
+.bannerText span{font-size:13px;color:var(--muted)}
+.eta{
+  font-weight:800;
+  font-size:14px;
+  white-space:nowrap;
+}
+.sidebar{
+  background:white;
+  border-left:1px solid #dde5eb;
+  padding:18px;
+  overflow:auto;
+}
+.sidebar h3{margin:0 0 12px}
+.card{
+  border:1px solid #e0e7ec;
+  background:#fafcfd;
+  border-radius:14px;
+  padding:12px;
+  margin-bottom:12px;
+}
+.card strong{display:block;margin-bottom:4px}
+.muted{color:var(--muted);font-size:13px}
+.step{
+  display:flex;
+  gap:10px;
+  margin:10px 0;
+  align-items:flex-start;
+}
+.dot{
+  width:10px;height:10px;border-radius:50%;
+  background:var(--teal);
+  margin-top:5px;flex:0 0 auto;
+}
+.progress{
+  height:8px;
+  background:#e7edf1;
+  border-radius:999px;
+  overflow:hidden;
+  margin-top:8px;
+}
+.progress > div{
+  height:100%;
+  width:0%;
+  background:var(--mint);
+}
+.statusline{font-size:13px;color:var(--muted);margin-left:auto}
+@media(max-width:900px){
+  .shell{grid-template-columns:1fr}
+  .sidebar{border-left:0;border-top:1px solid #dde5eb}
+  #mapViewport{height:68vh}
+  select{min-width:150px;flex:1}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="brand">Campus<span>Way</span></div>
+    <div class="controls">
+      <div class="controlGroup">
+        <label for="fromFloor">START FLOOR</label>
+        <select id="fromFloor"><option value="">Choose floor...</option></select>
+      </div>
+      <div class="controlGroup">
+        <label for="from">START LOCATION</label>
+        <select id="from" disabled><option value="">Choose floor first</option></select>
+      </div>
+      <button id="swap" class="secondary" title="Swap">⇄</button>
+      <div class="controlGroup">
+        <label for="toFloor">DESTINATION FLOOR</label>
+        <select id="toFloor"><option value="">Choose floor...</option></select>
+      </div>
+      <div class="controlGroup">
+        <label for="to">DESTINATION</label>
+        <select id="to" disabled><option value="">Choose floor first</option></select>
+      </div>
+      <button id="routeBtn" class="primary">Route</button>
+      <button id="sensorBtn" class="secondary">Enable sensors</button>
+      <button id="startBtn" class="secondary" disabled>▶ Start navigation</button>
+      <span id="status" class="statusline">Choose a route.</span>
+    </div>
+  </div>
+
+  <div class="shell">
+    <div class="mapwrap">
+      <div id="mapViewport">
+        <svg id="mapSvg" viewBox="0 0 1000 700" aria-label="Simplified indoor navigation map"></svg>
+
+        <div class="floorPill">
+          <strong>Floor</strong>
+          <div id="floorButtons"></div>
+        </div>
+
+        <div class="zoomPill">
+          <button id="zoomOut" type="button" title="Zoom out">−</button>
+          <button id="zoomReset" type="button" title="Reset zoom">100%</button>
+          <button id="zoomIn" type="button" title="Zoom in">+</button>
+        </div>
+
+        <button id="recenterBtn" class="recenterBtn" type="button">◎ Recenter</button>
+
+        <div class="navBanner">
+          <div class="turnIcon">↑</div>
+          <div class="bannerText">
+            <strong id="instruction">Choose a destination</strong>
+            <span id="subInstruction">Your route will appear here.</span>
+          </div>
+          <div class="eta" id="eta">—</div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="sidebar">
+      <h3>Navigation</h3>
+      <div class="card" id="routeCard">
+        <strong>No route yet</strong>
+        <div class="muted">Choose where you're starting and where you want to go.</div>
+      </div>
+
+      <div class="card">
+        <strong>Live position</strong>
+        <div class="muted" id="livePos">Not started</div>
+        <div class="progress"><div id="progressBar"></div></div>
+      </div>
+
+      <div id="steps"></div>
+
+      <div class="card">
+        <strong>How this demo works</strong>
+        <div class="muted">
+          Choose a floor first; the location dropdown then contains only rooms and useful destinations from that floor. Scroll the mouse wheel to zoom. Click and drag the map to explore it manually. During navigation, the marker moves only when phone motion sensors detect a physical step. The route graph constrains movement so the marker stays on the planned path. Use Recenter to return to automatic follow mode.
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+const GRAPH = {"version": 2, "building": "Madriga", "coordinateSystem": "normalized_0_to_1", "floors": {"floor1": {"nodes": [{"id": "floor1_n6", "label": "1001", "type": "room", "x": 0.376263, "y": 0.609886, "floor": "floor1"}, {"id": "floor1_n7", "label": "1007", "type": "room", "x": 0.197285, "y": 0.610703, "floor": "floor1"}, {"id": "floor1_n14", "label": "1002", "type": "room", "x": 0.3881, "y": 0.648999, "floor": "floor1"}, {"id": "floor1_n15", "label": "1003", "type": "room", "x": 0.356376, "y": 0.648999, "floor": "floor1"}, {"id": "floor1_n16", "label": "1004", "type": "room", "x": 0.310448, "y": 0.648386, "floor": "floor1"}, {"id": "floor1_n17", "label": "1005", "type": "room", "x": 0.259785, "y": 0.647161, "floor": "floor1"}, {"id": "floor1_n18", "label": "1006", "type": "room", "x": 0.205966, "y": 0.648386, "floor": "floor1"}, {"id": "floor1_n19", "label": "1008", "type": "room", "x": 0.160275, "y": 0.648693, "floor": "floor1"}, {"id": "floor1_n20", "label": "1009", "type": "room", "x": 0.109138, "y": 0.648693, "floor": "floor1"}, {"id": "floor1_n22", "label": "Node 23", "type": "corridor", "x": 0.388415, "y": 0.626021, "floor": "floor1"}, {"id": "floor1_n23", "label": "Node 24", "type": "corridor", "x": 0.355508, "y": 0.626634, "floor": "floor1"}, {"id": "floor1_n24", "label": "Node 25", "type": "corridor", "x": 0.311474, "y": 0.627553, "floor": "floor1"}, {"id": "floor1_n25", "label": "Node 26", "type": "corridor", "x": 0.260101, "y": 0.628779, "floor": "floor1"}, {"id": "floor1_n26", "label": "Node 27", "type": "corridor", "x": 0.206992, "y": 0.626634, "floor": "floor1"}, {"id": "floor1_n27", "label": "Node 28", "type": "corridor", "x": 0.160827, "y": 0.626021, "floor": "floor1"}, {"id": "floor1_n28", "label": "Node 29", "type": "corridor", "x": 0.107955, "y": 0.627553, "floor": "floor1"}, {"id": "floor1_n35", "label": "1019", "type": "room", "x": 0.51402, "y": 0.611271, "floor": "floor1"}, {"id": "floor1_n36", "label": "1020", "type": "room", "x": 0.607614, "y": 0.611271, "floor": "floor1"}, {"id": "floor1_n37", "label": "1021", "type": "room", "x": 0.596512, "y": 0.64614, "floor": "floor1"}, {"id": "floor1_n38", "label": "1022", "type": "room", "x": 0.640783, "y": 0.64614, "floor": "floor1"}, {"id": "floor1_n39", "label": "1023", "type": "room", "x": 0.702652, "y": 0.647978, "floor": "floor1"}, {"id": "floor1_n40", "label": "1024", "type": "room", "x": 0.774858, "y": 0.646752, "floor": "floor1"}, {"id": "floor1_n41", "label": "Node 42", "type": "corridor", "x": 0.7747, "y": 0.634498, "floor": "floor1"}, {"id": "floor1_n42", "label": "Node 43", "type": "corridor", "x": 0.702494, "y": 0.633272, "floor": "floor1"}, {"id": "floor1_n43", "label": "Node 44", "type": "corridor", "x": 0.641256, "y": 0.63511, "floor": "floor1"}, {"id": "floor1_n45", "label": "Node 46", "type": "corridor", "x": 0.513573, "y": 0.627451, "floor": "floor1"}, {"id": "floor1_n46", "label": "Node 47", "type": "corridor", "x": 0.592408, "y": 0.626226, "floor": "floor1"}, {"id": "floor1_n48", "label": "stairs", "type": "stairs", "x": 0.482825, "y": 0.607811, "floor": "floor1", "connectorId": ""}, {"id": "floor1_n49", "label": "entrance", "type": "entrance", "x": 0.477007, "y": 0.685322, "floor": "floor1"}, {"id": "floor1_n50", "label": "entrance", "type": "entrance", "x": 0.414105, "y": 0.685322, "floor": "floor1"}, {"id": "floor1_n52", "label": "Node 53", "type": "corridor", "x": 0.47808, "y": 0.625655, "floor": "floor1"}, {"id": "floor1_n53", "label": "Node 54", "type": "corridor", "x": 0.412318, "y": 0.62658, "floor": "floor1"}, {"id": "floor1_n55", "label": "Node 56", "type": "corridor", "x": 0.484975, "y": 0.516993, "floor": "floor1"}, {"id": "floor1_n56", "label": "Node 57", "type": "corridor", "x": 0.486111, "y": 0.321242, "floor": "floor1"}, {"id": "floor1_n57", "label": "Node 58", "type": "corridor", "x": 0.483081, "y": 0.280392, "floor": "floor1"}, {"id": "floor1_n59", "label": "Node 60", "type": "corridor", "x": 0.426317, "y": 0.568059, "floor": "floor1"}, {"id": "floor1_n60", "label": "Node 61", "type": "corridor", "x": 0.437939, "y": 0.521263, "floor": "floor1"}, {"id": "floor1_n61", "label": "elevator", "type": "elevator", "x": 0.455766, "y": 0.295363, "floor": "floor1", "connectorId": "elevator1"}, {"id": "floor1_n62", "label": "elevator", "type": "elevator", "x": 0.456033, "y": 0.269819, "floor": "floor1", "connectorId": "elevator2"}, {"id": "floor1_n63", "label": "0010", "type": "room", "x": 0.626909, "y": 0.619079, "floor": "floor1"}, {"id": "floor1_n64", "label": "stairs", "type": "stairs", "x": 0.546626, "y": 0.679143, "floor": "floor1", "connectorId": "StairsA"}, {"id": "floor1_n65", "label": "Node 66", "type": "corridor", "x": 0.514632, "y": 0.678481, "floor": "floor1"}, {"id": "floor1_n66", "label": "0011", "type": "room", "x": 0.841919, "y": 0.458497, "floor": "floor1"}, {"id": "floor1_n68", "label": "Node 69", "type": "corridor", "x": 0.476326, "y": 0.753268, "floor": "floor1"}, {"id": "floor1_n69", "label": "Node 70", "type": "corridor", "x": 0.841856, "y": 0.741013, "floor": "floor1"}, {"id": "floor1_n70", "label": "Node 71", "type": "corridor", "x": 0.074009, "y": 0.6272, "floor": "floor1"}, {"id": "floor1_n73", "label": "Node 74", "type": "corridor", "x": 0.070513, "y": 0.573278, "floor": "floor1"}, {"id": "floor1_n74", "label": "1010", "type": "room", "x": 0.078089, "y": 0.573278, "floor": "floor1"}, {"id": "floor1_n75", "label": "1011", "type": "room", "x": 0.070076, "y": 0.556679, "floor": "floor1"}, {"id": "floor1_n76", "label": "1013", "type": "room", "x": 0.097538, "y": 0.44424, "floor": "floor1"}, {"id": "floor1_n77", "label": "stairs", "type": "stairs", "x": 0.484574, "y": 0.549994, "floor": "floor1", "connectorId": "StairsA"}], "connections": [{"from": "floor1_n20", "to": "floor1_n28"}, {"from": "floor1_n28", "to": "floor1_n27"}, {"from": "floor1_n19", "to": "floor1_n27"}, {"from": "floor1_n27", "to": "floor1_n26"}, {"from": "floor1_n7", "to": "floor1_n26"}, {"from": "floor1_n18", "to": "floor1_n26"}, {"from": "floor1_n26", "to": "floor1_n25"}, {"from": "floor1_n17", "to": "floor1_n25"}, {"from": "floor1_n25", "to": "floor1_n24"}, {"from": "floor1_n24", "to": "floor1_n16"}, {"from": "floor1_n24", "to": "floor1_n23"}, {"from": "floor1_n23", "to": "floor1_n22"}, {"from": "floor1_n6", "to": "floor1_n22"}, {"from": "floor1_n14", "to": "floor1_n22"}, {"from": "floor1_n15", "to": "floor1_n23"}, {"from": "floor1_n45", "to": "floor1_n35"}, {"from": "floor1_n45", "to": "floor1_n46"}, {"from": "floor1_n46", "to": "floor1_n36"}, {"from": "floor1_n46", "to": "floor1_n37"}, {"from": "floor1_n46", "to": "floor1_n43"}, {"from": "floor1_n43", "to": "floor1_n38"}, {"from": "floor1_n43", "to": "floor1_n42"}, {"from": "floor1_n42", "to": "floor1_n39"}, {"from": "floor1_n42", "to": "floor1_n41"}, {"from": "floor1_n41", "to": "floor1_n40"}, {"from": "floor1_n22", "to": "floor1_n53"}, {"from": "floor1_n53", "to": "floor1_n50"}, {"from": "floor1_n49", "to": "floor1_n52"}, {"from": "floor1_n53", "to": "floor1_n52"}, {"from": "floor1_n52", "to": "floor1_n45"}, {"from": "floor1_n52", "to": "floor1_n48"}, {"from": "floor1_n50", "to": "floor1_n52"}, {"from": "floor1_n57", "to": "floor1_n56"}, {"from": "floor1_n56", "to": "floor1_n55"}, {"from": "floor1_n53", "to": "floor1_n59"}, {"from": "floor1_n52", "to": "floor1_n59"}, {"from": "floor1_n59", "to": "floor1_n60"}, {"from": "floor1_n60", "to": "floor1_n55"}, {"from": "floor1_n57", "to": "floor1_n61"}, {"from": "floor1_n57", "to": "floor1_n62"}, {"from": "floor1_n46", "to": "floor1_n63"}, {"from": "floor1_n45", "to": "floor1_n65"}, {"from": "floor1_n65", "to": "floor1_n64"}, {"from": "floor1_n49", "to": "floor1_n68"}, {"from": "floor1_n68", "to": "floor1_n69"}, {"from": "floor1_n66", "to": "floor1_n69"}, {"from": "floor1_n28", "to": "floor1_n70"}, {"from": "floor1_n70", "to": "floor1_n73"}, {"from": "floor1_n73", "to": "floor1_n74"}, {"from": "floor1_n75", "to": "floor1_n73"}, {"from": "floor1_n75", "to": "floor1_n76"}, {"from": "floor1_n50", "to": "floor1_n68"}, {"from": "floor1_n48", "to": "floor1_n77"}], "nextNodeId": 80}, "floor3": {"nodes": [{"id": "floor3_n0", "label": "3001", "type": "room", "x": 0.41653, "y": 0.46279, "floor": "floor3"}, {"id": "floor3_n1", "label": "3003", "type": "room", "x": 0.405379, "y": 0.463639, "floor": "floor3"}, {"id": "floor3_n2", "label": "3005", "type": "room", "x": 0.342407, "y": 0.463639, "floor": "floor3"}, {"id": "floor3_n3", "label": "3016", "type": "room", "x": 0.329288, "y": 0.463639, "floor": "floor3"}, {"id": "floor3_n4", "label": "3017, 3018", "type": "room", "x": 0.280857, "y": 0.463922, "floor": "floor3"}, {"id": "floor3_n5", "label": "3019", "type": "room", "x": 0.271018, "y": 0.463922, "floor": "floor3"}, {"id": "floor3_n6", "label": "3027, 3028", "type": "room", "x": 0.241828, "y": 0.463073, "floor": "floor3"}, {"id": "floor3_n7", "label": "3029", "type": "room", "x": 0.177217, "y": 0.462649, "floor": "floor3"}, {"id": "floor3_n8", "label": "3030, 3031, 3032", "type": "room", "x": 0.135345, "y": 0.464488, "floor": "floor3"}, {"id": "floor3_n9", "label": "3021", "type": "room", "x": 0.172078, "y": 0.414827, "floor": "floor3"}, {"id": "floor3_n10", "label": "3020", "type": "room", "x": 0.214497, "y": 0.418647, "floor": "floor3"}, {"id": "floor3_n11", "label": "3022", "type": "room", "x": 0.214497, "y": 0.396576, "floor": "floor3"}, {"id": "floor3_n12", "label": "3023", "type": "room", "x": 0.214541, "y": 0.356073, "floor": "floor3"}, {"id": "floor3_n13", "label": "3025", "type": "room", "x": 0.214541, "y": 0.32421, "floor": "floor3"}, {"id": "floor3_n14", "label": "3026", "type": "room", "x": 0.205387, "y": 0.313998, "floor": "floor3"}, {"id": "floor3_n15", "label": "3027", "type": "room", "x": 0.177609, "y": 0.331563, "floor": "floor3"}, {"id": "floor3_n16", "label": "3024", "type": "room", "x": 0.177609, "y": 0.344635, "floor": "floor3"}, {"id": "floor3_n17", "label": "stairs", "type": "stairs", "x": 0.544603, "y": 0.504656, "floor": "floor3"}, {"id": "floor3_n18", "label": "stairs", "type": "stairs", "x": 0.544196, "y": 0.429801, "floor": "floor3", "connectorId": "StairsB"}, {"id": "floor3_n19", "label": "Node 20", "type": "corridor", "x": 0.545537, "y": 0.403345, "floor": "floor3"}, {"id": "floor3_n20", "label": "Node 21", "type": "corridor", "x": 0.46303, "y": 0.415597, "floor": "floor3"}, {"id": "floor3_n21", "label": "Node 22", "type": "corridor", "x": 0.427863, "y": 0.415597, "floor": "floor3"}, {"id": "floor3_n23", "label": "Node 24", "type": "corridor", "x": 0.343434, "y": 0.451389, "floor": "floor3"}, {"id": "floor3_n24", "label": "Node 25", "type": "corridor", "x": 0.328914, "y": 0.451389, "floor": "floor3"}, {"id": "floor3_n25", "label": "Node 26", "type": "corridor", "x": 0.283144, "y": 0.451389, "floor": "floor3"}, {"id": "floor3_n26", "label": "Node 27", "type": "corridor", "x": 0.270202, "y": 0.449755, "floor": "floor3"}, {"id": "floor3_n27", "label": "Node 28", "type": "corridor", "x": 0.410985, "y": 0.443219, "floor": "floor3"}, {"id": "floor3_n28", "label": "Node 29", "type": "corridor", "x": 0.244949, "y": 0.451117, "floor": "floor3"}, {"id": "floor3_n29", "label": "Node 30", "type": "corridor", "x": 0.17803, "y": 0.450844, "floor": "floor3"}, {"id": "floor3_n30", "label": "Node 31", "type": "corridor", "x": 0.135732, "y": 0.450027, "floor": "floor3"}, {"id": "floor3_n31", "label": "Node 32", "type": "corridor", "x": 0.200758, "y": 0.4503, "floor": "floor3"}, {"id": "floor3_n32", "label": "Node 33", "type": "corridor", "x": 0.195391, "y": 0.416803, "floor": "floor3"}, {"id": "floor3_n33", "label": "Node 34", "type": "corridor", "x": 0.199495, "y": 0.358796, "floor": "floor3"}, {"id": "floor3_n34", "label": "Node 35", "type": "corridor", "x": 0.207071, "y": 0.331836, "floor": "floor3"}, {"id": "floor3_n35", "label": "Node 36", "type": "corridor", "x": 0.169823, "y": 0.337554, "floor": "floor3"}, {"id": "floor3_n38", "label": "staris", "type": "stairs", "connectorId": "", "x": 0.529672, "y": 0.389025, "floor": "floor3"}, {"id": "floor3_n39", "label": "staris", "type": "stairs", "connectorId": "StairsC", "x": 0.530303, "y": 0.308143, "floor": "floor3"}, {"id": "floor3_n40", "label": "Node 41", "type": "corridor", "connectorId": "", "x": 0.532828, "y": 0.415305, "floor": "floor3"}, {"id": "floor3_n41", "label": "Node 42", "type": "corridor", "connectorId": "", "x": 0.497159, "y": 0.396242, "floor": "floor3"}, {"id": "floor3_n43", "label": "Node 44", "type": "corridor", "connectorId": "", "x": 0.494844, "y": 0.312228, "floor": "floor3"}, {"id": "floor3_n44", "label": "Node 45", "type": "corridor", "connectorId": "", "x": 0.560816, "y": 0.395561, "floor": "floor3"}, {"id": "floor3_n45", "label": "Node 46", "type": "corridor", "connectorId": "", "x": 0.560816, "y": 0.372277, "floor": "floor3"}, {"id": "floor3_n46", "label": "Node 47", "type": "corridor", "connectorId": "", "x": 0.561132, "y": 0.323666, "floor": "floor3"}, {"id": "floor3_n47", "label": "Node 48", "type": "corridor", "connectorId": "", "x": 0.558712, "y": 0.27805, "floor": "floor3"}, {"id": "floor3_n48", "label": "Node 49", "type": "corridor", "connectorId": "", "x": 0.555556, "y": 0.244145, "floor": "floor3"}, {"id": "floor3_n49", "label": "elevator", "type": "elevator", "connectorId": "elevator1", "x": 0.523674, "y": 0.256264, "floor": "floor3"}, {"id": "floor3_n50", "label": "elevator", "type": "elevator", "connectorId": "elevator2", "x": 0.522412, "y": 0.226443, "floor": "floor3"}], "connections": [{"from": "floor3_n17", "to": "floor3_n18"}, {"from": "floor3_n19", "to": "floor3_n18"}, {"from": "floor3_n19", "to": "floor3_n20"}, {"from": "floor3_n20", "to": "floor3_n21"}, {"from": "floor3_n21", "to": "floor3_n0"}, {"from": "floor3_n1", "to": "floor3_n21"}, {"from": "floor3_n21", "to": "floor3_n27"}, {"from": "floor3_n27", "to": "floor3_n23"}, {"from": "floor3_n23", "to": "floor3_n2"}, {"from": "floor3_n23", "to": "floor3_n24"}, {"from": "floor3_n24", "to": "floor3_n3"}, {"from": "floor3_n24", "to": "floor3_n25"}, {"from": "floor3_n25", "to": "floor3_n4"}, {"from": "floor3_n25", "to": "floor3_n26"}, {"from": "floor3_n26", "to": "floor3_n5"}, {"from": "floor3_n26", "to": "floor3_n28"}, {"from": "floor3_n28", "to": "floor3_n6"}, {"from": "floor3_n29", "to": "floor3_n7"}, {"from": "floor3_n29", "to": "floor3_n30"}, {"from": "floor3_n30", "to": "floor3_n8"}, {"from": "floor3_n28", "to": "floor3_n31"}, {"from": "floor3_n31", "to": "floor3_n29"}, {"from": "floor3_n31", "to": "floor3_n32"}, {"from": "floor3_n32", "to": "floor3_n10"}, {"from": "floor3_n32", "to": "floor3_n11"}, {"from": "floor3_n32", "to": "floor3_n9"}, {"from": "floor3_n32", "to": "floor3_n33"}, {"from": "floor3_n33", "to": "floor3_n12"}, {"from": "floor3_n33", "to": "floor3_n34"}, {"from": "floor3_n34", "to": "floor3_n14"}, {"from": "floor3_n34", "to": "floor3_n13"}, {"from": "floor3_n33", "to": "floor3_n16"}, {"from": "floor3_n16", "to": "floor3_n35"}, {"from": "floor3_n35", "to": "floor3_n15"}, {"from": "floor3_n18", "to": "floor3_n40"}, {"from": "floor3_n40", "to": "floor3_n38"}, {"from": "floor3_n19", "to": "floor3_n38"}, {"from": "floor3_n40", "to": "floor3_n19"}, {"from": "floor3_n38", "to": "floor3_n39"}, {"from": "floor3_n40", "to": "floor3_n41"}, {"from": "floor3_n20", "to": "floor3_n41"}, {"from": "floor3_n41", "to": "floor3_n38"}, {"from": "floor3_n41", "to": "floor3_n19"}, {"from": "floor3_n41", "to": "floor3_n43"}, {"from": "floor3_n46", "to": "floor3_n47"}, {"from": "floor3_n47", "to": "floor3_n48"}, {"from": "floor3_n48", "to": "floor3_n49"}, {"from": "floor3_n48", "to": "floor3_n50"}, {"from": "floor3_n47", "to": "floor3_n49"}, {"from": "floor3_n47", "to": "floor3_n50"}, {"from": "floor3_n46", "to": "floor3_n45"}, {"from": "floor3_n45", "to": "floor3_n44"}, {"from": "floor3_n44", "to": "floor3_n19"}, {"from": "floor3_n18", "to": "floor3_n44"}, {"from": "floor3_n27", "to": "floor3_n1"}, {"from": "floor3_n27", "to": "floor3_n0"}], "nextNodeId": 51}, "floor2": {"nodes": [{"id": "floor2_n0", "label": "2007", "type": "room", "x": 0.180345, "y": 0.547794, "floor": "floor2"}, {"id": "floor2_n1", "label": "2006", "type": "room", "x": 0.18729, "y": 0.577614, "floor": "floor2"}, {"id": "floor2_n2", "label": "2005", "type": "room", "x": 0.237795, "y": 0.577206, "floor": "floor2"}, {"id": "floor2_n3", "label": "2004", "type": "room", "x": 0.2883, "y": 0.576389, "floor": "floor2"}, {"id": "floor2_n4", "label": "2003", "type": "room", "x": 0.351221, "y": 0.576117, "floor": "floor2", "connectorId": ""}, {"id": "floor2_n5", "label": "2002", "type": "room", "x": 0.419402, "y": 0.576934, "floor": "floor2"}, {"id": "floor2_n6", "label": "2001", "type": "room", "x": 0.495581, "y": 0.576389, "floor": "floor2"}, {"id": "floor2_n7", "label": "2010", "type": "room", "x": 0.519992, "y": 0.577206, "floor": "floor2"}, {"id": "floor2_n8", "label": "2011", "type": "room", "x": 0.578704, "y": 0.576797, "floor": "floor2"}, {"id": "floor2_n9", "label": "2012", "type": "room", "x": 0.630261, "y": 0.576389, "floor": "floor2"}, {"id": "floor2_n10", "label": "2016", "type": "room", "x": 0.691183, "y": 0.575572, "floor": "floor2"}, {"id": "floor2_n11", "label": "2014", "type": "room", "x": 0.730324, "y": 0.576389, "floor": "floor2"}, {"id": "floor2_n12", "label": "2015", "type": "room", "x": 0.767887, "y": 0.577206, "floor": "floor2"}, {"id": "floor2_n13", "label": "Node 14", "type": "corridor", "x": 0.192024, "y": 0.55787, "floor": "floor2"}, {"id": "floor2_n14", "label": "Node 15", "type": "corridor", "x": 0.23811, "y": 0.555828, "floor": "floor2"}, {"id": "floor2_n15", "label": "Node 16", "type": "corridor", "x": 0.287668, "y": 0.555419, "floor": "floor2"}, {"id": "floor2_n16", "label": "Node 17", "type": "corridor", "x": 0.350484, "y": 0.556236, "floor": "floor2"}, {"id": "floor2_n17", "label": "Node 18", "type": "corridor", "x": 0.421191, "y": 0.553513, "floor": "floor2"}, {"id": "floor2_n18", "label": "Node 19", "type": "corridor", "x": 0.493792, "y": 0.555147, "floor": "floor2"}, {"id": "floor2_n19", "label": "Node 20", "type": "corridor", "x": 0.523779, "y": 0.55433, "floor": "floor2"}, {"id": "floor2_n20", "label": "Node 21", "type": "corridor", "x": 0.577441, "y": 0.553922, "floor": "floor2"}, {"id": "floor2_n21", "label": "Node 22", "type": "corridor", "x": 0.627736, "y": 0.556509, "floor": "floor2"}, {"id": "floor2_n22", "label": "Node 23", "type": "corridor", "x": 0.666246, "y": 0.565496, "floor": "floor2"}, {"id": "floor2_n23", "label": "Node 24", "type": "corridor", "x": 0.692445, "y": 0.564679, "floor": "floor2"}, {"id": "floor2_n24", "label": "Node 25", "type": "corridor", "x": 0.730008, "y": 0.563862, "floor": "floor2"}, {"id": "floor2_n25", "label": "Node 26", "type": "corridor", "x": 0.766625, "y": 0.563045, "floor": "floor2"}, {"id": "floor2_n26", "label": "stairs", "type": "stairs", "x": 0.482955, "y": 0.540169, "floor": "floor2", "connectorId": ""}, {"id": "floor2_n27", "label": "stairs", "type": "stairs", "x": 0.482955, "y": 0.474809, "floor": "floor2", "connectorId": "StairsA"}, {"id": "floor2_n28", "label": "Node 29", "type": "corridor", "x": 0.482955, "y": 0.451117, "floor": "floor2"}, {"id": "floor2_n29", "label": "Node 30", "type": "corridor", "x": 0.427399, "y": 0.453568, "floor": "floor2"}, {"id": "floor2_n30", "label": "stairs", "type": "stairs", "x": 0.482639, "y": 0.439679, "floor": "floor2", "connectorId": ""}, {"id": "floor2_n31", "label": "stairs", "type": "stairs", "x": 0.48306, "y": 0.373911, "floor": "floor2", "connectorId": "StairsB"}, {"id": "floor2_n32", "label": "Node 33", "type": "corridor", "x": 0.483586, "y": 0.357298, "floor": "floor2"}, {"id": "floor2_n33", "label": "Node 34", "type": "corridor", "x": 0.494949, "y": 0.343001, "floor": "floor2"}, {"id": "floor2_n34", "label": "Node 35", "type": "corridor", "x": 0.42803, "y": 0.35689, "floor": "floor2"}, {"id": "floor2_n35", "label": "Node 36", "type": "corridor", "x": 0.49274, "y": 0.213916, "floor": "floor2"}, {"id": "floor2_n38", "label": "elevator", "type": "elevator", "x": 0.464646, "y": 0.228622, "floor": "floor2", "connectorId": "elevator1"}, {"id": "floor2_n39", "label": "elevator", "type": "elevator", "x": 0.464015, "y": 0.203295, "floor": "floor2", "connectorId": "elevator2"}, {"id": "floor2_n40", "label": "1001", "type": "room", "x": 0.405934, "y": 0.357435, "floor": "floor2"}, {"id": "floor2_n41", "label": "1019", "type": "room", "x": 0.509049, "y": 0.358796, "floor": "floor2"}, {"id": "floor2_n42", "label": "Node 43", "type": "corridor", "connectorId": "", "x": 0.482744, "y": 0.468818, "floor": "floor2"}, {"id": "floor2_n43", "label": "Node 44", "type": "corridor", "connectorId": "", "x": 0.434133, "y": 0.468818, "floor": "floor2"}, {"id": "floor2_n44", "label": "Node 45", "type": "corridor", "connectorId": "", "x": 0.436027, "y": 0.547658, "floor": "floor2"}, {"id": "floor2_n45", "label": "Node 46", "type": "corridor", "connectorId": "", "x": 0.464752, "y": 0.555147, "floor": "floor2"}, {"id": "floor2_n46", "label": "Node 47", "type": "corridor", "connectorId": "", "x": 0.375105, "y": 0.555147, "floor": "floor2"}], "connections": [{"from": "floor2_n25", "to": "floor2_n24"}, {"from": "floor2_n24", "to": "floor2_n23"}, {"from": "floor2_n10", "to": "floor2_n23"}, {"from": "floor2_n11", "to": "floor2_n24"}, {"from": "floor2_n12", "to": "floor2_n25"}, {"from": "floor2_n23", "to": "floor2_n22"}, {"from": "floor2_n22", "to": "floor2_n21"}, {"from": "floor2_n9", "to": "floor2_n21"}, {"from": "floor2_n21", "to": "floor2_n20"}, {"from": "floor2_n8", "to": "floor2_n20"}, {"from": "floor2_n20", "to": "floor2_n19"}, {"from": "floor2_n7", "to": "floor2_n19"}, {"from": "floor2_n18", "to": "floor2_n19"}, {"from": "floor2_n6", "to": "floor2_n18"}, {"from": "floor2_n18", "to": "floor2_n17"}, {"from": "floor2_n5", "to": "floor2_n17"}, {"from": "floor2_n17", "to": "floor2_n16"}, {"from": "floor2_n4", "to": "floor2_n16"}, {"from": "floor2_n16", "to": "floor2_n15"}, {"from": "floor2_n15", "to": "floor2_n14"}, {"from": "floor2_n2", "to": "floor2_n14"}, {"from": "floor2_n3", "to": "floor2_n15"}, {"from": "floor2_n14", "to": "floor2_n13"}, {"from": "floor2_n13", "to": "floor2_n0"}, {"from": "floor2_n1", "to": "floor2_n13"}, {"from": "floor2_n26", "to": "floor2_n27"}, {"from": "floor2_n27", "to": "floor2_n28"}, {"from": "floor2_n28", "to": "floor2_n29"}, {"from": "floor2_n29", "to": "floor2_n17"}, {"from": "floor2_n28", "to": "floor2_n30"}, {"from": "floor2_n30", "to": "floor2_n31"}, {"from": "floor2_n29", "to": "floor2_n34"}, {"from": "floor2_n34", "to": "floor2_n32"}, {"from": "floor2_n32", "to": "floor2_n33"}, {"from": "floor2_n33", "to": "floor2_n35"}, {"from": "floor2_n35", "to": "floor2_n38"}, {"from": "floor2_n35", "to": "floor2_n39"}, {"from": "floor2_n34", "to": "floor2_n40"}, {"from": "floor2_n32", "to": "floor2_n41"}, {"from": "floor2_n27", "to": "floor2_n42"}, {"from": "floor2_n42", "to": "floor2_n28"}, {"from": "floor2_n42", "to": "floor2_n43"}, {"from": "floor2_n43", "to": "floor2_n44"}, {"from": "floor2_n43", "to": "floor2_n29"}, {"from": "floor2_n44", "to": "floor2_n17"}, {"from": "floor2_n44", "to": "floor2_n45"}, {"from": "floor2_n45", "to": "floor2_n18"}, {"from": "floor2_n45", "to": "floor2_n6"}, {"from": "floor2_n45", "to": "floor2_n5"}], "nextNodeId": 47}}};
+const ORDER=['floorminus1','floor0','floor1','floor2','floor3','floor4'];
+
+let routePath=[];
+let routeNodes=[];
+let activeFloor=Object.keys(GRAPH.floors)[0]||'floor1';
+let progressIndex=0;
+let progressT=0;
+let navigationActive=false;
+let sensorsEnabled=false;
+let sensorEvents=0;
+let lastStepAt=0;
+let gravityMag=9.81;
+let filteredAccel=0;
+let previousFiltered=0;
+let stepThreshold=1.15;
+let detectedSteps=0;
+let stepLength=0.012;
+let deviceHeading=null;
+let camera={x:500,y:350,scale:2.5};
+let headingDeg=0;
+let followCamera=true;
+let isPanning=false;
+let panStart={x:0,y:0,cameraX:0,cameraY:0};
+const CAMERA_W=1000, CAMERA_H=700;
+
+const $=id=>document.getElementById(id);
+const svg=$('mapSvg');
+
+function floorLabel(f){return f==='floorminus1'?'−1':f.replace('floor','')}
+function allNodes(){return Object.values(GRAPH.floors).flatMap(f=>f.nodes||[])}
+function nodeById(id){for(const f of Object.values(GRAPH.floors)){const n=(f.nodes||[]).find(x=>x.id===id);if(n)return n}return null}
+function cid(n){const s=String(n.connectorId||'').trim();return (!s||['null','none','no','n/a'].includes(s.toLowerCase()))?'':s}
+function esc(s){return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;')}
+
+const virtualDestinations=new Map();
+
+function nearestCorridorToElevators(floorId){
+  const floor=GRAPH.floors[floorId];
+  if(!floor)return null;
+
+  const elevators=(floor.nodes||[]).filter(n=>n.type==='elevator');
+  const corridors=(floor.nodes||[]).filter(n=>n.type==='corridor');
+  if(!elevators.length||!corridors.length)return null;
+
+  const cx=elevators.reduce((s,n)=>s+n.x,0)/elevators.length;
+  const cy=elevators.reduce((s,n)=>s+n.y,0)/elevators.length;
+
+  let best=null,bestD=Infinity;
+  for(const c of corridors){
+    const d=Math.hypot(c.x-cx,c.y-cy);
+    if(d<bestD){bestD=d;best=c}
+  }
+  return best;
+}
+
+function resolveSelection(value){
+  if(virtualDestinations.has(value)) return virtualDestinations.get(value).nodeId;
+  return value;
+}
+
+function selectionLabel(value){
+  if(virtualDestinations.has(value)) return virtualDestinations.get(value).label;
+  return nodeById(value)?.label || value;
+}
+
+function userFacingLocationsForFloor(floorId){
+  if(!GRAPH.floors[floorId]) return [];
+
+  const result=(GRAPH.floors[floorId].nodes||[])
+    .filter(n=>['room','entrance','restroom','landmark'].includes(n.type))
+    .sort((a,b)=>{
+      const priority={room:0,restroom:1,entrance:2,landmark:3};
+      return (priority[a.type]??9)-(priority[b.type]??9) ||
+        a.label.localeCompare(b.label,undefined,{numeric:true});
+    });
+
+  // Add one virtual "Elevators" destination for this floor.
+  const corridor=nearestCorridorToElevators(floorId);
+  if(corridor){
+    const virtualId=`virtual:elevators:${floorId}`;
+    virtualDestinations.set(virtualId,{
+      nodeId:corridor.id,
+      label:'Elevators',
+      floor:floorId
+    });
+
+    result.push({
+      id:virtualId,
+      label:'Elevators',
+      type:'virtual-elevator',
+      floor:floorId
+    });
+  }
+
+  return result;
+}
+
+function populateLocations(){
+  virtualDestinations.clear();
+
+  const mappedFloors=ORDER.filter(f=>GRAPH.floors[f]);
+  const floorOptions=mappedFloors
+    .map(f=>`<option value="${f}">Floor ${floorLabel(f)}</option>`)
+    .join('');
+
+  $('fromFloor').innerHTML='<option value="">Choose floor...</option>'+floorOptions;
+  $('toFloor').innerHTML='<option value="">Choose floor...</option>'+floorOptions;
+
+  resetLocationSelect('from','Choose floor first');
+  resetLocationSelect('to','Choose floor first');
+}
+
+function resetLocationSelect(selectId, message){
+  const select=$(selectId);
+  select.innerHTML=`<option value="">${message}</option>`;
+  select.value='';
+  select.disabled=true;
+}
+
+function fillLocationSelect(floorId, selectId, placeholder){
+  const select=$(selectId);
+
+  if(!floorId){
+    resetLocationSelect(selectId,'Choose floor first');
+    return;
+  }
+
+  // IMPORTANT: only locations belonging to the selected floor are added here.
+  const items=userFacingLocationsForFloor(floorId);
+
+  const options=items.map(n=>{
+    let label=n.label;
+    if(n.type==='restroom') label += ' — Restroom';
+    else if(n.type==='entrance') label += ' — Entrance';
+    else if(n.type==='virtual-elevator') label = 'Elevators';
+    return `<option value="${n.id}">${esc(label)}</option>`;
+  }).join('');
+
+  select.innerHTML=`<option value="">${placeholder}</option>`+options;
+  select.value='';
+  select.disabled=false;
+}
+
+function buildGraph(){
+  const ns=allNodes(),by=new Map(ns.map(n=>[n.id,n])),adj=new Map(ns.map(n=>[n.id,[]]));
+  for(const f of Object.values(GRAPH.floors)){
+    for(const c of (f.connections||[])){
+      const a=by.get(c.from),b=by.get(c.to);if(!a||!b)continue;
+      const w=Math.hypot(a.x-b.x,a.y-b.y);
+      adj.get(a.id).push({id:b.id,w,kind:'walk'});
+      adj.get(b.id).push({id:a.id,w,kind:'walk'});
+    }
+  }
+  const groups=new Map();
+  for(const n of ns){
+    const c=cid(n);
+    if(!c||!['stairs','elevator'].includes(n.type))continue;
+    const k=n.type+':'+c;
+    if(!groups.has(k))groups.set(k,new Map());
+    const perFloor=groups.get(k);
+    if(!perFloor.has(n.floor))perFloor.set(n.floor,[]);
+    perFloor.get(n.floor).push(n);
+  }
+  for(const [k,pf] of groups){
+    const floors=[...pf.keys()].sort((a,b)=>ORDER.indexOf(a)-ORDER.indexOf(b));
+    for(let i=0;i<floors.length-1;i++){
+      const aL=pf.get(floors[i]),bL=pf.get(floors[i+1]);
+      const a=aL[aL.length-1],b=bL[bL.length-1];
+      const w=k.startsWith('elevator:')?.02:.04;
+      adj.get(a.id).push({id:b.id,w,kind:'vertical'});
+      adj.get(b.id).push({id:a.id,w,kind:'vertical'});
+    }
+  }
+  return {by,adj};
+}
+
+function dijkstra(start,end){
+  const {by,adj}=buildGraph(); if(!by.has(start)||!by.has(end))return null;
+  const dist=new Map([...by.keys()].map(id=>[id,Infinity])),prev=new Map(),un=new Set(by.keys());
+  dist.set(start,0);
+  while(un.size){
+    let cur=null,best=Infinity;
+    for(const id of un){const d=dist.get(id);if(d<best){best=d;cur=id}}
+    if(cur===null||best===Infinity)break;if(cur===end)break;un.delete(cur);
+    for(const e of (adj.get(cur)||[])){
+      if(!un.has(e.id))continue;
+      const alt=best+e.w;
+      if(alt<dist.get(e.id)){dist.set(e.id,alt);prev.set(e.id,cur)}
+    }
+  }
+  if(dist.get(end)===Infinity)return null;
+  const p=[];let c=end;
+  while(c!==undefined){p.unshift(c);if(c===start)break;c=prev.get(c)}
+  return p[0]===start?p:null;
+}
+
+function floorNodes(f){
+  return GRAPH.floors[f]?.nodes||[];
+}
+
+function mapPoint(n){
+  // Convert normalized node coordinates into simplified UI space.
+  // We keep the spatial relationships from WayFrame, but not the blueprint.
+  return {x:80+n.x*840,y:55+n.y*570};
+}
+
+
+function currentHeading(){
+  if(routeNodes.length < 2) return headingDeg;
+
+  const cur=currentInterpolated();
+  if(!cur) return headingDeg;
+
+  // Find a point some distance AHEAD on the same floor.
+  // This avoids orienting the camera to a tiny room-door stub when
+  // the real walking direction is along the corridor.
+  const LOOK_AHEAD=55; // map-space pixels
+  let remaining=LOOK_AHEAD;
+  let startPoint=mapPoint(cur);
+
+  let idx=Math.min(progressIndex, routeNodes.length-2);
+  let segStart=cur;
+
+  for(let i=idx; i<routeNodes.length-1; i++){
+    const a=(i===idx)?segStart:routeNodes[i];
+    const b=routeNodes[i+1];
+
+    if(!a || !b || a.floor!==cur.floor || b.floor!==cur.floor) break;
+
+    const pA=mapPoint(a);
+    const pB=mapPoint(b);
+    const dx=pB.x-pA.x, dy=pB.y-pA.y;
+    const len=Math.hypot(dx,dy);
+    if(len < 0.001) continue;
+
+    if(remaining <= len){
+      const t=remaining/len;
+      const look={x:pA.x+dx*t,y:pA.y+dy*t};
+      const vx=look.x-startPoint.x;
+      const vy=look.y-startPoint.y;
+      const angle=Math.atan2(vy,vx)*180/Math.PI;
+      return -90-angle;
+    }
+
+    remaining-=len;
+  }
+
+  // Fallback: use the furthest reachable point ahead on this floor.
+  for(let i=routeNodes.length-1;i>idx;i--){
+    const n=routeNodes[i];
+    if(n && n.floor===cur.floor){
+      const p=mapPoint(n);
+      const vx=p.x-startPoint.x, vy=p.y-startPoint.y;
+      if(Math.hypot(vx,vy)>1){
+        const angle=Math.atan2(vy,vx)*180/Math.PI;
+        return -90-angle;
+      }
+    }
+  }
+
+  return headingDeg;
+}
+
+function createWorldGroup(){
+  const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.setAttribute('id','world');
+  g.setAttribute('transform',`rotate(${headingDeg} ${camera.x} ${camera.y})`);
+  svg.appendChild(g);
+  return g;
+}
+
+function drawBaseMap(){
+  svg.innerHTML='';
+  svg.setAttribute('viewBox',cameraViewBox());
+
+  const floorData=GRAPH.floors[activeFloor];
+  if(!floorData)return;
+
+  const bg=document.createElementNS('http://www.w3.org/2000/svg','rect');
+  const vw=CAMERA_W/camera.scale, vh=CAMERA_H/camera.scale;
+  bg.setAttribute('x',camera.x-vw/2);
+  bg.setAttribute('y',camera.y-vh/2);
+  bg.setAttribute('width',vw);
+  bg.setAttribute('height',vh);
+  bg.setAttribute('fill','#f8fbfc');
+  svg.appendChild(bg);
+
+  // Heading-up navigation: rotate the WORLD around the user,
+  // while keeping the user marker fixed and upright in the center.
+  const targetHeading=currentHeading();
+  let delta=((targetHeading-headingDeg+540)%360)-180;
+  headingDeg+=delta*0.22;
+  const world=createWorldGroup();
+
+  // Faint nearby walking network.
+  for(const c of floorData.connections||[]){
+    const a=nodeById(c.from),b=nodeById(c.to);
+    if(!a||!b)continue;
+    const p1=mapPoint(a),p2=mapPoint(b);
+    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',p1.x);line.setAttribute('y1',p1.y);
+    line.setAttribute('x2',p2.x);line.setAttribute('y2',p2.y);
+    line.setAttribute('stroke','#dfe8ec');
+    line.setAttribute('stroke-width','7');
+    line.setAttribute('stroke-linecap','round');
+    world.appendChild(line);
+  }
+
+  // Active route.
+  for(let i=0;i<routeNodes.length-1;i++){
+    const a=routeNodes[i],b=routeNodes[i+1];
+    if(a.floor!==activeFloor||b.floor!==activeFloor)continue;
+    const p1=mapPoint(a),p2=mapPoint(b);
+    const l=document.createElementNS('http://www.w3.org/2000/svg','line');
+    l.setAttribute('x1',p1.x);l.setAttribute('y1',p1.y);
+    l.setAttribute('x2',p2.x);l.setAttribute('y2',p2.y);
+    l.setAttribute('stroke','#0891B2');
+    l.setAttribute('stroke-width','10');
+    l.setAttribute('stroke-linecap','round');
+    l.setAttribute('stroke-linejoin','round');
+    world.appendChild(l);
+  }
+
+  // Only route-relevant landmarks.
+  const important=[];
+  if(routeNodes.length){
+    important.push(routeNodes[0],routeNodes.at(-1));
+    for(const n of routeNodes){
+      if(['stairs','elevator'].includes(n.type)) important.push(n);
+    }
+  }
+
+  const seen=new Set();
+  for(const n of important){
+    if(!n||n.floor!==activeFloor||seen.has(n.id))continue;
+    seen.add(n.id);
+    const p=mapPoint(n);
+
+    const icon=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    icon.setAttribute('cx',p.x);icon.setAttribute('cy',p.y);icon.setAttribute('r','11');
+    icon.setAttribute('fill',n.type==='elevator'?'#8B5CF6':n.type==='stairs'?'#64748B':'#00B09B');
+    icon.setAttribute('stroke','#fff');icon.setAttribute('stroke-width','3');
+    world.appendChild(icon);
+  }
+
+  // Draw the user OUTSIDE the rotated world so the arrow remains upright.
+  drawUserMarker();
+}
+
+function cameraViewBox(){
+  const w=CAMERA_W/camera.scale, h=CAMERA_H/camera.scale;
+  return `${camera.x-w/2} ${camera.y-h/2} ${w} ${h}`;
+}
+
+function followNode(n){
+  if(!n)return;
+  const p=mapPoint(n);
+  camera.x=p.x;
+  camera.y=p.y;
+  svg.setAttribute('viewBox', cameraViewBox());
+}
+
+function currentInterpolated(){
+  if(!routeNodes.length)return null;
+  if(progressIndex>=routeNodes.length-1)return routeNodes.at(-1);
+
+  const a=routeNodes[progressIndex],b=routeNodes[progressIndex+1];
+  if(a.floor!==b.floor){
+    return progressT<1?a:b;
+  }
+  return {
+    floor:a.floor,
+    x:a.x+(b.x-a.x)*progressT,
+    y:a.y+(b.y-a.y)*progressT,
+    label:'You'
+  };
+}
+
+function drawUserMarker(){
+  const n=currentInterpolated();
+  if(!n || n.floor!==activeFloor) return;
+
+  // User's real position in map/world coordinates.
+  const raw=mapPoint(n);
+
+  // The map itself is rotated around the camera center for heading-up mode.
+  // Apply that same rotation to the user's world position, then draw the
+  // marker upright on top. This keeps the marker attached to the route when
+  // the user manually pans away from center.
+  const rad=headingDeg*Math.PI/180;
+  const dx=raw.x-camera.x;
+  const dy=raw.y-camera.y;
+
+  const p={
+    x: camera.x + dx*Math.cos(rad) - dy*Math.sin(rad),
+    y: camera.y + dx*Math.sin(rad) + dy*Math.cos(rad)
+  };
+
+  const outer=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  outer.setAttribute('cx',p.x);
+  outer.setAttribute('cy',p.y);
+  outer.setAttribute('r','20');
+  outer.setAttribute('fill','rgba(8,145,178,.18)');
+  svg.appendChild(outer);
+
+  const marker=document.createElementNS('http://www.w3.org/2000/svg','path');
+  marker.setAttribute(
+    'd',
+    `M ${p.x} ${p.y-14} L ${p.x+10} ${p.y+10} L ${p.x} ${p.y+6} L ${p.x-10} ${p.y+10} Z`
+  );
+  marker.setAttribute('fill','#0D1B3E');
+  marker.setAttribute('stroke','#fff');
+  marker.setAttribute('stroke-width','3');
+  svg.appendChild(marker);
+}
+
+function floorButtons(){
+  $('floorButtons').innerHTML='';
+  const used=routeNodes.length?[...new Set(routeNodes.map(n=>n.floor))]:ORDER.filter(f=>GRAPH.floors[f]);
+  used.forEach(f=>{
+    const b=document.createElement('button');
+    b.textContent=floorLabel(f);b.className=f===activeFloor?'active':'';
+    b.onclick=()=>{activeFloor=f;floorButtons();drawBaseMap()};
+    $('floorButtons').appendChild(b);
+  });
+}
+
+function describeRoute(){
+  const a=routeNodes[0],b=routeNodes.at(-1);
+  const aLabel=a._displayLabel||a.label;
+  const bLabel=b._displayLabel||b.label;
+  const floors=[...new Set(routeNodes.map(n=>n.floor))];
+  $('routeCard').innerHTML=`<strong>${esc(aLabel)} → ${esc(bLabel)}</strong><div class="muted">${floors.map(f=>'Floor '+floorLabel(f)).join(' → ')}</div>`;
+
+  const steps=[`Start at ${aLabel} on Floor ${floorLabel(a.floor)}`];
+  for(let i=1;i<routeNodes.length;i++){
+    const p=routeNodes[i-1],n=routeNodes[i];
+    if(p.floor!==n.floor){
+      const method=(p.type==='elevator'||n.type==='elevator')?'elevator':'stairs';
+      steps.push(`Take the ${method} to Floor ${floorLabel(n.floor)}`);
+    }
+  }
+  steps.push(`Arrive at ${bLabel}`);
+  $('steps').innerHTML=steps.map(s=>`<div class="step"><div class="dot"></div><div>${esc(s)}</div></div>`).join('');
+  $('instruction').textContent='Follow the highlighted route';
+  $('subInstruction').textContent=`Destination: ${bLabel}`;
+  $('eta').textContent='Demo';
+}
+
+function route(){
+  const rawFrom=$('from').value, rawTo=$('to').value;
+  if(!$('fromFloor').value||!$('toFloor').value){
+    $('status').textContent='Choose the start and destination floors first.';
+    return;
+  }
+  if(!rawFrom||!rawTo){
+    $('status').textContent='Choose both locations.';
+    return;
+  }
+
+  const a=resolveSelection(rawFrom);
+  const b=resolveSelection(rawTo);
+
+  const p=dijkstra(a,b);
+  if(!p){$('status').textContent='No route found.';return}
+
+  routePath=p;
+  routeNodes=p.map(nodeById).filter(Boolean);
+
+  // Remember user-facing labels, especially for the virtual "Elevators" destination.
+  routeNodes[0]._displayLabel=selectionLabel(rawFrom);
+  routeNodes[routeNodes.length-1]._displayLabel=selectionLabel(rawTo);
+
+  activeFloor=routeNodes[0].floor;
+  progressIndex=0;progressT=0;animating=false;
+  followCamera=true;
+  $('recenterBtn').style.display='none';
+  followNode(routeNodes[0]);
+  headingDeg=currentHeading();
+  $('startBtn').disabled=false;
+  $('status').textContent='Route ready.';
+  describeRoute();floorButtons();drawBaseMap();updateProgressUI();
+}
+
+
+function updateTurnInstruction(){
+  if(routeNodes.length<2 || progressIndex>=routeNodes.length-1) return;
+
+  const a=routeNodes[progressIndex];
+  const b=routeNodes[progressIndex+1];
+
+  if(a.floor!==b.floor){
+    $('instruction').textContent=(a.type==='elevator'||b.type==='elevator')?'Take the elevator':'Take the stairs';
+    return;
+  }
+
+  if(progressIndex>=routeNodes.length-2){
+    $('instruction').textContent='Continue to destination';
+    return;
+  }
+
+  const c=routeNodes[progressIndex+2];
+  if(!c || b.floor!==c.floor){
+    $('instruction').textContent='Continue straight';
+    return;
+  }
+
+  const pA=mapPoint(a), pB=mapPoint(b), pC=mapPoint(c);
+  const v1={x:pB.x-pA.x,y:pB.y-pA.y};
+  const v2={x:pC.x-pB.x,y:pC.y-pB.y};
+  const cross=v1.x*v2.y-v1.y*v2.x;
+  const dot=v1.x*v2.x+v1.y*v2.y;
+  const angle=Math.atan2(cross,dot)*180/Math.PI;
+
+  if(Math.abs(angle)<25) $('instruction').textContent='Continue straight';
+  else if(angle>0) $('instruction').textContent='Turn right';
+  else $('instruction').textContent='Turn left';
+}
+
+function updateProgressUI(){
+  if(!routeNodes.length){$('livePos').textContent='Not started';$('progressBar').style.width='0%';return}
+  const total=Math.max(1,routeNodes.length-1);
+  const pct=Math.min(100,((progressIndex+progressT)/total)*100);
+  $('progressBar').style.width=pct+'%';
+
+  const cur=currentInterpolated();
+  if(cur){
+    $('livePos').textContent=`Floor ${floorLabel(cur.floor)} — moving toward ${routeNodes[Math.min(progressIndex+1,routeNodes.length-1)].label}`;
+  }
+}
+
+
+function advanceAlongRoute(distance){
+  if(!navigationActive || routeNodes.length<2) return;
+
+  let remaining=distance;
+
+  while(remaining>0 && progressIndex<routeNodes.length-1){
+    const a=routeNodes[progressIndex];
+    const b=routeNodes[progressIndex+1];
+
+    if(a.floor!==b.floor){
+      progressIndex++;
+      progressT=0;
+      activeFloor=b.floor;
+      floorButtons();
+      continue;
+    }
+
+    const segLen=Math.hypot(b.x-a.x,b.y-a.y);
+    if(segLen<0.000001){
+      progressIndex++;
+      progressT=0;
+      continue;
+    }
+
+    const leftOnSeg=segLen*(1-progressT);
+
+    if(remaining>=leftOnSeg){
+      remaining-=leftOnSeg;
+      progressIndex++;
+      progressT=0;
+
+      if(progressIndex>=routeNodes.length-1){
+        completeNavigation();
+        return;
+      }
+
+      const n=routeNodes[progressIndex];
+      if(n.floor!==activeFloor){
+        activeFloor=n.floor;
+        floorButtons();
+      }
+    }else{
+      progressT += remaining/segLen;
+      remaining=0;
+    }
+  }
+
+  const cur=currentInterpolated();
+  if(cur && followCamera) followNode(cur);
+
+  updateTurnInstruction();
+  updateProgressUI();
+  drawBaseMap();
+}
+
+function handleDetectedStep(){
+  if(!navigationActive) return;
+  detectedSteps++;
+  advanceAlongRoute(stepLength);
+  $('status').textContent=`Navigating — ${detectedSteps} detected steps`;
+}
+
+function completeNavigation(){
+  navigationActive=false;
+  progressIndex=routeNodes.length-1;
+  progressT=0;
+
+  const dest=routeNodes.at(-1);
+  activeFloor=dest.floor;
+  followNode(dest);
+  floorButtons();
+  drawBaseMap();
+  updateProgressUI();
+
+  const destLabel=dest._displayLabel||dest.label;
+  $('instruction').textContent='You have arrived';
+  $('subInstruction').textContent=destLabel;
+  $('eta').textContent='Arrived';
+  $('livePos').textContent=`Floor ${floorLabel(dest.floor)} — ${destLabel}`;
+  $('progressBar').style.width='100%';
+  $('startBtn').disabled=true;
+  $('status').textContent='Arrived.';
+}
+
+function updateDeviceHeading(e){
+  let h=null;
+  if(typeof e.webkitCompassHeading==='number') h=e.webkitCompassHeading;
+  else if(typeof e.alpha==='number') h=(360-e.alpha)%360;
+  if(h!==null && Number.isFinite(h)) deviceHeading=h;
+}
+
+function updateDeviceMotion(e){
+  sensorEvents++;
+
+  const a=e.accelerationIncludingGravity || e.acceleration;
+  if(!a) return;
+
+  const x=Number(a.x)||0, y=Number(a.y)||0, z=Number(a.z)||0;
+  const mag=Math.sqrt(x*x+y*y+z*z);
+
+  gravityMag=gravityMag*0.92 + mag*0.08;
+  const linear=mag-gravityMag;
+
+  previousFiltered=filteredAccel;
+  filteredAccel=filteredAccel*0.65 + linear*0.35;
+
+  const now=performance.now();
+
+  if(previousFiltered>stepThreshold &&
+     filteredAccel<stepThreshold*0.55 &&
+     now-lastStepAt>320){
+    lastStepAt=now;
+    handleDetectedStep();
+  }
+}
+
+async function requestSensorPermission(){
+  try{
+    if(typeof DeviceMotionEvent!=='undefined' &&
+       typeof DeviceMotionEvent.requestPermission==='function'){
+      const r=await DeviceMotionEvent.requestPermission();
+      if(r!=='granted') throw new Error('Motion permission denied');
+    }
+
+    if(typeof DeviceOrientationEvent!=='undefined' &&
+       typeof DeviceOrientationEvent.requestPermission==='function'){
+      const r=await DeviceOrientationEvent.requestPermission();
+      if(r!=='granted') throw new Error('Orientation permission denied');
+    }
+    return true;
+  }catch(err){
+    $('status').textContent=err.message || 'Sensor permission was not granted.';
+    return false;
+  }
+}
+
+async function enableSensors(){
+  if(sensorsEnabled) return;
+
+  const ok=await requestSensorPermission();
+  if(!ok) return;
+
+  window.addEventListener('devicemotion',updateDeviceMotion);
+  window.addEventListener('deviceorientation',updateDeviceHeading,true);
+
+  sensorsEnabled=true;
+  $('sensorBtn').disabled=true;
+  $('sensorBtn').textContent='Sensors enabled';
+  $('status').textContent='Sensors enabled. Choose a route.';
+}
+
+function startNavigation(){
+  if(!routeNodes.length) return;
+
+  if(!sensorsEnabled){
+    $('status').textContent='Enable sensors first.';
+    return;
+  }
+
+  navigationActive=true;
+  detectedSteps=0;
+  $('startBtn').disabled=true;
+  $('status').textContent='Walk normally — CampusWay will move when steps are detected.';
+  $('instruction').textContent='Start walking';
+  updateTurnInstruction();
+}
+
+
+$('fromFloor').onchange=()=>{
+  fillLocationSelect($('fromFloor').value,'from','Choose start location...');
+};
+
+$('toFloor').onchange=()=>{
+  fillLocationSelect($('toFloor').value,'to','Choose destination...');
+};
+
+$('routeBtn').onclick=route;
+$('swap').onclick=()=>{
+  const ff=$('fromFloor').value;
+  const tf=$('toFloor').value;
+  const fv=$('from').value;
+  const tv=$('to').value;
+
+  $('fromFloor').value=tf;
+  $('toFloor').value=ff;
+
+  fillLocationSelect(tf,'from','Start location...');
+  fillLocationSelect(ff,'to','Destination...');
+
+  $('from').value=tv;
+  $('to').value=fv;
+};
+$('startBtn').onclick=startNavigation;
+
+
+const mapViewport=$('mapViewport');
+
+function handleWheelZoom(e){
+  const rect=mapViewport.getBoundingClientRect();
+  const inside=e.clientX>=rect.left && e.clientX<=rect.right &&
+               e.clientY>=rect.top && e.clientY<=rect.bottom;
+  if(!inside) return;
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  camera.scale=Math.max(1.25,Math.min(4.5,
+    camera.scale + (e.deltaY<0 ? 0.22 : -0.22)
+  ));
+
+  $('zoomReset').textContent=Math.round(camera.scale/2.5*100)+'%';
+  drawBaseMap();
+}
+
+mapViewport.addEventListener('wheel',handleWheelZoom,{passive:false,capture:true});
+
+// Click + drag to explore the map manually.
+// Dragging temporarily turns off automatic camera-follow.
+mapViewport.addEventListener('pointerdown',e=>{
+  if(e.button!==0) return;
+  isPanning=true;
+  followCamera=false;
+  panStart={
+    x:e.clientX,
+    y:e.clientY,
+    cameraX:camera.x,
+    cameraY:camera.y
+  };
+  mapViewport.setPointerCapture?.(e.pointerId);
+  mapViewport.style.cursor='grabbing';
+  $('recenterBtn').style.display='block';
+});
+
+mapViewport.addEventListener('pointermove',e=>{
+  if(!isPanning) return;
+
+  const rect=mapViewport.getBoundingClientRect();
+  const worldPerPixelX=(CAMERA_W/camera.scale)/rect.width;
+  const worldPerPixelY=(CAMERA_H/camera.scale)/rect.height;
+
+  const dx=e.clientX-panStart.x;
+  const dy=e.clientY-panStart.y;
+
+  camera.x=panStart.cameraX-dx*worldPerPixelX;
+  camera.y=panStart.cameraY-dy*worldPerPixelY;
+  drawBaseMap();
+});
+
+function endPan(e){
+  if(!isPanning) return;
+  isPanning=false;
+  mapViewport.releasePointerCapture?.(e.pointerId);
+  mapViewport.style.cursor='grab';
+}
+mapViewport.addEventListener('pointerup',endPan);
+mapViewport.addEventListener('pointercancel',endPan);
+
+$('recenterBtn').onclick=()=>{
+  followCamera=true;
+  $('recenterBtn').style.display='none';
+  const cur=currentInterpolated();
+  if(cur) followNode(cur);
+  drawBaseMap();
+};
+
+$('zoomIn').onclick=()=>{
+  camera.scale=Math.min(4.5,camera.scale+0.35);
+  $('zoomReset').textContent=Math.round(camera.scale/2.5*100)+'%';
+  drawBaseMap();
+};
+$('zoomOut').onclick=()=>{
+  camera.scale=Math.max(1.25,camera.scale-0.35);
+  $('zoomReset').textContent=Math.round(camera.scale/2.5*100)+'%';
+  drawBaseMap();
+};
+$('zoomReset').onclick=()=>{
+  camera.scale=2.5;
+  $('zoomReset').textContent='100%';
+  drawBaseMap();
+};
+
+populateLocations();
+floorButtons();
+drawBaseMap();
+</script>
+</body>
+</html>

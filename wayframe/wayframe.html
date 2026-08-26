@@ -1,0 +1,1954 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WayFrame — Node Plotter</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:sans-serif;
+  background:#0D1B3E;
+  color:white;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+}
+#toolbar{
+  background:#142B5E;
+  padding:10px 16px;
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+  border-bottom:1px solid #1E3A6E;
+}
+#toolbar button{
+  padding:7px 14px;
+  border-radius:8px;
+  border:none;
+  cursor:pointer;
+  font-size:13px;
+  font-weight:600;
+}
+.btn-node{background:#0891B2;color:white;}
+.btn-connect{background:#8B5CF6;color:white;}
+.btn-delete{background:#EF4444;color:white;}
+.btn-delete-conn{background:#DC2626;color:white;}
+.btn-export{background:#00B09B;color:white;}
+.btn-import{background:#2563EB;color:white;}
+.btn-clear{background:#F59E0B;color:#000;}
+.btn-active{outline:3px solid white;}
+select,input{
+  padding:7px 10px;
+  border-radius:8px;
+  border:none;
+  background:#1E3A6E;
+  color:white;
+  font-size:13px;
+}
+#info{
+  background:#1E3A6E;
+  padding:6px 12px;
+  border-radius:8px;
+  font-size:12px;
+  color:#9FC6DD;
+}
+#saveStatus{
+  font-size:11px;
+  color:#86EFAC;
+  min-width:84px;
+}
+.zoom-group{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  padding:4px 6px;
+  background:#1E3A6E;
+  border-radius:8px;
+}
+.zoom-group button{
+  min-width:34px;
+  padding:6px 9px !important;
+  background:#334A74;
+  color:white;
+}
+#zoomValue{
+  min-width:48px;
+  text-align:center;
+  font-size:12px;
+  color:#D8E6F7;
+}
+#main{
+  display:flex;
+  flex:1;
+  overflow:hidden;
+}
+#canvas-wrap{
+  flex:1;
+  overflow:auto;
+  position:relative;
+  cursor:crosshair;
+  background:#0A1733;
+}
+#canvas-wrap.panning{
+  cursor:grabbing !important;
+  user-select:none;
+}
+#floorImg{
+  display:block;
+  max-width:none;
+  user-select:none;
+  -webkit-user-drag:none;
+}
+#overlay{
+  position:absolute;
+  top:0;
+  left:0;
+  pointer-events:none;
+  overflow:visible;
+}
+#sidebar{
+  width:300px;
+  background:#142B5E;
+  padding:12px;
+  overflow-y:auto;
+  border-left:1px solid #1E3A6E;
+  font-size:12px;
+}
+#sidebar h3{margin-bottom:8px;color:#0891B2;}
+.node-entry{
+  padding:6px 8px;
+  background:#1E3A6E;
+  border-radius:6px;
+  margin-bottom:4px;
+  cursor:pointer;
+}
+.node-entry:hover{background:#0891B2;}
+.node-entry.selected{background:#8B5CF6;}
+.empty-note{color:#9FC6DD;font-size:11px;padding:6px 2px;}
+.small{
+  font-size:10px;
+  color:#9FC6DD;
+}
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <label for="buildingSelect">Building:</label>
+
+
+  <select id="buildingSelect" onchange="loadBuilding()">
+  <option value="madriga">Madriga</option>
+  <option value="education">Education</option>
+  <option value="main">Main</option>
+  <option value="multi-purpose">Multi-Purpose</option>
+  <option value="rabin">Rabin</option>
+  <option value="student">Student</option>
+</select>
+
+
+<select id="floorSelect" onchange="loadFloor()"></select>
+
+  <input id="nodeNameInput" type="text"
+         placeholder="Node label (e.g. Room 101, Elevator)"
+         style="width:210px;"/>
+
+  <select id="nodeType">
+    <option value="room">Room</option>
+    <option value="corridor">Corridor junction</option>
+    <option value="elevator">Elevator</option>
+    <option value="stairs">Stairs</option>
+    <option value="entrance">Entrance</option>
+    <option value="restroom">Restroom</option>
+    <option value="landmark">Landmark</option>
+  </select>
+
+  <input id="connectorIdInput" type="text"
+         placeholder="Connector ID (stairs/elevator only)"
+         style="width:210px;display:none;"/>
+
+  <div class="zoom-group" title="Zoom the floor plan">
+    <button type="button" onclick="changeZoom(-0.25)">−</button>
+    <span id="zoomValue">100%</span>
+    <button type="button" onclick="changeZoom(0.25)">+</button>
+    <button type="button" onclick="resetZoom()">Reset</button>
+  </div>
+
+  <button class="btn-node btn-active" id="btnNode" onclick="setMode('node')">📍 Add Node</button>
+  <button class="btn-connect" id="btnConnect" onclick="setMode('connect')">🔗 Connect</button>
+  <button class="btn-delete" id="btnDelete" onclick="setMode('delete')">🗑 Delete Node</button>
+  <button type="button" id="btnEdit" onclick="setMode('edit')" style="background:#F59E0B;color:#111;">✏ Edit Node</button>
+  <button class="btn-delete-conn" id="btnDeleteConnection" onclick="setMode('deleteConnection')">✂ Delete Connection</button>
+
+  <button class="btn-export" onclick="exportCurrentFloor()">💾 Export Floor JSON</button>
+  <button class="btn-export" onclick="exportAllFloors()">📦 Export All</button>
+
+  <button class="btn-import" onclick="document.getElementById('importFile').click()">📂 Import JSON</button>
+  <input id="importFile" type="file" accept=".json,application/json"
+         style="display:none" onchange="importJSON(event)">
+
+  <button class="btn-clear" onclick="clearCurrentFloor()">⚠ Clear Floor</button>
+
+  <select id="routeFrom" title="Route start">
+    <option value="">From...</option>
+  </select>
+  <select id="routeTo" title="Route destination">
+    <option value="">To...</option>
+  </select>
+  <button type="button" onclick="testRoute()" style="background:#22C55E;color:#071a10;">▶ Test Route</button>
+  <button type="button" onclick="clearRoute()" style="background:#475569;color:white;">Clear Route</button>
+
+  <div id="info">Mode: Add Node | Nodes: 0 | Connections: 0</div>
+  <div id="saveStatus">Autosaved</div>
+
+  <button type="button" onclick="openMappingGuide()">
+  ❓ Mapping Guide
+</button>
+</div>
+
+
+<div
+  id="mappingGuide"
+  style="
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.55);
+    z-index:9999;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+  "
+>
+  <div
+    style="
+      background:white;
+      color:#0D1B3E;
+      width:min(560px, 95vw);
+      max-height:85vh;
+      overflow:auto;
+      border-radius:16px;
+      padding:24px;
+      box-shadow:0 20px 60px rgba(0,0,0,.25);
+    "
+  >
+
+    <div style="
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:18px;
+    ">
+      <h2 style="margin:0;">
+        WayFrame Mapping Guide
+      </h2>
+
+      <button
+        type="button"
+        onclick="closeMappingGuide()"
+        style="font-size:18px;"
+      >
+        ✕
+      </button>
+    </div>
+
+    <p>
+      Follow these rules so all CampusWay buildings
+      are mapped consistently.
+    </p>
+
+    <hr>
+
+    <h3>🚪 Rooms</h3>
+    <p>
+      Place the room node at the <strong>room entrance/door</strong>,
+      not in the middle of the room.
+    </p>
+
+    <h3>🚶 Walking nodes</h3>
+    <p>
+      Place walking nodes along the actual path a person can walk.
+      Add extra nodes at turns, intersections and corridor changes.
+    </p>
+
+    <h3>🛗 Elevators</h3>
+    <p>
+      Place a node at the elevator on every relevant floor.
+      The same physical elevator must use the
+      <strong>same Connector ID</strong> on every floor.
+    </p>
+
+    <h3>🪜 Stairs</h3>
+    <p>
+      Place a stair node on every floor the staircase reaches.
+      The same physical staircase must use the
+      <strong>same Connector ID</strong> on every floor.
+    </p>
+
+    <h3>🚪 Building entrances</h3>
+    <p>
+      Add an Entrance node at every real entrance/exit that
+      CampusWay users can use.
+    </p>
+
+    <h3>🔗 Connections</h3>
+    <p>
+      Only connect nodes when a person can actually walk directly
+      between them. Do not connect paths through walls or
+      inaccessible areas.
+    </p>
+
+    <h3>♿ Accessibility</h3>
+    <p>
+      Make sure elevators and stairs are identified correctly.
+      CampusWay uses these node types to calculate accessible routes.
+    </p>
+
+    <h3>📦 When finished</h3>
+    <p>
+      Use <strong>Export All</strong> and send the exported
+      building JSON file to the CampusWay team.
+    </p>
+
+  </div>
+</div>
+
+<div id="main">
+  <div id="canvas-wrap" onclick="handleClick(event)">
+    <img
+  id="floorImg"
+  src="../buildings/madriga/floors/floor1.svg"
+  onload="handleFloorImageLoad()"
+  onerror="handleFloorImageError()"
+  alt="Floor plan"
+/>
+
+<div
+  id="missingFloorMessage"
+  style="
+    display:none;
+    position:absolute;
+    inset:0;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:30px;
+    color:white;
+    background:#0A1733;
+    z-index:5;
+  "
+></div>
+    <svg id="overlay"></svg>
+  </div>
+
+  <div id="sidebar">
+    <h3>Nodes</h3>
+    <div id="nodeList"></div>
+    <br/>
+    <h3>Connections</h3>
+    <div id="connList"></div>
+    <br/>
+    <div class="small">
+      Coordinates are stored as normalized values from 0 to 1,
+      so they stay aligned even if the image is resized later.
+    </div>
+  </div>
+</div>
+
+<script>
+function getStorageKey(){
+
+  const building =
+    document.getElementById('buildingSelect')?.value || 'madriga';
+
+  return `campusway_wayframe_v2_${building}`;
+}
+
+// One-time migration of existing Madriga WayFrame data
+if(
+  !localStorage.getItem('campusway_wayframe_v2_madriga') &&
+  localStorage.getItem('campusway_wayframe_v2')
+){
+  localStorage.setItem(
+    'campusway_wayframe_v2_madriga',
+    localStorage.getItem('campusway_wayframe_v2')
+  );
+}
+
+function openMappingGuide(){
+
+  document.getElementById(
+    'mappingGuide'
+  ).style.display = 'flex';
+
+}
+
+
+function closeMappingGuide(){
+
+  document.getElementById(
+    'mappingGuide'
+  ).style.display = 'none';
+
+}
+
+function wayframeFloorLabel(floorId){
+
+  if(floorId === 'floorminus1'){
+    return '-1';
+  }
+
+  return floorId.replace('floor', '');
+}
+
+const BUILDING_FLOORS = {
+
+  madriga: [
+    'floorminus1',
+    'floor0',
+    'floor1',
+    'floor2',
+    'floor3',
+    'floor4'
+  ],
+
+  education: [
+    'floorminus1',
+    'floor0',
+    'floor1',
+    'floor2',
+    'floor3',
+    'floor4',
+    'floor5',
+    'floor6'
+  ],
+
+  main: [
+    'floor500',
+    'floor600',
+    'floor700'
+  ],
+
+  'multi-purpose': [
+    'floorminus1',
+    'floor0',
+    'floor1',
+    'floor2'
+  ],
+
+  rabin: [
+    'floor5',
+    'floor6',
+    'floor7'
+  ],
+
+  student: [
+    'floor0',
+    'floor1',
+    'floor2',
+    'floor3',
+    'floor4'
+  ]
+
+};
+
+let mode = 'node';
+let selectedNode = null;
+let connectFrom = null;
+let currentFloor = 'floor1';
+let zoomLevel = 1;
+let isPanning = false;
+let panStartX = 0;
+let panStartY = 0;
+let panScrollLeft = 0;
+let panScrollTop = 0;
+let panMoved = false;
+let suppressNextCanvasClick = false;
+
+let movingNodeId = null;
+let movingNodeMoved = false;
+let testRouteNodeIds = [];
+
+/*
+  IMPORTANT:
+  Data is stored PER FLOOR instead of one global nodes array.
+  Each node stores normalized x/y coordinates in the range 0..1.
+*/
+let floorData = loadSavedData();
+
+document.getElementById('nodeType').addEventListener('change', toggleConnectorInput);
+
+function toggleConnectorInput(){
+  const type = document.getElementById('nodeType').value;
+  const input = document.getElementById('connectorIdInput');
+  const needsConnector = type === 'stairs' || type === 'elevator';
+  input.style.display = needsConnector ? 'inline-block' : 'none';
+  if(!needsConnector) input.value = '';
+}
+
+const COLORS = {
+  room: '#0891B2',
+  corridor: '#64748B',
+  elevator: '#8B5CF6',
+  stairs: '#64748B',
+  entrance: '#00B09B',
+  restroom: '#0EA5E9',
+  landmark: '#F59E0B'
+};
+
+function emptyFloor(){
+  return {nodes: [], connections: [], nextNodeId: 0};
+}
+
+function ensureFloor(floorId){
+  if(!floorData[floorId]) floorData[floorId] = emptyFloor();
+  if(!Array.isArray(floorData[floorId].nodes)) floorData[floorId].nodes = [];
+  if(!Array.isArray(floorData[floorId].connections)) floorData[floorId].connections = [];
+  if(typeof floorData[floorId].nextNodeId !== 'number'){
+    const nums = floorData[floorId].nodes
+      .map(n => Number(String(n.id || '').match(/\d+$/)?.[0]))
+      .filter(Number.isFinite);
+    floorData[floorId].nextNodeId = nums.length ? Math.max(...nums) + 1 : 0;
+  }
+  return floorData[floorId];
+}
+
+function getCurrentData(){
+  return ensureFloor(currentFloor);
+}
+
+function loadSavedData(){
+  try{
+    const raw = localStorage.getItem(getStorageKey());
+
+    if(!raw) return {};
+
+    const parsed = JSON.parse(raw);
+
+    // Supports both {floors:{...}} and the direct older object format.
+    return parsed.floors && typeof parsed.floors === 'object'
+      ? parsed.floors
+      : parsed;
+
+  }catch(err){
+
+    console.warn(
+      'Could not load autosaved WayFrame data:',
+      err
+    );
+
+    return {};
+  }
+}
+
+function saveAll(){
+ localStorage.setItem(getStorageKey(), JSON.stringify({
+    version: 2,
+    savedAt: new Date().toISOString(),
+    floors: floorData
+  }));
+
+  const el = document.getElementById('saveStatus');
+  el.textContent = 'Autosaved ✓';
+  clearTimeout(window._saveStatusTimer);
+  window._saveStatusTimer = setTimeout(()=>el.textContent='Autosaved', 1200);
+}
+
+function loadBuilding(){
+
+  const building =
+    document.getElementById('buildingSelect').value;
+
+  const floorSelect =
+    document.getElementById('floorSelect');
+
+  const floors =
+    BUILDING_FLOORS[building] || [];
+
+
+  /*
+    Build the correct floor list
+    for the selected building.
+  */
+
+  floorSelect.innerHTML = '';
+
+
+  for(const floor of floors){
+
+    const option =
+      document.createElement('option');
+
+    option.value =
+      `../buildings/${building}/floors/${floor}.svg`;
+
+    option.dataset.floor =
+      floor;
+
+    option.textContent =
+      `Floor ${wayframeFloorLabel(floor)}`;
+
+    floorSelect.appendChild(option);
+
+  }
+
+
+  /*
+    Load this building's own graph data.
+  */
+
+  floorData =
+    loadSavedData();
+
+
+  selectedNode = null;
+  connectFrom = null;
+  testRouteNodeIds = [];
+
+
+  /*
+    Load the first available floor.
+  */
+
+  if(floors.length){
+
+    floorSelect.selectedIndex = 0;
+
+    loadFloor();
+
+  }
+
+
+  updateRouteSelectors();
+  updateInfo();
+
+}
+
+function loadFloor(){
+  const select = document.getElementById('floorSelect');
+  const option = select.options[select.selectedIndex];
+
+  currentFloor = option.dataset.floor;
+  ensureFloor(currentFloor);
+
+  selectedNode = null;
+  connectFrom = null;
+  zoomLevel = 1;
+
+  // Keep the active tested route when switching floors.
+  document.getElementById('floorImg').src = option.value;
+
+  // Nodes/connections stay saved per floor.
+  renderAll();
+  updateInfo();
+  updateRouteSelectors();
+}
+
+function handleFloorImageLoad(){
+
+  const message =
+    document.getElementById('missingFloorMessage');
+
+  message.style.display =
+    'none';
+
+  document.getElementById('floorImg').style.display =
+    'block';
+
+  document.getElementById('overlay').style.display =
+    'block';
+
+  initCanvas();
+}
+
+
+function handleFloorImageError(){
+
+  const building =
+    document.getElementById('buildingSelect').value;
+
+  const floor =
+    currentFloor;
+
+  const label =
+    wayframeFloorLabel(floor);
+
+  const message =
+    document.getElementById('missingFloorMessage');
+
+  document.getElementById('floorImg').style.display =
+    'none';
+
+  document.getElementById('overlay').style.display =
+    'none';
+
+  message.innerHTML =
+    `
+      <div>
+        <div style="
+          font-size:22px;
+          font-weight:700;
+          margin-bottom:10px;
+        ">
+          No floor plan available
+        </div>
+
+        <div style="
+          color:#9FC6DD;
+          margin-bottom:12px;
+        ">
+          ${building} — Floor ${label}
+        </div>
+
+        <div style="
+          color:#CBD5E1;
+          font-size:13px;
+        ">
+          Add this file:
+          <br><br>
+          <code>
+            buildings/${building}/floors/${floor}.svg
+          </code>
+        </div>
+      </div>
+    `;
+
+  message.style.display =
+    'flex';
+}
+
+function initCanvas(){
+  const img = document.getElementById('floorImg');
+
+  // Use the SVG/image's intrinsic dimensions as the 100% size.
+  // Zooming changes only the DISPLAY size; node coordinates remain normalized.
+  const baseWidth = img.naturalWidth || 1200;
+  const baseHeight = img.naturalHeight || 800;
+
+  img.style.width = (baseWidth * zoomLevel) + 'px';
+  img.style.height = (baseHeight * zoomLevel) + 'px';
+
+  updateZoomLabel();
+  renderAll();
+}
+
+function changeZoom(delta){
+  const wrap = document.getElementById('canvas-wrap');
+  const img = document.getElementById('floorImg');
+
+  // Keep the point near the center of the viewport roughly centered while zooming.
+  const oldWidth = img.offsetWidth || 1;
+  const oldHeight = img.offsetHeight || 1;
+  const centerXRatio = (wrap.scrollLeft + wrap.clientWidth / 2) / oldWidth;
+  const centerYRatio = (wrap.scrollTop + wrap.clientHeight / 2) / oldHeight;
+
+  zoomLevel = Math.min(4, Math.max(0.5, +(zoomLevel + delta).toFixed(2)));
+  initCanvas();
+
+  requestAnimationFrame(()=>{
+    const newWidth = img.offsetWidth;
+    const newHeight = img.offsetHeight;
+    wrap.scrollLeft = Math.max(0, centerXRatio * newWidth - wrap.clientWidth / 2);
+    wrap.scrollTop = Math.max(0, centerYRatio * newHeight - wrap.clientHeight / 2);
+  });
+}
+
+function resetZoom(){
+  zoomLevel = 1;
+  initCanvas();
+  const wrap = document.getElementById('canvas-wrap');
+  wrap.scrollLeft = 0;
+  wrap.scrollTop = 0;
+}
+
+function updateZoomLabel(){
+  const el = document.getElementById('zoomValue');
+  if(el) el.textContent = Math.round(zoomLevel * 100) + '%';
+}
+
+function setMode(m){
+  mode = m;
+  connectFrom = null;
+  selectedNode = null;
+
+  document.querySelectorAll('#toolbar button')
+    .forEach(b=>b.classList.remove('btn-active'));
+
+  const ids = {
+    node: 'btnNode',
+    connect: 'btnConnect',
+    delete: 'btnDelete',
+    edit: 'btnEdit',
+    deleteConnection: 'btnDeleteConnection'
+  };
+
+  const button = document.getElementById(ids[m]);
+  if(button) button.classList.add('btn-active');
+
+  renderAll();
+  updateInfo();
+}
+
+function handleClick(e){
+
+ // If this click was actually the end of a drag/pan,
+  // don't accidentally create a node.
+  if(suppressNextCanvasClick){
+    suppressNextCanvasClick = false;
+    return;
+  }
+  if(mode !== 'node') return;
+
+  // Ignore clicks coming from SVG nodes.
+  if(e.target.closest && e.target.closest('#overlay')) return;
+
+  const img = document.getElementById('floorImg');
+  const wrap = document.getElementById('canvas-wrap');
+  const rect = wrap.getBoundingClientRect();
+
+  // Position inside the displayed image in pixels.
+  const px = e.clientX - rect.left + wrap.scrollLeft;
+  const py = e.clientY - rect.top + wrap.scrollTop;
+
+  if(px < 0 || py < 0 || px > img.offsetWidth || py > img.offsetHeight) return;
+
+  // Store NORMALIZED coordinates rather than raw pixels.
+  const x = +(px / img.offsetWidth).toFixed(6);
+  const y = +(py / img.offsetHeight).toFixed(6);
+
+  const data = getCurrentData();
+  const type = document.getElementById('nodeType').value;
+  const input = document.getElementById('nodeNameInput');
+  const connectorInput = document.getElementById('connectorIdInput');
+  const label = input.value.trim() || `Node ${data.nextNodeId + 1}`;
+
+  const connectorId = (type === 'stairs' || type === 'elevator')
+    ? connectorInput.value.trim()
+    : '';
+
+  const normalizedConnectorId =
+    ['null','none','no','n/a'].includes(connectorId.toLowerCase())
+      ? ''
+      : connectorId;
+
+  const node = {
+    id: `${currentFloor}_n${data.nextNodeId++}`,
+    label,
+    type,
+    connectorId: normalizedConnectorId,
+    x,
+    y,
+    floor: currentFloor
+  };
+
+  data.nodes.push(node);
+  input.value = '';
+  connectorInput.value = '';
+
+  saveAll();
+  renderAll();
+  updateInfo();
+}
+
+function selectNode(id){
+  const data = getCurrentData();
+
+  if(mode === 'connect'){
+    if(!connectFrom){
+      connectFrom = id;
+      selectedNode = id;
+    }else{
+      if(connectFrom !== id){
+        const exists = data.connections.some(c =>
+          (c.from===connectFrom && c.to===id) ||
+          (c.from===id && c.to===connectFrom)
+        );
+
+        if(!exists){
+          data.connections.push({
+            from: connectFrom,
+            to: id
+          });
+          testRouteNodeIds = [];
+          saveAll();
+        }
+      }
+
+      connectFrom = null;
+      selectedNode = null;
+    }
+  }else if(mode === 'edit'){
+    editNode(id);
+    return;
+  }else if(mode === 'delete'){
+    data.nodes = data.nodes.filter(n => n.id !== id);
+    data.connections = data.connections.filter(
+      c => c.from !== id && c.to !== id
+    );
+    selectedNode = null;
+    connectFrom = null;
+    testRouteNodeIds = [];
+    saveAll();
+  }else{
+    selectedNode = selectedNode === id ? null : id;
+  }
+
+  renderAll();
+  updateInfo();
+}
+
+function denormalize(node, img){
+  return {
+    x: node.x * img.offsetWidth,
+    y: node.y * img.offsetHeight
+  };
+}
+
+function renderAll(){
+  const svg = document.getElementById('overlay');
+  const img = document.getElementById('floorImg');
+  const data = getCurrentData();
+
+  if(!img.complete || !img.offsetWidth || !img.offsetHeight) return;
+
+  svg.style.width = img.offsetWidth + 'px';
+  svg.style.height = img.offsetHeight + 'px';
+  svg.setAttribute('width', img.offsetWidth);
+  svg.setAttribute('height', img.offsetHeight);
+  svg.setAttribute('viewBox', `0 0 ${img.offsetWidth} ${img.offsetHeight}`);
+  svg.innerHTML = '';
+
+  // Draw connections.
+  data.connections.forEach(c=>{
+    const from = data.nodes.find(n=>n.id===c.from);
+    const to = data.nodes.find(n=>n.id===c.to);
+    if(!from || !to) return;
+
+    const p1 = denormalize(from, img);
+    const p2 = denormalize(to, img);
+
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1', p1.x);
+    line.setAttribute('y1', p1.y);
+    line.setAttribute('x2', p2.x);
+    line.setAttribute('y2', p2.y);
+    line.setAttribute('stroke', mode === 'deleteConnection' ? '#EF4444' : '#0891B2');
+    line.setAttribute('stroke-width', mode === 'deleteConnection' ? '6' : '3');
+    line.setAttribute('opacity', mode === 'deleteConnection' ? '0.9' : '0.65');
+
+    if(mode === 'deleteConnection'){
+      line.setAttribute('pointer-events','stroke');
+      line.style.cursor = 'pointer';
+      line.onclick = (e)=>{
+        e.stopPropagation();
+        deleteConnectionByNodes(c.from, c.to);
+      };
+    } else {
+      line.setAttribute('pointer-events','none');
+    }
+
+    svg.appendChild(line);
+  });
+
+  // Draw the currently tested route on top of the graph.
+  if(testRouteNodeIds.length > 1){
+    for(let i=0; i<testRouteNodeIds.length-1; i++){
+      const from = findNodeAnywhere(testRouteNodeIds[i]);
+      const to = findNodeAnywhere(testRouteNodeIds[i+1]);
+      if(!from || !to) continue;
+      if(from.floor !== currentFloor || to.floor !== currentFloor) continue;
+
+      const p1 = denormalize(from, img);
+      const p2 = denormalize(to, img);
+
+      const routeLine = document.createElementNS('http://www.w3.org/2000/svg','line');
+      routeLine.setAttribute('x1',p1.x);
+      routeLine.setAttribute('y1',p1.y);
+      routeLine.setAttribute('x2',p2.x);
+      routeLine.setAttribute('y2',p2.y);
+      routeLine.setAttribute('stroke','#22C55E');
+      routeLine.setAttribute('stroke-width','8');
+      routeLine.setAttribute('stroke-linecap','round');
+      routeLine.setAttribute('opacity','0.95');
+      routeLine.setAttribute('pointer-events','none');
+      svg.appendChild(routeLine);
+    }
+  }
+
+  // Draw nodes.
+  data.nodes.forEach(n=>{
+    const p = denormalize(n, img);
+
+const g =
+  document.createElementNS(
+    'http://www.w3.org/2000/svg',
+    'g'
+  );
+
+
+g.style.cursor =
+  mode === 'edit'
+    ? 'move'
+    : 'pointer';
+
+
+g.setAttribute(
+  'pointer-events',
+  'all'
+);
+
+
+// Normal node click.
+g.onclick = e=>{
+
+  e.stopPropagation();
+
+  /*
+    If we just dragged the node,
+    don't also open the edit prompts.
+  */
+  if(movingNodeMoved){
+    movingNodeMoved = false;
+    return;
+  }
+
+  selectNode(n.id);
+};
+
+// ------------------------------------------------------------
+// DRAG NODE WHILE IN EDIT MODE
+// ------------------------------------------------------------
+
+g.addEventListener(
+  'mousedown',
+  e=>{
+
+    if(
+      mode !== 'edit' ||
+      e.button !== 0
+    ){
+      return;
+    }
+
+
+    e.preventDefault();
+    e.stopPropagation();
+
+
+    movingNodeId =
+      n.id;
+
+    movingNodeMoved =
+      false;
+
+
+    selectedNode =
+      n.id;
+
+
+    renderAll();
+  }
+);
+
+    const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx',p.x);
+    circle.setAttribute('cy',p.y);
+    circle.setAttribute('r','8');
+    circle.setAttribute('fill',COLORS[n.type] || '#0891B2');
+    circle.setAttribute(
+      'stroke',
+      n.id===selectedNode || n.id===connectFrom
+        ? 'white'
+        : 'rgba(255,255,255,0.6)'
+    );
+    circle.setAttribute(
+      'stroke-width',
+      n.id===selectedNode || n.id===connectFrom ? '3' : '1.5'
+    );
+
+    const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+    text.setAttribute('x',p.x);
+    text.setAttribute('y',p.y-12);
+    text.setAttribute('text-anchor','middle');
+    text.setAttribute('font-size','10');
+    text.setAttribute('fill','white');
+    text.setAttribute('font-family','sans-serif');
+    text.setAttribute('font-weight','600');
+    text.setAttribute('paint-order','stroke');
+    text.setAttribute('stroke','#0D1B3E');
+    text.setAttribute('stroke-width','3');
+    text.setAttribute('pointer-events','none');
+    text.textContent = n.label;
+
+    g.appendChild(circle);
+    g.appendChild(text);
+    svg.appendChild(g);
+  });
+
+  // Sidebar node list.
+  const nodeList = document.getElementById('nodeList');
+  if(!data.nodes.length){
+    nodeList.innerHTML = '<div class="empty-note">No nodes on this floor yet.</div>';
+  }else{
+    nodeList.innerHTML = data.nodes.map(n=>`
+      <div class="node-entry ${n.id===selectedNode?'selected':''}"
+           onclick="selectNode('${n.id}')">
+        <b>${escapeHtml(n.label)}</b>
+        <span style="color:#9FC6DD;">(${escapeHtml(n.type)})</span>
+        <span onclick="event.stopPropagation();editNode('${n.id}')" style="float:right;color:#FCD34D;cursor:pointer;margin-left:8px;">edit</span>
+        ${(n.type==='stairs'||n.type==='elevator') ? `<span onclick="event.stopPropagation();editConnector('${n.id}')" style="float:right;color:#86EFAC;cursor:pointer;">edit connector</span>` : ''}
+        <br/>
+        <span style="color:#9FC6DD;">
+          x:${n.x.toFixed(4)} y:${n.y.toFixed(4)}
+          ${n.connectorId ? `<br/>connector: ${escapeHtml(n.connectorId)}` : ((n.type==='stairs'||n.type==='elevator') ? '<br/>connector: none' : '')}
+        </span>
+      </div>
+    `).join('');
+  }
+
+  // Sidebar connection list.
+  const connList = document.getElementById('connList');
+  if(!data.connections.length){
+    connList.innerHTML = '<div class="empty-note">No connections yet.</div>';
+  }else{
+    connList.innerHTML = data.connections.map((c,i)=>{
+      const from = data.nodes.find(n=>n.id===c.from);
+      const to = data.nodes.find(n=>n.id===c.to);
+
+      return `<div class="node-entry" style="cursor:default;">
+        ${escapeHtml(from?.label || c.from)} → ${escapeHtml(to?.label || c.to)}
+        <span onclick="event.stopPropagation();deleteConn(${i})"
+              style="color:#EF4444;cursor:pointer;float:right;">✕</span>
+      </div>`;
+    }).join('');
+  }
+
+  updateRouteSelectors();
+}
+
+
+// ============================================================
+// MOVE NODE WHILE EDITING
+// ============================================================
+window.addEventListener('mousemove', (e)=>{
+  if(!movingNodeId) return;
+
+  const data = getCurrentData();
+  const node = data.nodes.find(n => n.id === movingNodeId);
+  if(!node) return;
+
+  const img = document.getElementById('floorImg');
+  const wrap = document.getElementById('canvas-wrap');
+  const rect = wrap.getBoundingClientRect();
+
+  const px = e.clientX - rect.left + wrap.scrollLeft;
+  const py = e.clientY - rect.top + wrap.scrollTop;
+
+  let x = px / img.offsetWidth;
+  let y = py / img.offsetHeight;
+
+  x = Math.max(0, Math.min(1, x));
+  y = Math.max(0, Math.min(1, y));
+
+  node.x = +x.toFixed(6);
+  node.y = +y.toFixed(6);
+  movingNodeMoved = true;
+  testRouteNodeIds = [];
+
+  renderAll();
+});
+
+window.addEventListener('mouseup', (e)=>{
+  if(e.button !== 0 || !movingNodeId) return;
+
+  movingNodeId = null;
+  saveAll();
+  renderAll();
+  updateRouteSelectors();
+  updateInfo();
+});
+
+function updateRouteSelectors(){
+  const fromEl = document.getElementById('routeFrom');
+  const toEl = document.getElementById('routeTo');
+  if(!fromEl || !toEl) return;
+
+  const oldFrom = fromEl.value;
+  const oldTo = toEl.value;
+
+  const floorOrder = ['floorminus1','floor0','floor1','floor2','floor3','floor4'];
+
+  const optionGroups = floorOrder
+    .filter(floorId => floorData[floorId]?.nodes?.length)
+    .map(floorId=>{
+      const sorted = [...floorData[floorId].nodes].sort((a,b)=>{
+        const priority = n => ['room','entrance','elevator','stairs','restroom','landmark'].includes(n.type) ? 0 : 1;
+        return priority(a)-priority(b) || a.label.localeCompare(b.label, undefined, {numeric:true});
+      });
+
+      return `<optgroup label="${escapeHtml(floorId)}">` +
+        sorted.map(n =>
+          `<option value="${n.id}">${escapeHtml(n.label)} (${escapeHtml(n.type)})</option>`
+        ).join('') +
+        `</optgroup>`;
+    }).join('');
+
+  fromEl.innerHTML = '<option value="">From...</option>' + optionGroups;
+  toEl.innerHTML = '<option value="">To...</option>' + optionGroups;
+
+  if(findNodeAnywhere(oldFrom)) fromEl.value = oldFrom;
+  if(findNodeAnywhere(oldTo)) toEl.value = oldTo;
+}
+
+function findNodeAnywhere(id){
+  if(!id) return null;
+  for(const [floorId, data] of Object.entries(floorData)){
+    const node = data?.nodes?.find(n=>n.id===id);
+    if(node) return node;
+  }
+  return null;
+}
+
+function testRoute(){
+  const startId = document.getElementById('routeFrom').value;
+  const endId = document.getElementById('routeTo').value;
+
+  if(!startId || !endId){
+    alert('Choose both a start and destination.');
+    return;
+  }
+
+  const path = shortestPath(startId, endId);
+
+  if(!path){
+    testRouteNodeIds = [];
+    renderAll();
+    alert('No route found. Check for a missing walking connection or unmatched Connector ID.');
+    return;
+  }
+
+  testRouteNodeIds = path;
+
+  const startNode = findNodeAnywhere(startId);
+  if(startNode && startNode.floor !== currentFloor){
+    switchToFloor(startNode.floor);
+  }else{
+    renderAll();
+  }
+
+  const floorsUsed = [...new Set(path.map(id=>findNodeAnywhere(id)?.floor).filter(Boolean))];
+  if(floorsUsed.length > 1){
+    setTimeout(()=>{
+      alert('Multi-floor route found through: ' + floorsUsed.join(' → ') +
+        '\n\nUse the floor selector to inspect each floor segment of the green route.');
+    }, 50);
+  }
+}
+
+function switchToFloor(floorId){
+  const select = document.getElementById('floorSelect');
+  const option = [...select.options].find(o=>o.dataset.floor===floorId);
+  if(!option) return;
+
+  select.value = option.value;
+  currentFloor = floorId;
+  selectedNode = null;
+  connectFrom = null;
+  zoomLevel = 1;
+
+  // Keep testRouteNodeIds untouched so a multi-floor route remains visible.
+  document.getElementById('floorImg').src = option.value;
+  updateInfo();
+  updateRouteSelectors();
+}
+
+function clearRoute(){
+  testRouteNodeIds = [];
+  renderAll();
+  updateInfo();
+}
+
+function activeRouteFloors(){
+  return [...new Set(
+    testRouteNodeIds
+      .map(id => findNodeAnywhere(id)?.floor)
+      .filter(Boolean)
+  )];
+}
+
+function shortestPath(startId, endId){
+  // Build one graph from every floor.
+  const allNodes = [];
+  const byId = new Map();
+
+  for(const [floorId, data] of Object.entries(floorData)){
+    for(const n of (data.nodes || [])){
+      allNodes.push(n);
+      byId.set(n.id, n);
+    }
+  }
+
+  if(!byId.has(startId) || !byId.has(endId)) return null;
+
+  const adjacency = new Map(allNodes.map(n=>[n.id,[]]));
+
+  // Normal same-floor walking connections.
+  for(const [floorId, data] of Object.entries(floorData)){
+    for(const c of (data.connections || [])){
+      const a = byId.get(c.from);
+      const b = byId.get(c.to);
+      if(!a || !b) continue;
+
+      const weight = Math.hypot(a.x-b.x, a.y-b.y);
+      adjacency.get(a.id).push({id:b.id, weight, kind:'walk'});
+      adjacency.get(b.id).push({id:a.id, weight, kind:'walk'});
+    }
+  }
+
+  // Automatic vertical links for matching connector IDs.
+  const connectorGroups = new Map();
+
+  for(const n of allNodes){
+    if(!n.connectorId) continue;
+    if(n.type !== 'stairs' && n.type !== 'elevator') continue;
+
+    const key = `${n.type}:${n.connectorId}`;
+    if(!connectorGroups.has(key)) connectorGroups.set(key, []);
+    connectorGroups.get(key).push(n);
+  }
+
+  for(const nodes of connectorGroups.values()){
+    // Connect adjacent floors only.
+    const sorted = [...nodes].sort((a,b)=>floorNumber(a.floor)-floorNumber(b.floor));
+
+    for(let i=0; i<sorted.length-1; i++){
+      const a = sorted[i];
+      const b = sorted[i+1];
+
+      // Do not connect two nodes that accidentally have the same floor.
+      if(a.floor === b.floor) continue;
+
+      // Small constant cost for changing floors.
+      const weight = a.type === 'elevator' ? 0.02 : 0.04;
+
+      adjacency.get(a.id).push({id:b.id, weight, kind:'vertical'});
+      adjacency.get(b.id).push({id:a.id, weight, kind:'vertical'});
+    }
+  }
+
+  const dist = new Map(allNodes.map(n=>[n.id, Infinity]));
+  const prev = new Map();
+  const unvisited = new Set(allNodes.map(n=>n.id));
+  dist.set(startId, 0);
+
+  while(unvisited.size){
+    let current = null;
+    let best = Infinity;
+
+    for(const id of unvisited){
+      const d = dist.get(id);
+      if(d < best){
+        best = d;
+        current = id;
+      }
+    }
+
+    if(current === null || best === Infinity) break;
+    if(current === endId) break;
+
+    unvisited.delete(current);
+
+    for(const edge of adjacency.get(current) || []){
+      if(!unvisited.has(edge.id)) continue;
+      const alt = best + edge.weight;
+
+      if(alt < dist.get(edge.id)){
+        dist.set(edge.id, alt);
+        prev.set(edge.id, current);
+      }
+    }
+  }
+
+  if(dist.get(endId) === Infinity) return null;
+
+  const path = [];
+  let cur = endId;
+
+  while(cur !== undefined){
+    path.unshift(cur);
+    if(cur === startId) break;
+    cur = prev.get(cur);
+  }
+
+  return path[0] === startId ? path : null;
+}
+
+function floorNumber(floorId){
+  if(floorId === 'floorminus1') return -1;
+  const match = String(floorId).match(/-?\d+/);
+  return match ? Number(match[0]) : 0;
+}
+
+function editNode(nodeId){
+  const node = findNodeAnywhere(nodeId);
+  if(!node) return;
+
+  const newLabel = prompt('Node label:', node.label);
+  if(newLabel === null) return;
+
+  const allowedTypes = ['room','corridor','elevator','stairs','entrance','restroom','landmark'];
+  const newTypeRaw = prompt(
+    'Node type:\nroom, corridor, elevator, stairs, entrance, restroom, landmark',
+    node.type
+  );
+  if(newTypeRaw === null) return;
+
+  const newType = newTypeRaw.trim().toLowerCase();
+  if(!allowedTypes.includes(newType)){
+    alert('Invalid node type. No changes were saved.');
+    return;
+  }
+
+  let newConnectorId = node.connectorId || '';
+
+  if(newType === 'stairs' || newType === 'elevator'){
+    const connectorAnswer = prompt(
+      'Connector ID for this ' + newType + '.\nUse the same ID on the matching floor connection.\nLeave this COMPLETELY BLANK if this node is NOT the cross-floor connector:',
+      newConnectorId
+    );
+    if(connectorAnswer === null) return;
+    const cleaned = connectorAnswer.trim();
+    newConnectorId =
+      ['null','none','no','n/a'].includes(cleaned.toLowerCase())
+        ? ''
+        : cleaned;
+  }else{
+    newConnectorId = '';
+  }
+
+  node.label = newLabel.trim() || node.label;
+  node.type = newType;
+  node.connectorId = newConnectorId;
+
+  testRouteNodeIds = [];
+  selectedNode = null;
+  connectFrom = null;
+  saveAll();
+  renderAll();
+  updateRouteSelectors();
+  updateInfo();
+}
+
+function editConnector(nodeId){
+  const node = findNodeAnywhere(nodeId);
+  if(!node) return;
+  if(node.type !== 'stairs' && node.type !== 'elevator') return;
+
+  const value = prompt(
+    'Connector ID for ' + node.label + '\nUse the SAME ID on matching floors, e.g. stairs_A or elevator_A.\nLeave blank for NO cross-floor connection:',
+    node.connectorId || ''
+  );
+
+  if(value === null) return;
+
+  const cleaned = value.trim();
+  node.connectorId =
+    ['null','none','no','n/a'].includes(cleaned.toLowerCase())
+      ? ''
+      : cleaned;
+  saveAll();
+  renderAll();
+  updateRouteSelectors();
+}
+
+function deleteConnectionByNodes(fromId, toId){
+  const data = getCurrentData();
+  const index = data.connections.findIndex(c =>
+    (c.from === fromId && c.to === toId) ||
+    (c.from === toId && c.to === fromId)
+  );
+
+  if(index !== -1){
+    data.connections.splice(index, 1);
+    testRouteNodeIds = [];
+    saveAll();
+    renderAll();
+    updateInfo();
+  }
+}
+
+function deleteConn(i){
+  const data = getCurrentData();
+  data.connections.splice(i,1);
+  testRouteNodeIds = [];
+  saveAll();
+  renderAll();
+  updateInfo();
+}
+
+function clearCurrentFloor(){
+  const data = getCurrentData();
+  if(!data.nodes.length && !data.connections.length) return;
+
+  if(confirm(`Clear all nodes and connections on ${currentFloor}?`)){
+    floorData[currentFloor] = emptyFloor();
+    selectedNode = null;
+    connectFrom = null;
+    testRouteNodeIds = [];
+    saveAll();
+    renderAll();
+    updateInfo();
+  }
+}
+
+function updateInfo(){
+  const data = getCurrentData();
+  const modeLabel =
+    mode === 'node' ? 'Add Node' :
+    mode === 'connect' ? 'Connect' :
+    mode === 'edit' ? 'Edit Node' :
+    mode === 'deleteConnection' ? 'Delete Connection' :
+    'Delete Node';
+
+  const routeFloors = activeRouteFloors();
+  const routeStatus = testRouteNodeIds.length
+    ? ` | Active route${routeFloors.length > 1 ? ': ' + routeFloors.join(' → ') : ''}`
+    : '';
+
+  document.getElementById('info').textContent =
+    `Floor: ${currentFloor} | Mode: ${modeLabel} | Nodes: ${data.nodes.length} | Connections: ${data.connections.length}` +
+    (connectFrom ? ' | Select second node' : '') +
+    routeStatus;
+}
+
+function exportCurrentFloor(){
+
+  const data =
+    getCurrentData();
+
+  const building =
+    document.getElementById('buildingSelect').value;
+
+  downloadJSON(
+    `${building}-${currentFloor}.json`,
+    {
+      version: 2,
+      building: building,
+      floor: currentFloor,
+      coordinateSystem: 'normalized_0_to_1',
+      nodes: data.nodes,
+      connections: data.connections
+    }
+  );
+}
+function exportAllFloors(){
+
+  const building =
+    document.getElementById('buildingSelect').value;
+
+  downloadJSON(
+    `${building}-indoor-graph.json`,
+    {
+      version: 2,
+      building: building,
+      coordinateSystem: 'normalized_0_to_1',
+      floors: floorData
+    }
+  );
+
+}
+
+function downloadJSON(filename, data){
+  const blob = new Blob(
+    [JSON.stringify(data, null, 2)],
+    {type:'application/json'}
+  );
+
+  const a = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  a.href = url;
+  a.download = filename;
+  a.click();
+
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+
+function importJSON(event){
+
+  const file =
+    event.target.files?.[0];
+
+  if(!file){
+    return;
+  }
+
+
+  const reader =
+    new FileReader();
+
+
+  reader.onload = ()=>{
+
+    try{
+
+      const imported =
+        JSON.parse(reader.result);
+
+
+      const currentBuilding =
+        document.getElementById('buildingSelect').value;
+
+
+      /*
+        SAFETY CHECK
+
+        If the JSON says which building it belongs to,
+        make sure that building is currently selected.
+      */
+
+      if(
+        imported.building &&
+        imported.building.toLowerCase() !==
+        currentBuilding.toLowerCase()
+      ){
+
+        alert(
+          `This file belongs to "${imported.building}".\n\n` +
+          `You currently have "${currentBuilding}" selected.\n\n` +
+          `Switch to the correct building before importing it.`
+        );
+
+        return;
+      }
+
+
+      /*
+        Export-all format.
+      */
+
+      if(
+        imported.floors &&
+        typeof imported.floors === 'object'
+      ){
+
+        Object.entries(
+          imported.floors
+        ).forEach(
+          ([floorId, data])=>{
+
+            floorData[floorId] =
+              sanitizeFloorData(
+                floorId,
+                data
+              );
+
+          }
+        );
+
+      }
+
+
+      /*
+        Single-floor format.
+      */
+
+      else if(
+        imported.floor &&
+        Array.isArray(imported.nodes)
+      ){
+
+        floorData[imported.floor] =
+          sanitizeFloorData(
+            imported.floor,
+            imported
+          );
+
+      }
+
+
+      /*
+        Older direct per-floor format.
+      */
+
+      else{
+
+        Object.entries(
+          imported
+        ).forEach(
+          ([floorId, data])=>{
+
+            if(
+              data &&
+              Array.isArray(data.nodes)
+            ){
+
+              floorData[floorId] =
+                sanitizeFloorData(
+                  floorId,
+                  data
+                );
+
+            }
+
+          }
+        );
+
+      }
+
+
+      saveAll();
+
+      renderAll();
+
+      updateRouteSelectors();
+
+      updateInfo();
+
+
+      alert(
+        `${currentBuilding} JSON imported successfully.`
+      );
+
+    }
+    catch(err){
+
+      console.error(err);
+
+      alert(
+        'Could not import this JSON file.'
+      );
+
+    }
+    finally{
+
+      event.target.value = '';
+
+    }
+
+  };
+
+
+  reader.readAsText(file);
+
+}
+
+function sanitizeFloorData(floorId, data){
+  const img = document.getElementById('floorImg');
+
+  const nodes = (data.nodes || []).map((n,index)=>{
+    let x = Number(n.x);
+    let y = Number(n.y);
+
+    /*
+      Compatibility with Claude's OLD raw-pixel JSON:
+      if x/y are greater than 1, convert them to normalized values.
+      This only makes sense for the currently loaded floor image, so
+      new work should always use normalized coordinates.
+    */
+    if((x > 1 || y > 1) && img.offsetWidth && img.offsetHeight && floorId === currentFloor){
+      x = x / img.offsetWidth;
+      y = y / img.offsetHeight;
+    }
+
+    return {
+      id: n.id || `${floorId}_n${index}`,
+      label: n.label || `Node ${index+1}`,
+      type: n.type || 'corridor',
+      connectorId: (
+        ['null','none','no','n/a'].includes(String(n.connectorId || '').trim().toLowerCase())
+          ? ''
+          : String(n.connectorId || '').trim()
+      ),
+      x: Math.min(1, Math.max(0, x)),
+      y: Math.min(1, Math.max(0, y)),
+      floor: floorId
+    };
+  });
+
+  const nodeIds = new Set(nodes.map(n=>n.id));
+
+  const connections = (data.connections || []).filter(c =>
+    nodeIds.has(c.from) && nodeIds.has(c.to) && c.from !== c.to
+  );
+
+  const nums = nodes
+    .map(n => Number(String(n.id).match(/\d+$/)?.[0]))
+    .filter(Number.isFinite);
+
+  return {
+    nodes,
+    connections,
+    nextNodeId: nums.length ? Math.max(...nums) + 1 : nodes.length
+  };
+}
+
+function escapeHtml(value){
+  return String(value)
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'","&#039;");
+}
+
+window.addEventListener('resize', initCanvas);
+window.addEventListener('beforeunload', saveAll);
+
+// Mouse wheel zooms directly — no Ctrl needed.
+document.getElementById('canvas-wrap').addEventListener('wheel', (e)=>{
+  e.preventDefault();
+
+  const wrap = document.getElementById('canvas-wrap');
+  const img = document.getElementById('floorImg');
+
+  // Keep the point under the mouse in roughly the same place while zooming.
+  const rect = wrap.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left + wrap.scrollLeft;
+  const mouseY = e.clientY - rect.top + wrap.scrollTop;
+
+  const oldWidth = img.offsetWidth || 1;
+  const oldHeight = img.offsetHeight || 1;
+
+  const xRatio = mouseX / oldWidth;
+  const yRatio = mouseY / oldHeight;
+
+  const delta = e.deltaY < 0 ? 0.15 : -0.15;
+  zoomLevel = Math.min(4, Math.max(0.5, +(zoomLevel + delta).toFixed(2)));
+
+  initCanvas();
+
+  requestAnimationFrame(()=>{
+    const newWidth = img.offsetWidth;
+    const newHeight = img.offsetHeight;
+
+    wrap.scrollLeft = Math.max(
+      0,
+      xRatio * newWidth - (e.clientX - rect.left)
+    );
+
+    wrap.scrollTop = Math.max(
+      0,
+      yRatio * newHeight - (e.clientY - rect.top)
+    );
+  });
+}, {passive:false});
+
+// ============================================================
+// LEFT-CLICK + DRAG TO PAN
+// ============================================================
+
+const canvasWrap =
+  document.getElementById('canvas-wrap');
+
+
+canvasWrap.addEventListener('mousedown', (e)=>{
+
+  // Left mouse button only.
+  if(e.button !== 0) return;
+
+  /*
+    Don't begin map panning when the user actually clicked
+    one of the SVG nodes. Node dragging is handled separately.
+  */
+  if(e.target.closest && e.target.closest('#overlay g')){
+    return;
+  }
+
+  isPanning = true;
+  panMoved = false;
+
+  panStartX = e.clientX;
+  panStartY = e.clientY;
+
+  panScrollLeft =
+    canvasWrap.scrollLeft;
+
+  panScrollTop =
+    canvasWrap.scrollTop;
+});
+
+
+window.addEventListener('mousemove', (e)=>{
+
+  if(!isPanning) return;
+
+  const dx =
+    e.clientX - panStartX;
+
+  const dy =
+    e.clientY - panStartY;
+
+
+  /*
+    Small threshold so a normal click still adds a node.
+  */
+  if(
+    Math.abs(dx) > 4 ||
+    Math.abs(dy) > 4
+  ){
+    panMoved = true;
+    canvasWrap.classList.add('panning');
+  }
+
+
+  if(!panMoved){
+    return;
+  }
+
+
+  e.preventDefault();
+
+  canvasWrap.scrollLeft =
+    panScrollLeft - dx;
+
+  canvasWrap.scrollTop =
+    panScrollTop - dy;
+});
+
+
+window.addEventListener('mouseup', (e)=>{
+
+  if(e.button !== 0 || !isPanning){
+    return;
+  }
+
+
+  if(panMoved){
+
+    /*
+      canvas-wrap has onclick="handleClick(event)".
+
+      Without this flag, releasing the mouse after panning
+      could create a new node.
+    */
+    suppressNextCanvasClick = true;
+  }
+
+
+  isPanning = false;
+  panMoved = false;
+
+  canvasWrap.classList.remove(
+    'panning'
+  );
+});
+
+
+// Keyboard shortcuts remain available too.
+window.addEventListener('keydown', (e)=>{
+  if(e.target.matches('input, select, textarea')) return;
+  if(e.key === '+' || e.key === '=') changeZoom(0.25);
+  if(e.key === '-') changeZoom(-0.25);
+  if(e.key === '0') resetZoom();
+});
+// Initialize selected building and its first floor.
+
+toggleConnectorInput();
+
+loadBuilding();
+
+</script>
+</body>
+</html>
