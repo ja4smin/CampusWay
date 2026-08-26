@@ -556,6 +556,47 @@ function saveAll(){
   window._saveStatusTimer = setTimeout(()=>el.textContent='Autosaved', 1200);
 }
 
+async function loadPublishedBuildingGraph(building){
+
+  if(building !== 'madriga'){
+    return null;
+  }
+
+  try{
+
+    const response =
+      await fetch(
+        `../buildings/${building}/madriga-indoor-graph.json`
+      );
+
+    if(!response.ok){
+      return null;
+    }
+
+    const imported =
+      await response.json();
+
+    if(
+      !imported.floors ||
+      typeof imported.floors !== 'object'
+    ){
+      return null;
+    }
+
+    return imported.floors;
+
+  }
+  catch(err){
+
+    console.warn(
+      'Could not load published building graph:',
+      err
+    );
+
+    return null;
+  }
+}
+
 function loadBuilding(){
 
   const building =
