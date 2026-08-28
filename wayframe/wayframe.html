@@ -136,6 +136,11 @@ select,input{
 <body>
 
 <div id="toolbar">
+
+  <button type="button" id="btnUndo" onclick="undoAction()">↶ Undo</button>
+  <button type="button" id="btnRedo" onclick="redoAction()">↷ Redo</button>
+
+
   <label for="buildingSelect">Building:</label>
 
 
@@ -146,7 +151,7 @@ select,input{
   <option value="multi-purpose">Multi-Purpose</option>
   <option value="rabin">Rabin</option>
   <option value="student">Student</option>
-</select>
+  </select>
 
 
 <select id="floorSelect" onchange="loadFloor()"></select>
@@ -171,18 +176,12 @@ select,input{
          placeholder="Connector ID (stairs/elevator only)"
          style="width:210px;display:none;"/>
 
-  <div class="zoom-group" title="Zoom the floor plan">
-    <button type="button" onclick="changeZoom(-0.25)">−</button>
-    <span id="zoomValue">100%</span>
-    <button type="button" onclick="changeZoom(0.25)">+</button>
-    <button type="button" onclick="resetZoom()">Reset</button>
-  </div>
 
   <button class="btn-node" id="btnNode" onclick="toggleNodeMode()">📍 Add Node</button>
   <button class="btn-connect" id="btnConnect" onclick="toggleConnectMode()">🔗 Connect</button>
   <button class="btn-delete" id="btnDelete" onclick="toggleDeleteMode()">🗑 Delete Node</button>
-  <button type="button" id="btnEdit" onclick="setMode('edit')" style="background:#F59E0B;color:#111;">✏ Edit Node</button>
-  <button class="btn-delete-conn" id="btnDeleteConnection" onclick="setMode('deleteConnection')">✂ Delete Connection</button>
+  <button type="button" id="btnEdit" onclick="toggleEditMode()"style="background:#F59E0B;color:#111;"></button>>✏ Edit Node</button>
+  <button class="btn-delete-conn" id="btnDeleteConnection" onclick="toggleDeleteConnectionMode()">✂ Delete Connection</button>
 
   <button class="btn-export" onclick="exportCurrentFloor()">💾 Export Floor JSON</button>
   <button class="btn-export" onclick="exportAllFloors()">📦 Export All</button>
@@ -208,6 +207,12 @@ select,input{
   <button type="button" onclick="openMappingGuide()">
   ❓ Mapping Guide
 </button>
+  <div class="zoom-group" title="Zoom the floor plan">
+    <button type="button" onclick="changeZoom(-0.25)">−</button>
+    <span id="zoomValue">100%</span>
+    <button type="button" onclick="changeZoom(0.25)">+</button>
+    <button type="button" onclick="resetZoom()">Reset</button>
+  </div>
 </div>
 
 
@@ -474,6 +479,8 @@ let movingNodeId = null;
 let movingNodeMoved = false;
 let selectedConnectionIndex = null;
 let testRouteNodeIds = [];
+let undoStack = [];
+let redoStack = [];
 
 /*
   IMPORTANT:
@@ -503,6 +510,49 @@ const COLORS = {
   food: '#F97316',
   gym: '#EC4899',
 };
+
+function saveHistory(){
+  undoStack.push(JSON.stringify(floorData));
+
+  // keep history from growing forever
+  if(undoStack.length > 50){
+    undoStack.shift();
+  }
+
+  // once a new action happens, redo history is no longer valid
+  redoStack = [];
+}
+
+function undoAction(){
+  if(undoStack.length === 0) return;
+
+  redoStack.push(JSON.stringify(floorData));
+
+  floorData = JSON.parse(undoStack.pop());
+
+  selectedNode = null;
+  connectFrom = null;
+
+  saveAll();
+  renderAll();
+  updateInfo();
+}
+
+function redoAction(){
+  if(redoStack.length === 0) return;
+
+  undoStack.push(JSON.stringify(floorData));
+
+  floorData = JSON.parse(redoStack.pop());
+
+  selectedNode = null;
+  connectFrom = null;
+
+  saveAll();
+  renderAll();
+  updateInfo();
+}
+
 
 function emptyFloor(){
   return {nodes: [], connections: [], nextNodeId: 0};
@@ -856,6 +906,20 @@ function toggleDeleteMode(){
     setMode('delete');
   }
 }
+function toggleEditMode(){
+  if(mode === 'edit'){
+    setMode('select');
+  }else{
+    setMode('edit');
+  }
+}
+function toggleDeleteConnectionMode(){
+  if(mode === 'deleteConnection'){
+    setMode('select');
+  }else{
+    setMode('deleteConnection');
+  }
+}
 
 function setMode(m){
   mode = m;
@@ -935,6 +999,8 @@ function handleClick(e){
     floor: currentFloor
   };
 
+  saveHistory();
+
   data.nodes.push(node);
   input.value = '';
   connectorInput.value = '';
@@ -946,6 +1012,7 @@ function handleClick(e){
 
 function selectNode(id){
   const data = getCurrentData();
+  selectedConnectionIndex = null;
 
   if(mode === 'connect'){
     if(!connectFrom){
@@ -959,6 +1026,7 @@ function selectNode(id){
         );
 
         if(!exists){
+          saveHistory();
           data.connections.push({
             from: connectFrom,
             to: id
@@ -975,6 +1043,7 @@ function selectNode(id){
     editNode(id);
     return;
   }else if(mode === 'delete'){
+    saveHistory();
     data.nodes = data.nodes.filter(n => n.id !== id);
     data.connections = data.connections.filter(
       c => c.from !== id && c.to !== id
@@ -1273,6 +1342,10 @@ window.addEventListener('mousemove', (e)=>{
   x = Math.max(0, Math.min(1, x));
   y = Math.max(0, Math.min(1, y));
 
+  if(!movingNodeMoved){
+  saveHistory();
+}
+
   node.x = +x.toFixed(6);
   node.y = +y.toFixed(6);
   movingNodeMoved = true;
@@ -1549,6 +1622,8 @@ function editNode(nodeId){
     newConnectorId = '';
   }
 
+  saveHistory();
+
   node.label = newLabel.trim() || node.label;
   node.type = newType;
   node.connectorId = newConnectorId;
@@ -1592,6 +1667,7 @@ function deleteConnectionByNodes(fromId, toId){
   );
 
   if(index !== -1){
+    saveHistory();
     data.connections.splice(index, 1);
     testRouteNodeIds = [];
     saveAll();
@@ -1602,6 +1678,7 @@ function deleteConnectionByNodes(fromId, toId){
 
 function deleteConn(i){
   const data = getCurrentData();
+  saveHistory();
   data.connections.splice(i,1);
   testRouteNodeIds = [];
   saveAll();
@@ -1614,6 +1691,7 @@ function clearCurrentFloor(){
   if(!data.nodes.length && !data.connections.length) return;
 
   if(confirm(`Clear all nodes and connections on ${currentFloor}?`)){
+    saveHistory();
     floorData[currentFloor] = emptyFloor();
     selectedNode = null;
     connectFrom = null;
