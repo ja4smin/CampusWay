@@ -163,6 +163,8 @@ select,input{
     <option value="entrance">Entrance</option>
     <option value="restroom">Restroom</option>
     <option value="landmark">Landmark</option>
+    <option value="food">Food</option>
+    <option value="gym">Gym</option>
   </select>
 
   <input id="connectorIdInput" type="text"
@@ -176,9 +178,9 @@ select,input{
     <button type="button" onclick="resetZoom()">Reset</button>
   </div>
 
-  <button class="btn-node btn-active" id="btnNode" onclick="setMode('node')">📍 Add Node</button>
-  <button class="btn-connect" id="btnConnect" onclick="setMode('connect')">🔗 Connect</button>
-  <button class="btn-delete" id="btnDelete" onclick="setMode('delete')">🗑 Delete Node</button>
+  <button class="btn-node" id="btnNode" onclick="toggleNodeMode()">📍 Add Node</button>
+  <button class="btn-connect" id="btnConnect" onclick="toggleConnectMode()">🔗 Connect</button>
+  <button class="btn-delete" id="btnDelete" onclick="toggleDeleteMode()">🗑 Delete Node</button>
   <button type="button" id="btnEdit" onclick="setMode('edit')" style="background:#F59E0B;color:#111;">✏ Edit Node</button>
   <button class="btn-delete-conn" id="btnDeleteConnection" onclick="setMode('deleteConnection')">✂ Delete Connection</button>
 
@@ -455,7 +457,7 @@ const BUILDING_FLOORS = {
 
 };
 
-let mode = 'node';
+let mode = 'select';
 let selectedNode = null;
 let connectFrom = null;
 let currentFloor = 'floor1';
@@ -470,6 +472,7 @@ let suppressNextCanvasClick = false;
 
 let movingNodeId = null;
 let movingNodeMoved = false;
+let selectedConnectionIndex = null;
 let testRouteNodeIds = [];
 
 /*
@@ -496,7 +499,9 @@ const COLORS = {
   stairs: '#64748B',
   entrance: '#00B09B',
   restroom: '#0EA5E9',
-  landmark: '#F59E0B'
+  landmark: '#F59E0B',
+  food: '#F97316',
+  gym: '#EC4899',
 };
 
 function emptyFloor(){
@@ -830,6 +835,28 @@ function updateZoomLabel(){
   if(el) el.textContent = Math.round(zoomLevel * 100) + '%';
 }
 
+function toggleNodeMode(){
+  if(mode === 'node'){
+    setMode('select');
+  }else{
+    setMode('node');
+  }
+}
+function toggleConnectMode(){
+  if(mode === 'connect'){
+    setMode('select');
+  }else{
+    setMode('connect');
+  }
+}
+function toggleDeleteMode(){
+  if(mode === 'delete'){
+    setMode('select');
+  }else{
+    setMode('delete');
+  }
+}
+
 function setMode(m){
   mode = m;
   connectFrom = null;
@@ -1000,16 +1027,22 @@ function renderAll(){
     line.setAttribute('stroke-width', mode === 'deleteConnection' ? '6' : '3');
     line.setAttribute('opacity', mode === 'deleteConnection' ? '0.9' : '0.65');
 
-    if(mode === 'deleteConnection'){
-      line.setAttribute('pointer-events','stroke');
-      line.style.cursor = 'pointer';
-      line.onclick = (e)=>{
-        e.stopPropagation();
-        deleteConnectionByNodes(c.from, c.to);
-      };
-    } else {
-      line.setAttribute('pointer-events','none');
-    }
+    line.setAttribute('pointer-events','stroke');
+line.style.cursor = 'pointer';
+
+line.onclick = (e)=>{
+  e.stopPropagation();
+
+  if(mode === 'deleteConnection'){
+    deleteConnectionByNodes(c.from, c.to);
+    return;
+  }
+
+  selectedConnectionIndex =
+    data.connections.indexOf(c);
+
+  renderAll();
+};
 
     svg.appendChild(line);
   });
@@ -1088,27 +1121,21 @@ g.addEventListener(
   e=>{
 
     if(
-      mode !== 'edit' ||
-      e.button !== 0
-    ){
-      return;
-    }
-
+  e.button !== 0 ||
+  mode === 'edit' ||
+  mode === 'delete' ||
+  mode === 'connect' ||
+  mode === 'deleteConnection'
+){
+  return;
+}
 
     e.preventDefault();
     e.stopPropagation();
 
-
-    movingNodeId =
-      n.id;
-
-    movingNodeMoved =
-      false;
-
-
-    selectedNode =
-      n.id;
-
+    movingNodeId = n.id;
+    movingNodeMoved = false;
+    selectedNode = n.id;
 
     renderAll();
   }
@@ -1179,7 +1206,7 @@ g.addEventListener(
       const from = data.nodes.find(n=>n.id===c.from);
       const to = data.nodes.find(n=>n.id===c.to);
 
-      return `<div class="node-entry" style="cursor:default;">
+      return `<div class="node-entry ${i===selectedConnectionIndex?'selected':''}" style="cursor:default;">
         ${escapeHtml(from?.label || c.from)} → ${escapeHtml(to?.label || c.to)}
         <span onclick="event.stopPropagation();deleteConn(${i})"
               style="color:#EF4444;cursor:pointer;float:right;">✕</span>
@@ -1188,6 +1215,35 @@ g.addEventListener(
   }
 
   updateRouteSelectors();
+
+// If a node is selected, automatically bring its
+// matching entry into view in the sidebar.
+if(selectedNode){
+  requestAnimationFrame(()=>{
+    const selectedEntry =
+      document.querySelector('#nodeList .node-entry.selected');
+
+    if(selectedEntry){
+      selectedEntry.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+    }
+  });
+}
+if(selectedConnectionIndex !== null){
+  requestAnimationFrame(()=>{
+    const selectedConnection =
+      document.querySelector('#connList .node-entry.selected');
+
+    if(selectedConnection){
+      selectedConnection.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+    }
+  });
+}
 }
 
 
@@ -1246,7 +1302,7 @@ function updateRouteSelectors(){
     .filter(floorId => floorData[floorId]?.nodes?.length)
     .map(floorId=>{
       const sorted = [...floorData[floorId].nodes].sort((a,b)=>{
-        const priority = n => ['room','entrance','elevator','stairs','restroom','landmark'].includes(n.type) ? 0 : 1;
+        const priority = n => ['room','entrance','elevator','stairs','restroom','landmark','food','gym'].includes(n.type) ? 0 : 1;
         return priority(a)-priority(b) || a.label.localeCompare(b.label, undefined, {numeric:true});
       });
 
@@ -1460,11 +1516,11 @@ function editNode(nodeId){
   const newLabel = prompt('Node label:', node.label);
   if(newLabel === null) return;
 
-  const allowedTypes = ['room','corridor','elevator','stairs','entrance','restroom','landmark'];
-  const newTypeRaw = prompt(
-    'Node type:\nroom, corridor, elevator, stairs, entrance, restroom, landmark',
-    node.type
-  );
+  const allowedTypes = ['room','corridor','elevator','stairs','entrance','restroom','landmark','food','gym'];
+ const newTypeRaw = prompt(
+  'Node type:\nroom, corridor, elevator, stairs, entrance, restroom, landmark, food, gym',
+  node.type
+);
   if(newTypeRaw === null) return;
 
   const newType = newTypeRaw.trim().toLowerCase();
