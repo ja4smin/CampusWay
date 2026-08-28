@@ -1470,6 +1470,24 @@
           "x": 0.544297,
           "y": 0.41476,
           "floor": "floor3"
+        },
+        {
+          "id": "floor3_n105",
+          "label": "Node 106",
+          "type": "corridor",
+          "connectorId": "",
+          "x": 0.197285,
+          "y": 0.345724,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n106",
+          "label": "Node 107",
+          "type": "corridor",
+          "connectorId": "",
+          "x": 0.207071,
+          "y": 0.344499,
+          "floor": "floor3"
         }
       ],
       "connections": [
@@ -1558,20 +1576,12 @@
           "to": "floor3_n12"
         },
         {
-          "from": "floor3_n33",
-          "to": "floor3_n34"
-        },
-        {
           "from": "floor3_n34",
           "to": "floor3_n14"
         },
         {
           "from": "floor3_n34",
           "to": "floor3_n13"
-        },
-        {
-          "from": "floor3_n33",
-          "to": "floor3_n16"
         },
         {
           "from": "floor3_n16",
@@ -1828,9 +1838,25 @@
         {
           "from": "floor3_n32",
           "to": "floor3_n33"
+        },
+        {
+          "from": "floor3_n33",
+          "to": "floor3_n105"
+        },
+        {
+          "from": "floor3_n105",
+          "to": "floor3_n106"
+        },
+        {
+          "from": "floor3_n106",
+          "to": "floor3_n34"
+        },
+        {
+          "from": "floor3_n105",
+          "to": "floor3_n16"
         }
       ],
-      "nextNodeId": 105
+      "nextNodeId": 107
     },
     "floor2": {
       "nodes": [
