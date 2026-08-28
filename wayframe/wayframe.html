@@ -911,7 +911,10 @@ function handleClick(e){
   const type = document.getElementById('nodeType').value;
   const input = document.getElementById('nodeNameInput');
   const connectorInput = document.getElementById('connectorIdInput');
-  const label = input.value.trim() || `Node ${data.nextNodeId + 1}`;
+  const label =
+  type === 'restroom'
+    ? 'Restroom'
+    : input.value.trim() || `Node ${data.nextNodeId + 1}`;
 
   const connectorId = (type === 'stairs' || type === 'elevator')
     ? connectorInput.value.trim()
