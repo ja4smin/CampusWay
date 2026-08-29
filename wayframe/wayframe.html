@@ -89,12 +89,13 @@ select,input{
   overflow:auto;
   position:relative;
   cursor:crosshair;
-  background:#0A1733;
+  background:white;
 }
 #canvas-wrap.panning{
   cursor:grabbing !important;
   user-select:none;
 }
+
 #floorImg{
   display:block;
   max-width:none;
@@ -323,14 +324,14 @@ select,input{
 </div>
 
 <div id="main">
-  <div id="canvas-wrap" onclick="handleClick(event)">
-    <img
-  id="floorImg"
-  src="../buildings/madriga/floors/floor1.svg"
-  onload="handleFloorImageLoad()"
-  onerror="handleFloorImageError()"
-  alt="Floor plan"
-/>
+<div id="canvas-wrap" onclick="handleClick(event)">
+  <img
+    id="floorImg"
+    src="../buildings/madriga/floors/floor1.svg"
+    onload="handleFloorImageLoad()"
+    onerror="handleFloorImageError()"
+    alt="Floor plan"
+  />
 
 <div
   id="missingFloorMessage"
