@@ -171,6 +171,7 @@ select,input{
     <option value="landmark">Landmark</option>
     <option value="food">Food</option>
     <option value="gym">Gym</option>
+    <option value="shelter">Shelter</option>
   </select>
 
   <input id="connectorIdInput" type="text"
@@ -510,6 +511,7 @@ const COLORS = {
   landmark: '#F59E0B',
   food: '#F97316',
   gym: '#EC4899',
+  shelter: '#22C55E'
 };
 
 function saveHistory(){
@@ -743,7 +745,10 @@ else{
 
   if(floors.length){
 
-    floorSelect.selectedIndex = 0;
+    floorSelect.value =
+  building === 'madriga'
+    ? '../buildings/madriga/floors/floor0.svg'
+    : floorSelect.options[0].value;
 
     loadFloor();
 
@@ -990,6 +995,8 @@ function handleClick(e){
   const label =
   type === 'restroom'
     ? 'Restroom'
+    : type === 'shelter'
+      ? 'Shelter'
     : input.value.trim() || `Node ${data.nextNodeId + 1}`;
 
   const connectorId = (type === 'stairs' || type === 'elevator')
@@ -1390,7 +1397,7 @@ function updateRouteSelectors(){
     .filter(floorId => floorData[floorId]?.nodes?.length)
     .map(floorId=>{
       const sorted = [...floorData[floorId].nodes].sort((a,b)=>{
-        const priority = n => ['room','entrance','elevator','stairs','restroom','landmark','food','gym'].includes(n.type) ? 0 : 1;
+        const priority = n => ['room','entrance','elevator','stairs','restroom','landmark','food','gym','shelter'].includes(n.type) ? 0 : 1;
         return priority(a)-priority(b) || a.label.localeCompare(b.label, undefined, {numeric:true});
       });
 
@@ -1604,9 +1611,9 @@ function editNode(nodeId){
   const newLabel = prompt('Node label:', node.label);
   if(newLabel === null) return;
 
-  const allowedTypes = ['room','corridor','elevator','stairs','entrance','restroom','landmark','food','gym'];
+ const allowedTypes = ['room','corridor','elevator','stairs','entrance','restroom','landmark','food','gym','shelter'];
  const newTypeRaw = prompt(
-  'Node type:\nroom, corridor, elevator, stairs, entrance, restroom, landmark, food, gym',
+  'Node type:\nroom, corridor, elevator, stairs, entrance, restroom, landmark, food, gym, shelter',
   node.type
 );
   if(newTypeRaw === null) return;
