@@ -678,8 +678,19 @@ async function loadBuilding(){
     const option =
       document.createElement('option');
 
-    option.value =
-      `../buildings/${building}/floors/${floor}.svg`;
+if(building === 'main'){
+  const mainFloorFiles = {
+    floor500: '500-Model.svg',
+    floor600: '600-Model.svg',
+    floor700: '700-Model.svg'
+  };
+
+  option.value =
+    `../buildings/main/floors/${mainFloorFiles[floor]}`;
+}else{
+  option.value =
+    `../buildings/${building}/floors/${floor}.svg`;
+}
 
     option.dataset.floor =
       floor;
