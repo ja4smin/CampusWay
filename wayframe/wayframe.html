@@ -172,6 +172,8 @@ select,input{
     <option value="food">Food</option>
     <option value="gym">Gym</option>
     <option value="shelter">Shelter</option>
+    <option value="library">Library</option>
+    <option value="museum">Hecht Museum</option>
   </select>
 
   <input id="connectorIdInput" type="text"
@@ -511,7 +513,9 @@ const COLORS = {
   landmark: '#F59E0B',
   food: '#F97316',
   gym: '#EC4899',
-  shelter: '#22C55E'
+  shelter: '#22C55E',
+  library: '#6366F1',
+  museum: '#A855F7'
 };
 
 function saveHistory(){
@@ -992,12 +996,16 @@ function handleClick(e){
   const type = document.getElementById('nodeType').value;
   const input = document.getElementById('nodeNameInput');
   const connectorInput = document.getElementById('connectorIdInput');
-  const label =
+const label =
   type === 'restroom'
     ? 'Restroom'
     : type === 'shelter'
       ? 'Shelter'
-    : input.value.trim() || `Node ${data.nextNodeId + 1}`;
+      : type === 'library'
+        ? 'Library'
+        : type === 'museum'
+          ? 'Hecht Museum'
+          : input.value.trim() || `Node ${data.nextNodeId + 1}`;
 
   const connectorId = (type === 'stairs' || type === 'elevator')
     ? connectorInput.value.trim()
@@ -1397,7 +1405,7 @@ function updateRouteSelectors(){
     .filter(floorId => floorData[floorId]?.nodes?.length)
     .map(floorId=>{
       const sorted = [...floorData[floorId].nodes].sort((a,b)=>{
-        const priority = n => ['room','entrance','elevator','stairs','restroom','landmark','food','gym','shelter'].includes(n.type) ? 0 : 1;
+        const priority = n => ['room','entrance','elevator','stairs','restroom','landmark','food','gym','shelter','library', 'museum'].includes(n.type) ? 0 : 1;
         return priority(a)-priority(b) || a.label.localeCompare(b.label, undefined, {numeric:true});
       });
 
@@ -1611,9 +1619,9 @@ function editNode(nodeId){
   const newLabel = prompt('Node label:', node.label);
   if(newLabel === null) return;
 
- const allowedTypes = ['room','corridor','elevator','stairs','entrance','restroom','landmark','food','gym','shelter'];
+ const allowedTypes = ['room','corridor','elevator','stairs','entrance','restroom','landmark','food','gym','shelter','library','museum'];
  const newTypeRaw = prompt(
-  'Node type:\nroom, corridor, elevator, stairs, entrance, restroom, landmark, food, gym, shelter',
+  'Node type:\nroom, corridor, elevator, stairs, entrance, restroom, landmark, food, gym, shelter, library, museum',
   node.type
 );
   if(newTypeRaw === null) return;
