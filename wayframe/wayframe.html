@@ -667,6 +667,11 @@ async function loadBuilding(){
   const building =
     document.getElementById('buildingSelect').value;
 
+    localStorage.setItem(
+  'campusway_wayframe_last_building',
+  building
+);
+
   const floorSelect =
     document.getElementById('floorSelect');
 
@@ -2174,6 +2179,13 @@ window.addEventListener('keydown', (e)=>{
   if(e.key === '0') resetZoom();
 });
 // Initialize selected building and its first floor.
+
+const lastBuilding =
+  localStorage.getItem('campusway_wayframe_last_building');
+
+if(lastBuilding){
+  document.getElementById('buildingSelect').value = lastBuilding;
+}
 
 toggleConnectorInput();
 
