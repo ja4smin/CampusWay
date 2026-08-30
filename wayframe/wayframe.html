@@ -784,7 +784,10 @@ function loadFloor(){
 const roomInput =
   document.getElementById('nodeNameInput');
 
-if(building === 'rabin'){
+if(
+  building === 'rabin' &&
+  document.getElementById('nodeType').value === 'room'
+){
   const rabinPrefixes = {
     floor5: '50',
     floor6: '60',
@@ -1025,15 +1028,19 @@ function handleClick(e){
 const label =
   type === 'restroom'
     ? 'Restroom'
-    : type === 'shelter'
-      ? 'Shelter'
-      : type === 'library'
-        ? 'Library'
-        : type === 'museum'
-          ? 'Hecht Museum'
-            : type === 'parking'
-            ? 'Parking Lot'
-          : input.value.trim() || `Node ${data.nextNodeId + 1}`;
+    : type === 'elevator'
+      ? 'elevator'
+      : type === 'stairs'
+        ? 'stairs'
+        : type === 'shelter'
+          ? 'Shelter'
+          : type === 'library'
+            ? 'Library'
+            : type === 'museum'
+              ? 'Hecht Museum'
+              : type === 'parking'
+                ? 'Parking Lot'
+                : input.value.trim() || `Node ${data.nextNodeId + 1}`;
 
   const connectorId = (type === 'stairs' || type === 'elevator')
     ? connectorInput.value.trim()
@@ -1057,7 +1064,10 @@ const label =
   saveHistory();
 
   data.nodes.push(node);
-  if(document.getElementById('buildingSelect').value === 'rabin'){
+ if(
+  document.getElementById('buildingSelect').value === 'rabin' &&
+  type === 'room'
+){
   const rabinPrefixes = {
     floor5: '50',
     floor6: '60',
