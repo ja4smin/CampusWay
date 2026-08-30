@@ -1057,7 +1057,17 @@ const label =
   saveHistory();
 
   data.nodes.push(node);
+  if(document.getElementById('buildingSelect').value === 'rabin'){
+  const rabinPrefixes = {
+    floor5: '50',
+    floor6: '60',
+    floor7: '70'
+  };
+
+  input.value = rabinPrefixes[currentFloor] || '';
+}else{
   input.value = '';
+}
   connectorInput.value = '';
 
   saveAll();
