@@ -778,6 +778,25 @@ function loadFloor(){
   currentFloor = option.dataset.floor;
   ensureFloor(currentFloor);
 
+  const building =
+  document.getElementById('buildingSelect').value;
+
+const roomInput =
+  document.getElementById('nodeNameInput');
+
+if(building === 'rabin'){
+  const rabinPrefixes = {
+    floor5: '50',
+    floor6: '60',
+    floor7: '70'
+  };
+
+  roomInput.value =
+    rabinPrefixes[currentFloor] || '';
+}else{
+  roomInput.value = '';
+}
+
   selectedNode = null;
   connectFrom = null;
   zoomLevel = 1;
