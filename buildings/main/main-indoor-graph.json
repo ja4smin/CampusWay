@@ -3098,6 +3098,15 @@
           "x": 0.254127,
           "y": 0.574763,
           "floor": "floor600"
+        },
+        {
+          "id": "floor600_n90",
+          "label": "deshe",
+          "type": "landmark",
+          "connectorId": "",
+          "x": 0.990711,
+          "y": 0.411718,
+          "floor": "floor600"
         }
       ],
       "connections": [
@@ -3404,9 +3413,17 @@
         {
           "from": "floor600_n88",
           "to": "floor600_n3"
+        },
+        {
+          "from": "floor600_n86",
+          "to": "floor600_n90"
+        },
+        {
+          "from": "floor600_n87",
+          "to": "floor600_n90"
         }
       ],
-      "nextNodeId": 90
+      "nextNodeId": 91
     }
   }
 }
