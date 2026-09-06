@@ -175,6 +175,7 @@ select,input{
     <option value="library">Library</option>
     <option value="museum">Hecht Museum</option>
     <option value="parking">Parking Lot</option>
+    <option value="clinic">Clinic</option>
   </select>
 
   <input id="connectorIdInput" type="text"
@@ -196,6 +197,7 @@ select,input{
          style="display:none" onchange="importJSON(event)">
 
   <button class="btn-clear" onclick="clearCurrentFloor()">⚠ Clear Floor</button>
+<button type="button" class="btn-clear" onclick="clearConnections()">⚠ Clear Connections</button>
 
   <select id="routeFrom" title="Route start">
     <option value="">From...</option>
@@ -517,7 +519,8 @@ const COLORS = {
   shelter: '#22C55E',
   library: '#6366F1',
   museum: '#A855F7',
-  parking: '#14B8A6'
+  parking: '#14B8A6',
+  clinic: '#EF4444',
 };
 
 function saveHistory(){
@@ -1040,6 +1043,8 @@ const label =
               ? 'Hecht Museum'
               : type === 'parking'
                 ? 'Parking Lot'
+                : type === 'clinic'
+                ? 'Clinic'
                 : input.value.trim() || `Node ${data.nextNodeId + 1}`;
 
   const connectorId = (type === 'stairs' || type === 'elevator')
@@ -1453,7 +1458,7 @@ function updateRouteSelectors(){
     .filter(floorId => floorData[floorId]?.nodes?.length)
     .map(floorId=>{
       const sorted = [...floorData[floorId].nodes].sort((a,b)=>{
-        const priority = n => ['room','entrance','elevator','stairs','restroom','landmark','food','gym','shelter','library', 'museum','parking'].includes(n.type) ? 0 : 1;
+        const priority = n => ['room','entrance','elevator','stairs','restroom','landmark','food','gym','shelter','library', 'museum','parking', 'clinic'].includes(n.type) ? 0 : 1;
         return priority(a)-priority(b) || a.label.localeCompare(b.label, undefined, {numeric:true});
       });
 
@@ -1667,9 +1672,9 @@ function editNode(nodeId){
   const newLabel = prompt('Node label:', node.label);
   if(newLabel === null) return;
 
- const allowedTypes = ['room','corridor','elevator','stairs','entrance','restroom','landmark','food','gym','shelter','library','museum', 'parking'];
+ const allowedTypes = ['room','corridor','elevator','stairs','entrance','restroom','landmark','food','gym','shelter','library','museum', 'parking', 'clinic'];
  const newTypeRaw = prompt(
-  'Node type:\nroom, corridor, elevator, stairs, entrance, restroom, landmark, food, gym, shelter, library, museum, parking',
+  'Node type:\nroom, corridor, elevator, stairs, entrance, restroom, landmark, food, gym, shelter, library, museum, parking', 'clinic',
   node.type
 );
   if(newTypeRaw === null) return;
@@ -1776,6 +1781,23 @@ function clearCurrentFloor(){
     updateInfo();
   }
 }
+
+function clearConnections(){
+  const data = getCurrentData();
+
+  if(!confirm('Clear all connections on this floor?')) return;
+
+  saveHistory();
+
+  data.connections = [];
+  selectedConnectionIndex = null;
+
+  saveAll();
+  renderAll();
+  updateInfo();
+}
+
+
 
 function updateInfo(){
   const data = getCurrentData();
