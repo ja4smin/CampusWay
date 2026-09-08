@@ -2111,7 +2111,7 @@ document.getElementById('canvas-wrap').addEventListener('wheel', (e)=>{
   const yRatio = mouseY / oldHeight;
 
   const delta = e.deltaY < 0 ? 0.15 : -0.15;
-  zoomLevel = Math.min(10, Math.max(0.5, +(zoomLevel + delta).toFixed(2)));
+  zoomLevel = Math.min(10, Math.max(0.1, +(zoomLevel + delta).toFixed(2)));
 
   initCanvas();
 
