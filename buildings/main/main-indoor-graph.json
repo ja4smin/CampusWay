@@ -277,9 +277,9 @@
         },
         {
           "id": "floor500_n35",
-          "label": "stair 1",
+          "label": "stairs",
           "type": "stairs",
-          "connectorId": "1",
+          "connectorId": "",
           "x": 0.75561,
           "y": 0.532509,
           "floor": "floor500"
@@ -316,8 +316,8 @@
           "label": "Node 40",
           "type": "corridor",
           "connectorId": "",
-          "x": 0.771045,
-          "y": 0.546318,
+          "x": 0.771635,
+          "y": 0.545069,
           "floor": "floor500"
         },
         {
@@ -406,8 +406,8 @@
           "label": "Node 51",
           "type": "corridor",
           "connectorId": "",
-          "x": 0.756222,
-          "y": 0.559432,
+          "x": 0.755755,
+          "y": 0.559703,
           "floor": "floor500"
         },
         {
@@ -976,6 +976,15 @@
           "x": 0.475042,
           "y": 0.434036,
           "floor": "floor500"
+        },
+        {
+          "id": "floor500_n119",
+          "label": "stairs",
+          "type": "stairs",
+          "connectorId": "56",
+          "x": 0.75482,
+          "y": 0.514896,
+          "floor": "floor500"
         }
       ],
       "connections": [
@@ -1406,9 +1415,13 @@
         {
           "from": "floor500_n103",
           "to": "floor500_n30"
+        },
+        {
+          "from": "floor500_n35",
+          "to": "floor500_n119"
         }
       ],
-      "nextNodeId": 119
+      "nextNodeId": 120
     },
     "floor600": {
       "nodes": [
@@ -1416,7 +1429,7 @@
           "id": "floor600_n0",
           "label": "stairs",
           "type": "stairs",
-          "connectorId": "1",
+          "connectorId": "67",
           "x": 0.700182,
           "y": 0.396873,
           "floor": "floor600"
@@ -2163,7 +2176,7 @@
           "id": "floor600_n94",
           "label": "stairs",
           "type": "stairs",
-          "connectorId": "",
+          "connectorId": "7",
           "x": 0.88091,
           "y": 0.417551,
           "floor": "floor600"
@@ -2172,7 +2185,7 @@
           "id": "floor600_n95",
           "label": "stairs",
           "type": "stairs",
-          "connectorId": "",
+          "connectorId": "56",
           "x": 0.700392,
           "y": 0.438242,
           "floor": "floor600"
@@ -2371,8 +2384,8 @@
           "label": "Node 118",
           "type": "corridor",
           "connectorId": "",
-          "x": 0.700462,
-          "y": 0.542162,
+          "x": 0.700594,
+          "y": 0.54427,
           "floor": "floor600"
         },
         {
@@ -2596,8 +2609,8 @@
           "label": "Node 144",
           "type": "corridor",
           "connectorId": "",
-          "x": 0.701231,
-          "y": 0.468824,
+          "x": 0.700594,
+          "y": 0.469005,
           "floor": "floor600"
         },
         {
@@ -3714,7 +3727,7 @@
           "id": "floor700_n51",
           "label": "stairs",
           "type": "stairs",
-          "connectorId": "",
+          "connectorId": "67",
           "x": 0.668912,
           "y": 0.560763,
           "floor": "floor700"
@@ -3724,8 +3737,8 @@
           "label": "stairs",
           "type": "stairs",
           "connectorId": "",
-          "x": 0.840855,
-          "y": 0.538515,
+          "x": 0.839174,
+          "y": 0.538476,
           "floor": "floor700"
         },
         {
@@ -4327,17 +4340,17 @@
           "label": "Node 124",
           "type": "corridor",
           "connectorId": "",
-          "x": 0.861936,
-          "y": 0.538095,
+          "x": 0.861565,
+          "y": 0.5382,
           "floor": "floor700"
         },
         {
           "id": "floor700_n124",
           "label": "stairs",
           "type": "stairs",
-          "connectorId": "",
-          "x": 0.811164,
-          "y": 0.537675,
+          "connectorId": "7",
+          "x": 0.811332,
+          "y": 0.5382,
           "floor": "floor700"
         },
         {
@@ -4345,8 +4358,8 @@
           "label": "stairs",
           "type": "stairs",
           "connectorId": "",
-          "x": 0.668116,
-          "y": 0.520044,
+          "x": 0.66763,
+          "y": 0.519376,
           "floor": "floor700"
         },
         {
@@ -4708,6 +4721,24 @@
           "x": 0.722013,
           "y": 0.635164,
           "floor": "floor700"
+        },
+        {
+          "id": "floor700_n166",
+          "label": "Node 167",
+          "type": "corridor",
+          "connectorId": "",
+          "x": 0.667674,
+          "y": 0.511967,
+          "floor": "floor700"
+        },
+        {
+          "id": "floor700_n167",
+          "label": "Node 168",
+          "type": "corridor",
+          "connectorId": "",
+          "x": 0.662425,
+          "y": 0.511965,
+          "floor": "floor700"
         }
       ],
       "connections": [
@@ -4890,10 +4921,6 @@
         {
           "from": "floor700_n126",
           "to": "floor700_n116"
-        },
-        {
-          "from": "floor700_n126",
-          "to": "floor700_n51"
         },
         {
           "from": "floor700_n61",
@@ -5350,9 +5377,25 @@
         {
           "from": "floor700_n165",
           "to": "floor700_n38"
+        },
+        {
+          "from": "floor700_n125",
+          "to": "floor700_n166"
+        },
+        {
+          "from": "floor700_n166",
+          "to": "floor700_n167"
+        },
+        {
+          "from": "floor700_n167",
+          "to": "floor700_n129"
+        },
+        {
+          "from": "floor700_n166",
+          "to": "floor700_n80"
         }
       ],
-      "nextNodeId": 166
+      "nextNodeId": 168
     }
   }
 }
