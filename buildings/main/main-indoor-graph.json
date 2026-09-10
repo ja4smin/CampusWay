@@ -2227,15 +2227,6 @@
           "floor": "floor600"
         },
         {
-          "id": "floor600_n100",
-          "label": "Node 101",
-          "type": "corridor",
-          "connectorId": "",
-          "x": 0.772646,
-          "y": 0.394888,
-          "floor": "floor600"
-        },
-        {
           "id": "floor600_n101",
           "label": "Node 102",
           "type": "corridor",
@@ -2791,10 +2782,6 @@
           "to": "floor600_n97"
         },
         {
-          "from": "floor600_n100",
-          "to": "floor600_n74"
-        },
-        {
           "from": "floor600_n74",
           "to": "floor600_n72"
         },
@@ -3324,10 +3311,6 @@
         },
         {
           "from": "floor600_n158",
-          "to": "floor600_n100"
-        },
-        {
-          "from": "floor600_n158",
           "to": "floor600_n97"
         },
         {
@@ -3341,6 +3324,14 @@
         {
           "from": "floor600_n159",
           "to": "floor600_n79"
+        },
+        {
+          "from": "floor600_n99",
+          "to": "floor600_n158"
+        },
+        {
+          "from": "floor600_n158",
+          "to": "floor600_n74"
         }
       ],
       "nextNodeId": 160
@@ -4027,8 +4018,8 @@
           "label": "Node 83",
           "type": "corridor",
           "connectorId": "",
-          "x": 0.776437,
-          "y": 0.513978,
+          "x": 0.777689,
+          "y": 0.512966,
           "floor": "floor700"
         },
         {
@@ -4090,8 +4081,8 @@
           "label": "Node 91",
           "type": "corridor",
           "connectorId": "",
-          "x": 0.77593,
-          "y": 0.442017,
+          "x": 0.777422,
+          "y": 0.441591,
           "floor": "floor700"
         },
         {
@@ -5440,6 +5431,14 @@
         {
           "from": "floor700_n166",
           "to": "floor700_n80"
+        },
+        {
+          "from": "floor700_n160",
+          "to": "floor700_n81"
+        },
+        {
+          "from": "floor700_n126",
+          "to": "floor700_n51"
         }
       ],
       "nextNodeId": 168
