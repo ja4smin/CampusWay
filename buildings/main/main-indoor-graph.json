@@ -2051,8 +2051,8 @@
           "label": "Node 75",
           "type": "corridor",
           "connectorId": "",
-          "x": 0.740923,
-          "y": 0.397065,
+          "x": 0.740033,
+          "y": 0.396907,
           "floor": "floor600"
         },
         {
@@ -2348,8 +2348,8 @@
           "label": "Node 114",
           "type": "corridor",
           "connectorId": "",
-          "x": 0.805346,
-          "y": 0.318191,
+          "x": 0.805374,
+          "y": 0.318583,
           "floor": "floor600"
         },
         {
@@ -2720,6 +2720,33 @@
           "x": 0.193325,
           "y": 0.464074,
           "floor": "floor600"
+        },
+        {
+          "id": "floor600_n157",
+          "label": "Node 158",
+          "type": "corridor",
+          "connectorId": "",
+          "x": 0.739516,
+          "y": 0.448057,
+          "floor": "floor600"
+        },
+        {
+          "id": "floor600_n158",
+          "label": "Node 159",
+          "type": "corridor",
+          "connectorId": "",
+          "x": 0.815872,
+          "y": 0.392874,
+          "floor": "floor600"
+        },
+        {
+          "id": "floor600_n159",
+          "label": "Node 160",
+          "type": "corridor",
+          "connectorId": "",
+          "x": 0.814939,
+          "y": 0.317786,
+          "floor": "floor600"
         }
       ],
       "connections": [
@@ -2794,10 +2821,6 @@
         {
           "from": "floor600_n98",
           "to": "floor600_n125"
-        },
-        {
-          "from": "floor600_n97",
-          "to": "floor600_n100"
         },
         {
           "from": "floor600_n16",
@@ -2906,10 +2929,6 @@
         {
           "from": "floor600_n79",
           "to": "floor600_n10"
-        },
-        {
-          "from": "floor600_n79",
-          "to": "floor600_n113"
         },
         {
           "from": "floor600_n113",
@@ -3264,10 +3283,6 @@
           "to": "floor600_n137"
         },
         {
-          "from": "floor600_n101",
-          "to": "floor600_n153"
-        },
-        {
           "from": "floor600_n153",
           "to": "floor600_n95"
         },
@@ -3294,9 +3309,41 @@
         {
           "from": "floor600_n156",
           "to": "floor600_n121"
+        },
+        {
+          "from": "floor600_n74",
+          "to": "floor600_n157"
+        },
+        {
+          "from": "floor600_n153",
+          "to": "floor600_n157"
+        },
+        {
+          "from": "floor600_n101",
+          "to": "floor600_n157"
+        },
+        {
+          "from": "floor600_n158",
+          "to": "floor600_n100"
+        },
+        {
+          "from": "floor600_n158",
+          "to": "floor600_n97"
+        },
+        {
+          "from": "floor600_n158",
+          "to": "floor600_n159"
+        },
+        {
+          "from": "floor600_n159",
+          "to": "floor600_n113"
+        },
+        {
+          "from": "floor600_n159",
+          "to": "floor600_n79"
         }
       ],
-      "nextNodeId": 157
+      "nextNodeId": 160
     },
     "floor700": {
       "nodes": [
