@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en" dir="ltr">
 <head>
 <meta charset="UTF-8">
@@ -17,7 +17,7 @@
 
 <!-- Not mapped/exported yet -->
 <!-- <script src="app/prototype/education-graph.js"></script> -->
-<!-- <script src="app/prototype/multi-purpose-graph.js"></script> -->
+<script src="app/prototype/multi-purpose-graph.js"></script>
 
 <script src="app/prototype/indoor.js"></script>
 <style>
@@ -1510,6 +1510,49 @@ if(routeLine) map.removeLayer(routeLine);
 
 const start = getStart();
 
+if(name === 'Multi-Purpose Building'){
+  const entrances = BUILDING_ENTRANCES['multi-purpose'] || [];
+
+  const selectedEntrance = entrances.reduce((nearest, entrance) => {
+    if(!nearest) return entrance;
+
+    const entranceDistance = CampusOutdoorRouting.distance(
+      [start.lat, start.lng],
+      [entrance.lat, entrance.lng]
+    );
+
+    const nearestDistance = CampusOutdoorRouting.distance(
+      [start.lat, start.lng],
+      [nearest.lat, nearest.lng]
+    );
+
+    return entranceDistance < nearestDistance ? entrance : nearest;
+  }, null);
+
+  if(selectedEntrance){
+    lat = selectedEntrance.lat;
+    lng = selectedEntrance.lng;
+
+    let indoorContext = {};
+
+    try{
+      indoorContext = JSON.parse(
+        sessionStorage.getItem('indoorContext') || '{}'
+      );
+    }catch(error){
+      indoorContext = {};
+    }
+
+    indoorContext.entranceId = selectedEntrance.nodeId;
+    indoorContext.startNodeId = selectedEntrance.nodeId;
+
+    sessionStorage.setItem(
+      'indoorContext',
+      JSON.stringify(indoorContext)
+    );
+  }
+}
+
 let outdoorResult = null;
 
 try{
@@ -1588,7 +1631,8 @@ const distanceMeters =
   'Terrace Building': 'madriga',
   'Main Building': 'main',
   'Rabin Building': 'rabin',
-  'Student House': 'student'
+  'Student House': 'student',
+  'Multi-Purpose Building': 'multi-purpose'
 };
 
 if(INDOOR_BUILDINGS[name]){
@@ -2261,3 +2305,4 @@ if('serviceWorker' in navigator){
 
 </body>
 </html>
+
