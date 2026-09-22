@@ -984,6 +984,12 @@ function showAlert(profileId){
 // ═══════════════════════════════════════════
 const center = [32.7615, 35.0195];
 const map = L.map('map',{zoomControl:true,attributionControl:false}).setView(center,16);
+
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
 map.getContainer().style.background = '#EAF3ED';
 
 
