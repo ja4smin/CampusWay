@@ -1,0 +1,3240 @@
+{
+  "version": 2,
+  "building": "education",
+  "coordinateSystem": "normalized_0_to_1",
+  "floors": {
+    "floorminus1": {
+      "nodes": [],
+      "connections": [],
+      "nextNodeId": 0
+    },
+    "floor0": {
+      "nodes": [
+        {
+          "id": "floor0_n0",
+          "label": "Node 1",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.403462,
+          "y": 0.577009,
+          "floor": "floor0"
+        },
+        {
+          "id": "floor0_n1",
+          "label": "Node 2",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.435361,
+          "y": 0.579106,
+          "floor": "floor0"
+        },
+        {
+          "id": "floor0_n2",
+          "label": "Elevator 1",
+          "type": "elevator",
+          "connectorId": "01",
+          "x": 0.594113,
+          "y": 0.575403,
+          "floor": "floor0"
+        },
+        {
+          "id": "floor0_n3",
+          "label": "Elevator 2",
+          "type": "elevator",
+          "connectorId": "02",
+          "x": 0.594462,
+          "y": 0.60946,
+          "floor": "floor0"
+        },
+        {
+          "id": "floor0_n4",
+          "label": "Enterance",
+          "type": "entrance",
+          "connectorId": "",
+          "x": 0.539219,
+          "y": 0.667156,
+          "floor": "floor0"
+        }
+      ],
+      "connections": [],
+      "nextNodeId": 5
+    },
+    "floor1": {
+      "nodes": [
+        {
+          "id": "floor1_n0",
+          "label": "106",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.758915,
+          "y": 0.480918,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n1",
+          "label": "107",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.773138,
+          "y": 0.480717,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n2",
+          "label": "108",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.784232,
+          "y": 0.480717,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n3",
+          "label": "102",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.771204,
+          "y": 0.528353,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n4",
+          "label": "104",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.841509,
+          "y": 0.504738,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n5",
+          "label": "105",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.858028,
+          "y": 0.505767,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n6",
+          "label": "103",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.809727,
+          "y": 0.536073,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n7",
+          "label": "101",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.729149,
+          "y": 0.536073,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n8",
+          "label": "131",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.690558,
+          "y": 0.535922,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n9",
+          "label": "132",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.662429,
+          "y": 0.533449,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n10",
+          "label": "133",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.644615,
+          "y": 0.533943,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n11",
+          "label": "134",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.604797,
+          "y": 0.531966,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n12",
+          "label": "135/1",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.608988,
+          "y": 0.501812,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n13",
+          "label": "135",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.612481,
+          "y": 0.477591,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n14",
+          "label": "136",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.591524,
+          "y": 0.50033,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n15",
+          "label": "137",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.55797,
+          "y": 0.532225,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n16",
+          "label": "138",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.54472,
+          "y": 0.531471,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n17",
+          "label": "166",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.521461,
+          "y": 0.48182,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n18",
+          "label": "161",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.52166,
+          "y": 0.521225,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n19",
+          "label": "167",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.5056,
+          "y": 0.481546,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n20",
+          "label": "168",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.495471,
+          "y": 0.48204,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n21",
+          "label": "162",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.481988,
+          "y": 0.522105,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n22",
+          "label": "164",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.43749,
+          "y": 0.499835,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n23",
+          "label": "165",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.424035,
+          "y": 0.50081,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n25",
+          "label": "Elevator 1",
+          "type": "elevator",
+          "connectorId": "01",
+          "x": 0.688308,
+          "y": 0.499035,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n26",
+          "label": "Elevator 2",
+          "type": "elevator",
+          "connectorId": "02",
+          "x": 0.688674,
+          "y": 0.516615,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n27",
+          "label": "Stairs 1",
+          "type": "stairs",
+          "connectorId": "01",
+          "x": 0.664186,
+          "y": 0.502147,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n28",
+          "label": "Restroom 1",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.855117,
+          "y": 0.535826,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n29",
+          "label": "Restroom 2",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.840271,
+          "y": 0.532885,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n30",
+          "label": "Restroom 3",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.440796,
+          "y": 0.534146,
+          "floor": "floor1"
+        },
+        {
+          "id": "floor1_n31",
+          "label": "Restroom 4",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.42595,
+          "y": 0.534986,
+          "floor": "floor1"
+        }
+      ],
+      "connections": [],
+      "nextNodeId": 32
+    },
+    "floor2": {
+      "nodes": [
+        {
+          "id": "floor2_n0",
+          "label": "201",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.762677,
+          "y": 0.593393,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n1",
+          "label": "201/1",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.745109,
+          "y": 0.604405,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n2",
+          "label": "201/2",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.745109,
+          "y": 0.588064,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n3",
+          "label": "201/3",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.743737,
+          "y": 0.541172,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n4",
+          "label": "201/4",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.75554,
+          "y": 0.541528,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n5",
+          "label": "202",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.785186,
+          "y": 0.605826,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n6",
+          "label": "204",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.855183,
+          "y": 0.609734,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n7",
+          "label": "205",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.872202,
+          "y": 0.51595,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n8",
+          "label": "206",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.859575,
+          "y": 0.495702,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n9",
+          "label": "206/1",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.874124,
+          "y": 0.494636,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n10",
+          "label": "206/2",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.873849,
+          "y": 0.459822,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n11",
+          "label": "206/3",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.858752,
+          "y": 0.459467,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n12",
+          "label": "207",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.833224,
+          "y": 0.462664,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n13",
+          "label": "208",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.801931,
+          "y": 0.462664,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n14",
+          "label": "209",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.770638,
+          "y": 0.521989,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n15",
+          "label": "210",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.770363,
+          "y": 0.503517,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n16",
+          "label": "211",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.761579,
+          "y": 0.47794,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n17",
+          "label": "211/1",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.778324,
+          "y": 0.484334,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n18",
+          "label": "211/2",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.779696,
+          "y": 0.469769,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n19",
+          "label": "211/3",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.780794,
+          "y": 0.453073,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n20",
+          "label": "211/4",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.744286,
+          "y": 0.474742,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n21",
+          "label": "212",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.747854,
+          "y": 0.504938,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n22",
+          "label": "212/1",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.756638,
+          "y": 0.520213,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n23",
+          "label": "212/2",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.743737,
+          "y": 0.519147,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n24",
+          "label": "213",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.807695,
+          "y": 0.568171,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n25",
+          "label": "213/1",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.816205,
+          "y": 0.539396,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n26",
+          "label": "213/2",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.801107,
+          "y": 0.541172,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n27",
+          "label": "213/3",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.785735,
+          "y": 0.546856,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n28",
+          "label": "213/4",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.785461,
+          "y": 0.583091,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n29",
+          "label": "213/5",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.771736,
+          "y": 0.553961,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n30",
+          "label": "213/6",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.772285,
+          "y": 0.573499,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n31",
+          "label": "214",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.809891,
+          "y": 0.58984,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n32",
+          "label": "231",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.665834,
+          "y": 0.601563,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n33",
+          "label": "232",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.666658,
+          "y": 0.539751,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n34",
+          "label": "233",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.665011,
+          "y": 0.503162,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n35",
+          "label": "234",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.66556,
+          "y": 0.481492,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n36",
+          "label": "235",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.652658,
+          "y": 0.46302,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n37",
+          "label": "236",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.628777,
+          "y": 0.461954,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n38",
+          "label": "237",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.62713,
+          "y": 0.481137,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n39",
+          "label": "238",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.633443,
+          "y": 0.502806,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n40",
+          "label": "239",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.585955,
+          "y": 0.503162,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n41",
+          "label": "240",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.606268,
+          "y": 0.502806,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n42",
+          "label": "241",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.592268,
+          "y": 0.462664,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n43",
+          "label": "242",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.61313,
+          "y": 0.464085,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n44",
+          "label": "243",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.572504,
+          "y": 0.461954,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n45",
+          "label": "244",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.549721,
+          "y": 0.46302,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n46",
+          "label": "245",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.548897,
+          "y": 0.501741,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n47",
+          "label": "246",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.547799,
+          "y": 0.54508,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n48",
+          "label": "247",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.629051,
+          "y": 0.598721,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n49",
+          "label": "248",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.609287,
+          "y": 0.601918,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n50",
+          "label": "249",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.576347,
+          "y": 0.606181,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n51",
+          "label": "250",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.574975,
+          "y": 0.588064,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n52",
+          "label": "251",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.547799,
+          "y": 0.573854,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n53",
+          "label": "252",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.546427,
+          "y": 0.601208,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n54",
+          "label": "261",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.457791,
+          "y": 0.593464,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n55",
+          "label": "262",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.45834,
+          "y": 0.5654,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n56",
+          "label": "263",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.458615,
+          "y": 0.54302,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n57",
+          "label": "264",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.425675,
+          "y": 0.544796,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n58",
+          "label": "265",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.426224,
+          "y": 0.566465,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n59",
+          "label": "266",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.427596,
+          "y": 0.582806,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n60",
+          "label": "267",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.427596,
+          "y": 0.605186,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n61",
+          "label": "268",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.355129,
+          "y": 0.598437,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n62",
+          "label": "269",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.335914,
+          "y": 0.593464,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n63",
+          "label": "270",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.336463,
+          "y": 0.615844,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n64",
+          "label": "270/1",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.350188,
+          "y": 0.614423,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n65",
+          "label": "271",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.363364,
+          "y": 0.619751,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n66",
+          "label": "272",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.401244,
+          "y": 0.587424,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n67",
+          "label": "273",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.357874,
+          "y": 0.519574,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n68",
+          "label": "275",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.361168,
+          "y": 0.49968,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n69",
+          "label": "276",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.343051,
+          "y": 0.500746,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n70",
+          "label": "277",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.337561,
+          "y": 0.472327,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n71",
+          "label": "278",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.351835,
+          "y": 0.463446,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n72",
+          "label": "279",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.367207,
+          "y": 0.464867,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n73",
+          "label": "280",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.387519,
+          "y": 0.497904,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n74",
+          "label": "281",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.393833,
+          "y": 0.460959,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n75",
+          "label": "282",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.405087,
+          "y": 0.497904,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n76",
+          "label": "283",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.409479,
+          "y": 0.464512,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n77",
+          "label": "384",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.424851,
+          "y": 0.466643,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n78",
+          "label": "285",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.424577,
+          "y": 0.498259,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n79",
+          "label": "286",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.44187,
+          "y": 0.464867,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n80",
+          "label": "287",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.458889,
+          "y": 0.464512,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n81",
+          "label": "288",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.462732,
+          "y": 0.493286,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n82",
+          "label": "289",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.456144,
+          "y": 0.518863,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n83",
+          "label": "Elevator 1",
+          "type": "elevator",
+          "connectorId": "01",
+          "x": 0.665541,
+          "y": 0.564502,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n84",
+          "label": "Elevator 2",
+          "type": "elevator",
+          "connectorId": "02",
+          "x": 0.664594,
+          "y": 0.583701,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n85",
+          "label": "Restroom 1",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.852725,
+          "y": 0.571038,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n86",
+          "label": "Restroom 2",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.624411,
+          "y": 0.521147,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n87",
+          "label": "Restroom 3",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.587795,
+          "y": 0.523598,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n88",
+          "label": "Restroom 4",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.356702,
+          "y": 0.569989,
+          "floor": "floor2"
+        },
+        {
+          "id": "floor2_n89",
+          "label": "stairs",
+          "type": "stairs",
+          "connectorId": "",
+          "x": 0.567642,
+          "y": 0.550479,
+          "floor": "floor2"
+        }
+      ],
+      "connections": [],
+      "nextNodeId": 90
+    },
+    "floor6": {
+      "nodes": [
+        {
+          "id": "floor6_n0",
+          "label": "639",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.401758,
+          "y": 0.351818,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n2",
+          "label": "638",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.427751,
+          "y": 0.355662,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n3",
+          "label": "637",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.45523,
+          "y": 0.354701,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n4",
+          "label": "640",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.400272,
+          "y": 0.421016,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n5",
+          "label": "636/2",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.487332,
+          "y": 0.368723,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n6",
+          "label": "636/1",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.519511,
+          "y": 0.367668,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n7",
+          "label": "636",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.548432,
+          "y": 0.363451,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n8",
+          "label": "635",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.578574,
+          "y": 0.359234,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n9",
+          "label": "634",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.611976,
+          "y": 0.364505,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n10",
+          "label": "633",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.607088,
+          "y": 0.4246,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n11",
+          "label": "631",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.605051,
+          "y": 0.453593,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n12",
+          "label": "632",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.551283,
+          "y": 0.456229,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n13",
+          "label": "642",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.463707,
+          "y": 0.468354,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n14",
+          "label": "641",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.400978,
+          "y": 0.463609,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n15",
+          "label": "650",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.547617,
+          "y": 0.563205,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n16",
+          "label": "649",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.502811,
+          "y": 0.555825,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n17",
+          "label": "652",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.589572,
+          "y": 0.620137,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n18",
+          "label": "651",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.548024,
+          "y": 0.618556,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n19",
+          "label": "646",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.427304,
+          "y": 0.634338,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n20",
+          "label": "645",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.398135,
+          "y": 0.620535,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n21",
+          "label": "648",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.479763,
+          "y": 0.551521,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n22",
+          "label": "643",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.395741,
+          "y": 0.530394,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n23",
+          "label": "644",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.398571,
+          "y": 0.571803,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n24",
+          "label": "647",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.459933,
+          "y": 0.618122,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n25",
+          "label": "Elevator 1",
+          "type": "elevator",
+          "connectorId": "01",
+          "x": 0.604732,
+          "y": 0.542787,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n26",
+          "label": "Elevator 2",
+          "type": "elevator",
+          "connectorId": "02",
+          "x": 0.604256,
+          "y": 0.572996,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n27",
+          "label": "666",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.111312,
+          "y": 0.372091,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n28",
+          "label": "665",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.16671,
+          "y": 0.417106,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n29",
+          "label": "664",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.204586,
+          "y": 0.360754,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n30",
+          "label": "663",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.236022,
+          "y": 0.36042,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n31",
+          "label": "662",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.26488,
+          "y": 0.366422,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n32",
+          "label": "661",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.250451,
+          "y": 0.418439,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n33",
+          "label": "667",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.081938,
+          "y": 0.371757,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n34",
+          "label": "668",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.052306,
+          "y": 0.366089,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n35",
+          "label": "669",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.052821,
+          "y": 0.447783,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n36",
+          "label": "670",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.090183,
+          "y": 0.457786,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n37",
+          "label": "671",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.128575,
+          "y": 0.462121,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n38",
+          "label": "672",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.05825,
+          "y": 0.549725,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n39",
+          "label": "673",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.057425,
+          "y": 0.583177,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n40",
+          "label": "674",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.055175,
+          "y": 0.621999,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n41",
+          "label": "675",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.088175,
+          "y": 0.639793,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n42",
+          "label": "676",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.114675,
+          "y": 0.584795,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n43",
+          "label": "677",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.200175,
+          "y": 0.606794,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n44",
+          "label": "678",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.232425,
+          "y": 0.606147,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n45",
+          "label": "679",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.259425,
+          "y": 0.606147,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n46",
+          "label": "601",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.747778,
+          "y": 0.535752,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n47",
+          "label": "602",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.748366,
+          "y": 0.576026,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n48",
+          "label": "603",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.747191,
+          "y": 0.618579,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n49",
+          "label": "604",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.77567,
+          "y": 0.634536,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n50",
+          "label": "605",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.807966,
+          "y": 0.621239,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n51",
+          "label": "606",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.807673,
+          "y": 0.575266,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n52",
+          "label": "607",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.802388,
+          "y": 0.536892,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n53",
+          "label": "608",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.900763,
+          "y": 0.578685,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n54",
+          "label": "609",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.894891,
+          "y": 0.619719,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n55",
+          "label": "610",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.927187,
+          "y": 0.630737,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n56",
+          "label": "611",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.958602,
+          "y": 0.617439,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n57",
+          "label": "612",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.956753,
+          "y": 0.56212,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n58",
+          "label": "613",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.874943,
+          "y": 0.461807,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n59",
+          "label": "614",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.945318,
+          "y": 0.445281,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n60",
+          "label": "615",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.956669,
+          "y": 0.360815,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n61",
+          "label": "616",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.926589,
+          "y": 0.362284,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n62",
+          "label": "617",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.898212,
+          "y": 0.360448,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n63",
+          "label": "618",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.864728,
+          "y": 0.388726,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n64",
+          "label": "619",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.836067,
+          "y": 0.387257,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n65",
+          "label": "620",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.803779,
+          "y": 0.358354,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n66",
+          "label": "621",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.774408,
+          "y": 0.359065,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n67",
+          "label": "622",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.744762,
+          "y": 0.360485,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n68",
+          "label": "623",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.749428,
+          "y": 0.42656,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n69",
+          "label": "624",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.74833,
+          "y": 0.460663,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n70",
+          "label": "Restroom 1",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.855356,
+          "y": 0.467457,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n71",
+          "label": "Restroom 2",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.801589,
+          "y": 0.465349,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n72",
+          "label": "Restroom 3",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.459837,
+          "y": 0.431611,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n73",
+          "label": "Restroom 4",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.446802,
+          "y": 0.476419,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n74",
+          "label": "Restroom 5",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.20611,
+          "y": 0.467159,
+          "floor": "floor6"
+        },
+        {
+          "id": "floor6_n75",
+          "label": "Restroom 6",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.148676,
+          "y": 0.466104,
+          "floor": "floor6"
+        }
+      ],
+      "connections": [],
+      "nextNodeId": 76
+    },
+    "floor5": {
+      "nodes": [
+        {
+          "id": "floor5_n0",
+          "label": "Elevator 1",
+          "type": "elevator",
+          "connectorId": "01",
+          "x": 0.604395,
+          "y": 0.551819,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n1",
+          "label": "Elevator 2",
+          "type": "elevator",
+          "connectorId": "02",
+          "x": 0.605679,
+          "y": 0.583952,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n2",
+          "label": "501",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.740211,
+          "y": 0.544063,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n3",
+          "label": "502",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.744492,
+          "y": 0.58783,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n4",
+          "label": "503",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.736787,
+          "y": 0.639354,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n5",
+          "label": "504",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.768465,
+          "y": 0.639908,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n6",
+          "label": "505",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.802283,
+          "y": 0.638246,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n7",
+          "label": "506",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.802711,
+          "y": 0.57675,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n8",
+          "label": "507",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.798002,
+          "y": 0.543509,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n9",
+          "label": "508",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.898316,
+          "y": 0.585837,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n10",
+          "label": "509",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.893021,
+          "y": 0.619048,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n11",
+          "label": "510",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.890577,
+          "y": 0.648568,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n12",
+          "label": "511",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.922349,
+          "y": 0.643296,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n13",
+          "label": "512",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.953714,
+          "y": 0.628009,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n14",
+          "label": "513",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.952899,
+          "y": 0.55579,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n15",
+          "label": "514",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.873062,
+          "y": 0.478826,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n16",
+          "label": "515",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.912573,
+          "y": 0.479881,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n17",
+          "label": "516",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.905241,
+          "y": 0.450887,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n18",
+          "label": "517",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.946382,
+          "y": 0.478299,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n19",
+          "label": "518",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.945974,
+          "y": 0.430856,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n20",
+          "label": "519",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.950862,
+          "y": 0.383412,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n21",
+          "label": "520",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.91909,
+          "y": 0.377614,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n22",
+          "label": "521",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.892206,
+          "y": 0.379195,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n23",
+          "label": "522",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.862878,
+          "y": 0.410824,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n24",
+          "label": "523",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.830699,
+          "y": 0.411351,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n25",
+          "label": "524",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.801371,
+          "y": 0.378141,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n26",
+          "label": "525",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.769599,
+          "y": 0.381304,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n27",
+          "label": "526",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.736606,
+          "y": 0.397645,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n28",
+          "label": "527",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.74516,
+          "y": 0.436127,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n29",
+          "label": "528",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.743123,
+          "y": 0.475136,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n30",
+          "label": "531",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.601847,
+          "y": 0.473555,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n31",
+          "label": "533",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.602661,
+          "y": 0.436654,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n32",
+          "label": "534",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.608771,
+          "y": 0.38763,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n33",
+          "label": "535",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.581887,
+          "y": 0.384467,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n34",
+          "label": "536",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.551745,
+          "y": 0.377087,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n35",
+          "label": "537",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.507346,
+          "y": 0.375505,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n36",
+          "label": "538",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.441358,
+          "y": 0.376559,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n37",
+          "label": "532",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.553374,
+          "y": 0.469338,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n38",
+          "label": "540",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.398588,
+          "y": 0.391847,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n39",
+          "label": "541",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.403069,
+          "y": 0.453523,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n40",
+          "label": "542",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.46539,
+          "y": 0.479881,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n41",
+          "label": "543",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.402254,
+          "y": 0.537867,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n42",
+          "label": "544",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.401032,
+          "y": 0.57424,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n43",
+          "label": "545",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.396551,
+          "y": 0.613249,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n44",
+          "label": "546",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.425472,
+          "y": 0.636444,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n45",
+          "label": "547",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.457651,
+          "y": 0.626428,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n46",
+          "label": "548",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.469056,
+          "y": 0.57055,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n47",
+          "label": "549",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.528527,
+          "y": 0.572659,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n48",
+          "label": "550",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.547264,
+          "y": 0.640134,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n49",
+          "label": "551",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.576185,
+          "y": 0.639079,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n50",
+          "label": "552",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.608364,
+          "y": 0.639606,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n51",
+          "label": "561",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.261914,
+          "y": 0.451415,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n52",
+          "label": "562",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.259063,
+          "y": 0.396064,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n53",
+          "label": "653",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.209776,
+          "y": 0.397118,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n54",
+          "label": "654",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.176375,
+          "y": 0.41346,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n55",
+          "label": "565",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.145825,
+          "y": 0.40608,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n56",
+          "label": "566",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.105499,
+          "y": 0.391847,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n57",
+          "label": "567",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.055397,
+          "y": 0.466702,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n58",
+          "label": "568",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.076986,
+          "y": 0.469865,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n59",
+          "label": "569",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.134012,
+          "y": 0.477245,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n60",
+          "label": "670",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.085947,
+          "y": 0.602179,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n61",
+          "label": "571",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.207332,
+          "y": 0.543138,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n62",
+          "label": "572",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.208554,
+          "y": 0.58531,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n63",
+          "label": "573",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.204888,
+          "y": 0.628009,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n64",
+          "label": "574",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.237475,
+          "y": 0.635389,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n65",
+          "label": "575",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.264358,
+          "y": 0.627482,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n66",
+          "label": "576",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.261507,
+          "y": 0.585837,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n67",
+          "label": "577",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.262322,
+          "y": 0.542611,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n68",
+          "label": "529",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.845675,
+          "y": 0.542594,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n69",
+          "label": "Restroom 1",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.851378,
+          "y": 0.479863,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n70",
+          "label": "Restroom 2",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.795166,
+          "y": 0.474591,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n71",
+          "label": "Restroom 3",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.463544,
+          "y": 0.446547,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n72",
+          "label": "Restroom 4",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.210183,
+          "y": 0.481655,
+          "floor": "floor5"
+        },
+        {
+          "id": "floor5_n73",
+          "label": "Restroom 5",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.156823,
+          "y": 0.476384,
+          "floor": "floor5"
+        }
+      ],
+      "connections": [],
+      "nextNodeId": 74
+    },
+    "floor4": {
+      "nodes": [
+        {
+          "id": "floor4_n0",
+          "label": "Elevator 1",
+          "type": "elevator",
+          "connectorId": "01",
+          "x": 0.615628,
+          "y": 0.681831,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n1",
+          "label": "Elevator 2",
+          "type": "elevator",
+          "connectorId": "02",
+          "x": 0.614886,
+          "y": 0.719567,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n2",
+          "label": "401",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.776092,
+          "y": 0.755003,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n3",
+          "label": "402",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.938449,
+          "y": 0.757999,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n4",
+          "label": "403",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.954981,
+          "y": 0.686699,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n5",
+          "label": "404",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.943535,
+          "y": 0.500959,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n6",
+          "label": "405",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.880797,
+          "y": 0.506351,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n7",
+          "label": "406",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.891819,
+          "y": 0.599221,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n8",
+          "label": "407",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.857482,
+          "y": 0.588436,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n9",
+          "label": "408",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.841373,
+          "y": 0.501558,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n10",
+          "label": "409",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.764646,
+          "y": 0.501558,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n11",
+          "label": "410",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.770581,
+          "y": 0.690294,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n12",
+          "label": "431",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.611992,
+          "y": 0.575083,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n13",
+          "label": "432",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.613071,
+          "y": 0.495754,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n14",
+          "label": "433",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.567224,
+          "y": 0.491177,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n15",
+          "label": "434",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.512208,
+          "y": 0.478973,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n16",
+          "label": "435",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.448562,
+          "y": 0.495754,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n17",
+          "label": "435/1",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.477688,
+          "y": 0.485075,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n18",
+          "label": "436",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.414042,
+          "y": 0.503382,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n19",
+          "label": "437",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.412424,
+          "y": 0.565929,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n20",
+          "label": "438",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.40703,
+          "y": 0.682634,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n21",
+          "label": "440",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.426987,
+          "y": 0.682634,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n22",
+          "label": "441",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.40703,
+          "y": 0.720773,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n23",
+          "label": "442",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.41566,
+          "y": 0.765014,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n24",
+          "label": "443",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.46744,
+          "y": 0.771116,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n25",
+          "label": "444",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.551043,
+          "y": 0.782558,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n26",
+          "label": "445",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.583405,
+          "y": 0.787135,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n27",
+          "label": "446",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.62278,
+          "y": 0.781795,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n28",
+          "label": "461",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.255193,
+          "y": 0.516197,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n29",
+          "label": "462",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.189911,
+          "y": 0.517995,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n30",
+          "label": "563",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.144129,
+          "y": 0.516796,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n31",
+          "label": "464",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.080543,
+          "y": 0.514999,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n32",
+          "label": "465",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.068673,
+          "y": 0.696545,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n33",
+          "label": "466",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.081814,
+          "y": 0.751668,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n34",
+          "label": "467",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.233997,
+          "y": 0.750469,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n35",
+          "label": "468",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.26791,
+          "y": 0.692351,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n36",
+          "label": "Restroom 1",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.940554,
+          "y": 0.589588,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n37",
+          "label": "Restroom 2",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.774382,
+          "y": 0.596925,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n38",
+          "label": "Restroom 3",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.249901,
+          "y": 0.596925,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n39",
+          "label": "Restroom 4",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.085955,
+          "y": 0.591684,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n40",
+          "label": "Restroom 5",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.550516,
+          "y": 0.570387,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n41",
+          "label": "Restroom 6",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.474665,
+          "y": 0.561269,
+          "floor": "floor4"
+        },
+        {
+          "id": "floor4_n42",
+          "label": "Restroom 7",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.462797,
+          "y": 0.563093,
+          "floor": "floor4"
+        }
+      ],
+      "connections": [],
+      "nextNodeId": 43
+    },
+    "floor3": {
+      "nodes": [
+        {
+          "id": "floor3_n0",
+          "label": "Elevator 1",
+          "type": "elevator",
+          "connectorId": "01",
+          "x": 0.671741,
+          "y": 0.755244,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n1",
+          "label": "Elevator 2",
+          "type": "elevator",
+          "connectorId": "02",
+          "x": 0.671613,
+          "y": 0.777871,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n2",
+          "label": "301",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.758974,
+          "y": 0.703071,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n3",
+          "label": "302",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.758747,
+          "y": 0.674821,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n4",
+          "label": "303",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.758747,
+          "y": 0.641755,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n5",
+          "label": "304",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.774631,
+          "y": 0.641113,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n6",
+          "label": "305",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.7946,
+          "y": 0.639187,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n7",
+          "label": "306",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.80776,
+          "y": 0.641113,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n8",
+          "label": "307",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.824779,
+          "y": 0.67161,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n9",
+          "label": "308",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.79165,
+          "y": 0.688304,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n10",
+          "label": "309",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.831586,
+          "y": 0.639508,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n11",
+          "label": "310",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.845882,
+          "y": 0.642397,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n12",
+          "label": "311",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.855412,
+          "y": 0.672253,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n13",
+          "label": "312",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.862673,
+          "y": 0.64015,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n14",
+          "label": "313",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.885591,
+          "y": 0.639508,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n15",
+          "label": "314",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.886499,
+          "y": 0.658448,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n16",
+          "label": "315",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.885818,
+          "y": 0.682204,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n17",
+          "label": "316",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.88491,
+          "y": 0.70596,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n18",
+          "label": "317",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.858135,
+          "y": 0.706923,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n19",
+          "label": "318",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.841116,
+          "y": 0.705639,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n20",
+          "label": "331",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.66613,
+          "y": 0.708529,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n21",
+          "label": "332",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.669306,
+          "y": 0.642076,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n22",
+          "label": "333",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.554262,
+          "y": 0.708529,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n23",
+          "label": "334",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.544505,
+          "y": 0.775944,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n24",
+          "label": "361",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.426617,
+          "y": 0.70535,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n25",
+          "label": "362",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.424121,
+          "y": 0.658159,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n26",
+          "label": "363",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.34788,
+          "y": 0.659169,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n27",
+          "label": "364",
+          "type": "room",
+          "connectorId": "",
+          "x": 0.381963,
+          "y": 0.708418,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n28",
+          "label": "Restroom 1",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.79896,
+          "y": 0.699352,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n29",
+          "label": "Restroom 2",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.80703,
+          "y": 0.68794,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n30",
+          "label": "Restroom 3",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.588971,
+          "y": 0.707958,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n31",
+          "label": "Restroom 4",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.549931,
+          "y": 0.749907,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n32",
+          "label": "Restroom 5",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.449,
+          "y": 0.698705,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n33",
+          "label": "Restroom 6",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.351727,
+          "y": 0.704257,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n34",
+          "label": "Restroom 7",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.220602,
+          "y": 0.700763,
+          "floor": "floor3"
+        },
+        {
+          "id": "floor3_n35",
+          "label": "Restroom 8",
+          "type": "restroom",
+          "connectorId": "",
+          "x": 0.210082,
+          "y": 0.68817,
+          "floor": "floor3"
+        }
+      ],
+      "connections": [],
+      "nextNodeId": 36
+    }
+  }
+}
