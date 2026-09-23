@@ -337,8 +337,11 @@ button{cursor:pointer;font-weight:700}
 </div>
 
 <script>
+
 let GRAPH = null;
 let BUILDING = 'madriga';
+
+let requestedBuildingApplied = false;
 
 
 
@@ -506,7 +509,8 @@ async function loadGraph(){
   const params = new URLSearchParams(window.location.search);
   const requestedBuilding = params.get('building');
 
-  if(requestedBuilding){
+  if(requestedBuilding && !requestedBuildingApplied){
+  requestedBuildingApplied = true;
     const buildingSelect = $('building');
 
     if(
