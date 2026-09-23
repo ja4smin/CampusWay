@@ -250,38 +250,128 @@ function findClosestEdge(lat, lng){
 
 function applyCampusCorrections(){
 
-   addCampusNode(
-  'campus_crossing_1',
-  32.75965118924193,
-  35.020708607441215
+// --------------------------------------------------
+// Carmel Gate <-> Multi-Purpose zebra crossing
+// --------------------------------------------------
+
+addCampusNode(
+  'campus_carmel_crossing_gate',
+  32.759171,
+  35.021342
 );
 
-// Split the existing OSM segment at the exact
-// CampusWay crossing point.
+addCampusNode(
+  'campus_carmel_crossing_campus',
+  32.759192,
+  35.021385
+);
+
+// Insert gate side into the existing service-road segment
 removeEdge(
-  1447013833,
-  1447013832
+  1447013831,
+  1387533543
 );
 
 addEdge(
-  1447013833,
-  'campus_crossing_1',
+  1447013831,
+  'campus_carmel_crossing_gate',
   'service'
 );
 
 addEdge(
-  'campus_crossing_1',
-  1447013832,
+  'campus_carmel_crossing_gate',
+  1387533543,
   'service'
 );
 
-// CampusWay pedestrian crossing
+// The actual zebra crossing
 addEdge(
-  1446999294,
-  'campus_crossing_1',
+  'campus_carmel_crossing_gate',
+  'campus_carmel_crossing_campus',
   'footway'
 );
 
+// Insert campus side into the existing footway
+removeEdge(
+  1446999275,
+  1446999294
+);
+
+addEdge(
+  1446999275,
+  'campus_carmel_crossing_campus',
+  'footway'
+);
+
+addEdge(
+  'campus_carmel_crossing_campus',
+  1446999294,
+  'footway'
+);
+
+// --------------------------------------------------
+// Main Building <-> Education Building zebra crossing
+// Verified physically on campus
+// --------------------------------------------------
+
+// West side of crossing
+addCampusNode(
+  'campus_main_education_crossing_west',
+  32.76173888526047,
+  35.01856225354481
+);
+
+// Split existing west-side footway
+removeEdge(
+  9255990877,
+  9255990878
+);
+
+addEdge(
+  9255990877,
+  'campus_main_education_crossing_west',
+  'footway'
+);
+
+addEdge(
+  'campus_main_education_crossing_west',
+  9255990878,
+  'footway'
+);
+
+
+// East side of crossing
+addCampusNode(
+  'campus_main_education_crossing_east',
+  32.76179346536284,
+  35.018798207986364
+);
+
+// Split existing east-side segment
+removeEdge(
+  7674525963,
+  7674525964
+);
+
+addEdge(
+  7674525963,
+  'campus_main_education_crossing_east',
+  'service'
+);
+
+addEdge(
+  'campus_main_education_crossing_east',
+  7674525964,
+  'service'
+);
+
+
+// Connect both sides through the verified zebra crossing
+addEdge(
+  'campus_main_education_crossing_west',
+  'campus_main_education_crossing_east',
+  'footway'
+);
 
   for(const correction of CAMPUS_CORRECTIONS){
 
