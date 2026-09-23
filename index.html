@@ -1510,8 +1510,15 @@ if(routeLine) map.removeLayer(routeLine);
 
 const start = getStart();
 
-if(name === 'Multi-Purpose Building'){
-  const entrances = BUILDING_ENTRANCES['multi-purpose'] || [];
+const entranceKeyByBuilding = {
+  'Multi-Purpose Building': 'multi-purpose',
+  'Education and Science': 'education'
+};
+
+const entranceKey = entranceKeyByBuilding[name];
+
+if(entranceKey){
+  const entrances = BUILDING_ENTRANCES[entranceKey] || [];
 
   const selectedEntrance = entrances.reduce((nearest, entrance) => {
     if(!nearest) return entrance;
@@ -1632,7 +1639,8 @@ const distanceMeters =
   'Main Building': 'main',
   'Rabin Building': 'rabin',
   'Student House': 'student',
-  'Multi-Purpose Building': 'multi-purpose'
+  'Multi-Purpose Building': 'multi-purpose',
+  'Education and Science': 'education'
 };
 
 if(INDOOR_BUILDINGS[name]){
@@ -2305,4 +2313,6 @@ if('serviceWorker' in navigator){
 
 </body>
 </html>
+
+
 
