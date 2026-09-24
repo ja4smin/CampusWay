@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CampusWay Live Indoor Navigation</title>
 <style>
+
+
 *{box-sizing:border-box}
 :root{
   --navy:#0D1B3E;
@@ -277,6 +279,7 @@ button{cursor:pointer;font-weight:700}
       <input id="accessibleRoute" type="checkbox">
       ♿ Accessible route
       </label>
+
       <button id="startBtn" class="secondary" disabled>▶ Start navigation</button>
       <span id="status" class="statusline">Choose a route.</span>
     </div>
@@ -336,6 +339,11 @@ button{cursor:pointer;font-weight:700}
   </div>
 </div>
 
+
+<script src="step-detector.js"></script>
+<script src="heading-tracker.js"></script>
+<script src="route-progress.js"></script>
+
 <script>
 
 let GRAPH = null;
@@ -369,28 +377,23 @@ let navigationActive=false;
 let sensorsEnabled=false;
 let sensorEvents=0;
 
-let gravityMag=9.81;
 let filteredAccel=0;
 let detectedSteps=0;
 let stepLength=0.65; // estimated meters per detected step
 let deviceHeading=null;
 
-let stepPeakDetected=false;
-let stepDipDetected=false;
+const stepDetector = new CampusStepDetector();
+const headingTracker = new CampusHeadingTracker();
 
-// Rhythmic walking confirmation
-const stepCandidates=[];
-const CADENCE_MIN=350;
-const CADENCE_MAX=1000;
-const CONFIRM_COUNT=2;
-const WALKING_TIMEOUT=1500;
+let lastTravelDirection = 1;
+let sensorFloorBoundary = false;
+let sensorHeadingPaused = false;
+let navigationStartToken = 0;
+let motionUnavailable = false;
+
 
 let isWalking=false;
 let lastConfirmedCandidate=0;
-
-// Rolling orientation stability
-let orientationSamples=[];
-const ORIENTATION_WINDOW_MS=500;
 
 // Smooth visual movement
 let pendingStepDistance=0;
@@ -697,7 +700,6 @@ if(journeyStage === 'origin'){
 
 document.getElementById('building').onchange = async () => {
 BUILDING = document.getElementById('building').value;
-  
 routePath = [];
 routeNodes = [];
 progressIndex = 0;
@@ -1450,16 +1452,52 @@ function animateStepMovement(timestamp){
   }
 }
 
-function handleDetectedStep(){
+function handleDetectedStep(
+  stepTime = performance.now()
+){
   if(!navigationActive) return;
 
-  detectedSteps++;
-  pendingStepDistance+=stepLength;
-  $('status').textContent=`Navigating — ${detectedSteps} detected steps`;
+  if(navMode === 'sensor'){
+    const directionOptions =
+      CampusRouteProgress.candidates(
+        routeNodes,
+        {
+          index: progressIndex,
+          t: progressT
+        }
+      );
 
-  if(movementAnimationFrame===null){
-    lastMovementFrameTime=0;
-    movementAnimationFrame=requestAnimationFrame(animateStepMovement);
+    const headingResult =
+      headingTracker.classify(
+        stepTime,
+        directionOptions
+      );
+
+    if(headingResult.direction !== 1){
+      $('status').textContent =
+        headingResult.direction === -1
+          ? 'Turn around to continue along the route.'
+          : 'Face the route direction to continue.';
+
+      return;
+    }
+
+    lastTravelDirection = 1;
+  }
+
+  detectedSteps++;
+  pendingStepDistance += stepLength;
+
+  $('status').textContent =
+    `Navigating — ${detectedSteps} detected steps`;
+
+  if(movementAnimationFrame === null){
+    lastMovementFrameTime = 0;
+
+    movementAnimationFrame =
+      requestAnimationFrame(
+        animateStepMovement
+      );
   }
 }
 
@@ -1523,157 +1561,66 @@ function completeNavigation(){
 }
 }
 
-function recordOrientation(beta,gamma){
-  const now=performance.now();
-
-  orientationSamples.push({
-    time:now,
-    beta:beta,
-    gamma:gamma
-  });
-
-  orientationSamples=orientationSamples.filter(
-    sample=>now-sample.time<=ORIENTATION_WINDOW_MS
-  );
-}
-
-function orientationIsStable(){
-  if(orientationSamples.length<3){
-    return true;
-  }
-
-  const betas=orientationSamples.map(s=>s.beta);
-  const gammas=orientationSamples.map(s=>s.gamma);
-
-  const betaRange=Math.max(...betas)-Math.min(...betas);
-  const gammaRange=Math.max(...gammas)-Math.min(...gammas);
-
-  return betaRange<35 && gammaRange<35;
-}
-
-function addStepCandidate(){
-  const now=performance.now();
-
-  if(stepCandidates.length){
-    const gap=now-stepCandidates[stepCandidates.length-1];
-
-    if(gap<CADENCE_MIN){
-      return;
-    }
-
-    if(gap>CADENCE_MAX){
-      stepCandidates.length=0;
-    }
-  }
-
-  stepCandidates.push(now);
-
-  if(!isWalking){
-    if(stepCandidates.length>=CONFIRM_COUNT){
-      isWalking=true;
-
-      // Count the first confirmed walking sequence too.
-      const confirmedCount=stepCandidates.length;
-
-      for(let i=0;i<confirmedCount;i++){
-        handleDetectedStep();
-      }
-
-      lastConfirmedCandidate=now;
-
-      stepCandidates.splice(
-        0,
-        stepCandidates.length-1
-      );
-    }
-
-    return;
-  }
-
-  handleDetectedStep();
-  lastConfirmedCandidate=now;
-
-  stepCandidates.splice(
-    0,
-    stepCandidates.length-1
-  );
-}
 
 function updateDeviceHeading(e){
-  let h=null;
+  const screenAngle =
+    screen.orientation &&
+    Number.isFinite(screen.orientation.angle)
+      ? screen.orientation.angle
+      : Number(window.orientation) || 0;
 
-  if(typeof e.webkitCompassHeading==='number'){
-    h=e.webkitCompassHeading;
-  }
-  else if(typeof e.alpha==='number'){
-    h=(360-e.alpha)%360;
+  headingTracker.update(
+    e,
+    performance.now(),
+    screenAngle
+  );
+
+  const mappedHeading =
+    headingTracker.mapHeading();
+
+  if(mappedHeading !== null){
+    deviceHeading = mappedHeading;
   }
 
-  if(h!==null && Number.isFinite(h)){
-    deviceHeading=h;
+  if(
+    typeof e.beta === 'number' &&
+    typeof e.gamma === 'number'
+  ){
+    stepDetector.updateOrientation(
+      e,
+      performance.now()
+    );
   }
 
-  if(typeof e.beta==='number' &&
-     typeof e.gamma==='number'){
-
-    recordOrientation(e.beta,e.gamma);
-  }
   if(navMode === 'sensor' && navigationActive){
-  drawBaseMap();
-}
+    drawBaseMap();
+  }
 }
 
 function updateDeviceMotion(e){
   sensorEvents++;
 
-  const a=e.accelerationIncludingGravity || e.acceleration;
-  if(!a) return;
+  const result = stepDetector.updateMotion(
+    e,
+    performance.now()
+  );
 
-  const x=Number(a.x)||0;
-  const y=Number(a.y)||0;
-  const z=Number(a.z)||0;
+  filteredAccel = result.filteredAccel;
+  isWalking = result.isWalking;
 
-  const mag=Math.sqrt(x*x+y*y+z*z);
-
-  gravityMag=gravityMag*0.92+mag*0.08;
-
-  const linear=mag-gravityMag;
-
-  filteredAccel=
-    filteredAccel*0.65+
-    linear*0.35;
-
-  // Positive peak
-  if(!stepPeakDetected && filteredAccel>0.8){
-    stepPeakDetected=true;
+  if(
+    navMode !== 'sensor' ||
+    !navigationActive
+  ){
+    return;
   }
 
-  // Negative dip
-  if(stepPeakDetected && filteredAccel<-0.4){
-    stepDipDetected=true;
-  }
-
-  // Recovery = complete step candidate
-  if(stepPeakDetected &&
-     stepDipDetected &&
-     filteredAccel>-0.1){
-
-    stepPeakDetected=false;
-    stepDipDetected=false;
-
-    if(orientationIsStable()){
-      addStepCandidate();
-    }
-  }
-
-  // Stop walking state after inactivity.
-  if(isWalking &&
-     performance.now()-lastConfirmedCandidate>WALKING_TIMEOUT){
-
-    isWalking=false;
-    stepCandidates.length=0;
-  }
+for(const stepTime of result.stepTimes){
+  handleDetectedStep(stepTime);
 }
+}
+
+
 async function requestSensorPermission(){
   try{
     if(typeof DeviceMotionEvent!=='undefined' &&
@@ -1728,25 +1675,70 @@ function startAutoDemo(){
   }, 80);
 }
 
-function startNavigation(){
-  if(!routeNodes.length) return;
 
-if(navMode === 'sensor' && !sensorsEnabled){
-  enableSensors().then(() => {
-    if(sensorsEnabled) startNavigation();
-  });
-  return;
+async function calibrateHeadingAutomatically(){
+  headingTracker.invalidate();
+  deviceHeading = null;
+
+  $('status').textContent =
+    'Hold your phone facing forward...';
+
+  $('instruction').textContent =
+    'Hold your phone facing forward';
+
+  const deadline = performance.now() + 2500;
+
+  while(performance.now() < deadline){
+    await new Promise(resolve =>
+      setTimeout(resolve, 100)
+    );
+
+    const routeBearing = -currentHeading();
+
+    if(
+      headingTracker.calibrate(
+        routeBearing,
+        performance.now()
+      )
+    ){
+      deviceHeading =
+        headingTracker.mapHeading();
+
+      return true;
+    }
+  }
+
+  $('status').textContent =
+    'Keep the phone upright and facing forward, then try again.';
+
+  return false;
 }
 
-  navigationActive=true;
-  detectedSteps=0;
 
-  stepCandidates.length=0;
+async function startNavigation(){
+ if(!routeNodes.length) return;
+
+if(navMode === 'sensor'){
+  if(!sensorsEnabled){
+    await enableSensors();
+
+    if(!sensorsEnabled){
+      return;
+    }
+  }
+
+  const calibrated =
+    await calibrateHeadingAutomatically();
+
+  if(!calibrated){
+    return;
+  }
+}
+navigationActive=true;
+detectedSteps=0;
+stepDetector.reset();
+
   isWalking=false;
-  lastConfirmedCandidate=0;
-  stepPeakDetected=false;
-  stepDipDetected=false;
-  orientationSamples.length=0;
   pendingStepDistance=0;
   lastMovementFrameTime=0;
 
@@ -1780,17 +1772,22 @@ $('toFloor').onchange=()=>{
 
 let navMode = 'auto';
 
-$('autoModeBtn').onclick = () => {
-  navMode = 'auto';
-  $('autoModeBtn').className = 'primary';
-  $('sensorModeBtn').className = 'secondary';
-};
+function setNavigationMode(mode){
+  navMode = mode;
 
-$('sensorModeBtn').onclick = () => {
-  navMode = 'sensor';
-  $('sensorModeBtn').className = 'primary';
-  $('autoModeBtn').className = 'secondary';
-};
+  $('autoModeBtn').className =
+    mode === 'auto' ? 'primary' : 'secondary';
+
+  $('sensorModeBtn').className =
+    mode === 'sensor' ? 'primary' : 'secondary';
+}
+
+$('autoModeBtn').onclick = () =>
+  setNavigationMode('auto');
+
+$('sensorModeBtn').onclick = () =>
+  setNavigationMode('sensor');
+
 
 $('routeBtn').onclick=route;
 $('swap').onclick=()=>{
