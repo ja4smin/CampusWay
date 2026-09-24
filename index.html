@@ -1738,6 +1738,17 @@ function closeRoute(){
 // ═══════════════════════════════════════════
 let gpsMarker = null;
 
+
+function clearIndoorStartJourney(){
+  sessionStorage.removeItem('indoorStartContext');
+  sessionStorage.removeItem('originIndoorComplete');
+
+  if(sessionStorage.getItem('journeyStage') === 'origin'){
+    sessionStorage.removeItem('journeyStage');
+  }
+}
+
+
 function toggleGPS(){
   if(document.getElementById('gpsBtn').classList.contains('active')){
     customStart = null;
@@ -1752,8 +1763,10 @@ function toggleGPS(){
 function useGPS_do(){
   if(!('geolocation' in navigator)){ alert(t.gpsError); return; }
   navigator.geolocation.getCurrentPosition(
-    pos=>{
-      const {latitude:lat, longitude:lng} = pos.coords;
+  pos=>{
+  clearIndoorStartJourney();
+
+  const {latitude:lat, longitude:lng} = pos.coords;
       customStart = {lat, lng, label:'📍 GPS'};
       document.getElementById('startInput').value = t.gpsActive;
       document.getElementById('gpsBtn').classList.add('active');
@@ -1917,7 +1930,11 @@ uniqueRoomMatches.sort((a, b) => {
   startSuggestions.style.display = 'block';
 }
 
+
 function pickStart(name, lat, lng){
+
+  clearIndoorStartJourney();
+
   customStart = {lat, lng, label:name};
   document.getElementById('startInput').value = name;
   startSuggestions.style.display = 'none';
@@ -2009,7 +2026,10 @@ function pickIndoorStart(nodeId, label, buildingKey){
 }
 
 document.getElementById('startInput').addEventListener('focus', ()=> showStartSuggestions(''));
-document.getElementById('startInput').addEventListener('input', e=> showStartSuggestions(e.target.value));
+document.getElementById('startInput').addEventListener('input', e=>{
+  clearIndoorStartJourney();
+  showStartSuggestions(e.target.value);
+});
 document.addEventListener('click', e=>{ if(!e.target.closest('.start-row')) startSuggestions.style.display='none'; });
 
 const searchSuggestions = document.getElementById('searchSuggestions');
