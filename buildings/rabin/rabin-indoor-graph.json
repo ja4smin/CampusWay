@@ -1723,6 +1723,15 @@
           "x": 0.418066,
           "y": 0.899568,
           "floor": "floor5"
+        },
+        {
+          "id": "floor5_n204",
+          "label": "madriga",
+          "type": "entrance",
+          "connectorId": "",
+          "x": 0.695023,
+          "y": 0.444695,
+          "floor": "floor5"
         }
       ],
       "connections": [
@@ -2225,9 +2234,13 @@
         {
           "from": "floor5_n202",
           "to": "floor5_n193"
+        },
+        {
+          "from": "floor5_n204",
+          "to": "floor5_n122"
         }
       ],
-      "nextNodeId": 204
+      "nextNodeId": 205
     },
     "floor6": {
       "nodes": [

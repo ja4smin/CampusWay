@@ -1525,11 +1525,32 @@ function completeNavigation(){
   $('progressBar').style.width='100%';
   $('startBtn').disabled=true;
   $('status').textContent='Arrived.';
-  if(sessionStorage.getItem('journeyStage') === 'origin'){
-  sessionStorage.setItem(
-    'originIndoorComplete',
-    'true'
-  );
+if(sessionStorage.getItem('journeyStage') === 'origin'){
+  let sharedTransfer = null;
+
+  try{
+    sharedTransfer = JSON.parse(
+      sessionStorage.getItem('sharedIndoorTransfer') || 'null'
+    );
+  }catch(error){
+    sharedTransfer = null;
+  }
+
+  const currentBuilding =
+    new URLSearchParams(
+      window.location.search
+    ).get('building');
+
+  const usesSharedTransfer =
+    sharedTransfer &&
+    sharedTransfer.originBuilding === currentBuilding;
+
+  if(!usesSharedTransfer){
+    sessionStorage.setItem(
+      'originIndoorComplete',
+      'true'
+    );
+  }
 
   let continueButton =
     document.getElementById('continueOutdoorBtn');
@@ -1539,8 +1560,6 @@ function completeNavigation(){
       document.createElement('button');
 
     continueButton.id = 'continueOutdoorBtn';
-    continueButton.textContent =
-      'Continue outdoors →';
 
     continueButton.style.marginTop = '12px';
     continueButton.style.padding = '10px 16px';
@@ -1551,17 +1570,48 @@ function completeNavigation(){
     continueButton.style.fontWeight = '700';
     continueButton.style.cursor = 'pointer';
 
-    continueButton.onclick = () => {
-      sessionStorage.setItem(
-        'journeyStage',
-        'destination'
-      );
-
-      history.back();
-    };
-
     $('routeCard').appendChild(continueButton);
   }
+
+  continueButton.textContent =
+    usesSharedTransfer
+      ? sharedTransfer.method === 'elevator'
+        ? 'Continue via elevator →'
+        : 'Continue via stairs →'
+      : 'Continue outdoors →';
+
+  continueButton.onclick = () => {
+    sessionStorage.setItem(
+      'journeyStage',
+      'destination'
+    );
+
+    if(usesSharedTransfer){
+      sessionStorage.setItem(
+        'indoorBuilding',
+        sharedTransfer.destinationBuilding
+      );
+
+      sessionStorage.removeItem(
+        'originIndoorComplete'
+      );
+
+      sessionStorage.removeItem(
+        'sharedIndoorTransfer'
+      );
+
+      window.location.href =
+        `navigation-demo.html?building=${
+          encodeURIComponent(
+            sharedTransfer.destinationBuilding
+          )
+        }`;
+
+      return;
+    }
+
+    history.back();
+  };
 }
 }
 

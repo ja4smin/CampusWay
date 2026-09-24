@@ -1518,6 +1518,48 @@ gateMarkers.forEach(marker => {
   }
 }
 
+const SHARED_INDOOR_TRANSFERS = {
+  'madriga:rabin': {
+    standard: {
+      originNodeId: 'floor4_n46',
+      destinationNodeId: 'floor5_n204',
+      method: 'stairs'
+    },
+    mobility: {
+      originNodeId: 'floor4_n43',
+      destinationNodeId: 'floor5_n104',
+      method: 'elevator'
+    }
+  },
+
+  'rabin:madriga': {
+    standard: {
+      originNodeId: 'floor5_n204',
+      destinationNodeId: 'floor4_n46',
+      method: 'stairs'
+    },
+    mobility: {
+      originNodeId: 'floor5_n104',
+      destinationNodeId: 'floor4_n43',
+      method: 'elevator'
+    }
+  }
+};
+
+function sharedIndoorTransfer(originBuilding, destinationBuilding){
+  const connection =
+    SHARED_INDOOR_TRANSFERS[
+      `${originBuilding}:${destinationBuilding}`
+    ];
+
+  if(!connection) return null;
+
+  return currentProfile === 'mobility'
+    ? connection.mobility
+    : connection.standard;
+}
+
+
 async function routeTo(name, lat, lng){
   if(routeLine) map.removeLayer(routeLine);
 // Student rooms use the Floor 4 exit when travelling to Main.
@@ -1675,6 +1717,7 @@ const entranceKeyByBuilding = {
 };
 
 const entranceKey = entranceKeyByBuilding[name];
+let activeSharedTransfer = null;
 
 if(entranceKey){
   const entrances = BUILDING_ENTRANCES[entranceKey] || [];
@@ -1692,6 +1735,14 @@ const originBuildingKey =
   entranceKeyByBuilding[customStart?.label] ||
   null;
 
+  const sharedTransfer =
+  sharedIndoorTransfer(
+    originBuildingKey,
+    entranceKey
+  );
+
+  activeSharedTransfer = sharedTransfer;
+
 const preferredMainEntranceByOrigin = {
   student: 'floor600_n86',
   rabin: 'floor600_n86',
@@ -1699,10 +1750,17 @@ const preferredMainEntranceByOrigin = {
   education: 'floor700_n70'
 };
 
-const preferredEntranceId =
-  entranceKey === 'main'
-    ? preferredMainEntranceByOrigin[originBuildingKey]
-    : null;
+let preferredEntranceId = null;
+
+if(entranceKey === 'main'){
+  preferredEntranceId =
+    preferredMainEntranceByOrigin[originBuildingKey];
+}else if(
+  originBuildingKey === 'main' &&
+  entranceKey === 'rabin'
+){
+  preferredEntranceId = 'floor7_n108';
+}
 
 let routingEntrances = profileEntrances;
 
@@ -1738,41 +1796,101 @@ if(preferredEntranceId){
     return entranceDistance < nearestDistance ? entrance : nearest;
   }, null);
 
-  if(selectedEntrance){
-    lat = selectedEntrance.lat;
-    lng = selectedEntrance.lng;
+if(selectedEntrance){
+  lat = selectedEntrance.lat;
+  lng = selectedEntrance.lng;
 
-    let indoorContext = {};
+  let indoorContext = {};
 
-    try{
-      indoorContext = JSON.parse(
-        sessionStorage.getItem('indoorContext') || '{}'
-      );
-    }catch(error){
-      indoorContext = {};
-    }
-
-    indoorContext.entranceId = selectedEntrance.nodeId;
-    indoorContext.startNodeId = selectedEntrance.nodeId;
-
-    sessionStorage.setItem(
-      'indoorContext',
-      JSON.stringify(indoorContext)
+  try{
+    indoorContext = JSON.parse(
+      sessionStorage.getItem('indoorContext') || '{}'
     );
+  }catch(error){
+    indoorContext = {};
   }
+
+  indoorContext.entranceId = selectedEntrance.nodeId;
+  indoorContext.startNodeId = selectedEntrance.nodeId;
+
+  sessionStorage.setItem(
+    'indoorContext',
+    JSON.stringify(indoorContext)
+  );
+}
+
+if(sharedTransfer){
+  let startContext = {};
+
+  try{
+    startContext = JSON.parse(
+      sessionStorage.getItem('indoorStartContext') || '{}'
+    );
+  }catch(error){
+    startContext = {};
+  }
+
+  if(startContext.buildingKey !== originBuildingKey){
+    startContext = {};
+  }
+
+  startContext.buildingKey = originBuildingKey;
+  startContext.startNodeId =
+    customStart?.nodeId ||
+    startContext.startNodeId ||
+    null;
+  startContext.exitEntranceId =
+    sharedTransfer.originNodeId;
+
+  sessionStorage.setItem(
+    'indoorStartContext',
+    JSON.stringify(startContext)
+  );
+
+  let destinationContext = {};
+
+  try{
+    destinationContext = JSON.parse(
+      sessionStorage.getItem('indoorContext') || '{}'
+    );
+  }catch(error){
+    destinationContext = {};
+  }
+
+  destinationContext.entranceId =
+    sharedTransfer.destinationNodeId;
+  destinationContext.startNodeId =
+    sharedTransfer.destinationNodeId;
+
+  sessionStorage.setItem(
+    'indoorContext',
+    JSON.stringify(destinationContext)
+  );
+
+  sessionStorage.setItem(
+    'sharedIndoorTransfer',
+    JSON.stringify({
+      originBuilding: originBuildingKey,
+      destinationBuilding: entranceKey,
+      method: sharedTransfer.method
+    })
+  );
+}
 }
 
 let outdoorResult = null;
 
-try{
-outdoorResult = await CampusOutdoorRouting.route(
-  start.lat,
-  start.lng,
-  lat,
-  lng
-);
-}catch(error){
-  console.error('Outdoor routing failed:', error);
+if(!activeSharedTransfer){
+  try{
+    outdoorResult = await CampusOutdoorRouting.route(
+      start.lat,
+      start.lng,
+      lat,
+      lng
+    );
+  }catch(error){
+    console.error('Outdoor routing failed:', error);
+  }
 }
 
 let waypoints;
@@ -1792,7 +1910,16 @@ const usesMainRabinBridge =
     entranceKey === 'rabin'
   );
 
-if(usesMainRabinBridge){
+if(activeSharedTransfer){
+  waypoints = [
+    [start.lat, start.lng],
+    [
+      visualDestinationLat,
+      visualDestinationLng
+    ]
+  ];
+
+}else if(usesMainRabinBridge){
   const mainBridgeEnd = [
     32.761753,
     35.019978
@@ -1865,26 +1992,44 @@ if(usesMainRabinBridge){
 
 const visualWaypoints = [...waypoints];
 
-visualWaypoints[visualWaypoints.length - 1] = [
-  visualDestinationLat,
-  visualDestinationLng
-];
+if(waypoints.length > 1){
+  const visualWaypoints = [...waypoints];
 
-routeLine = L.polyline(
-  visualWaypoints,
-  {
-    color:'#0891B2',
-    weight:5,
-    opacity:0.85,
-    dashArray:'1,10',
-    lineCap:'round'
-  }
-).addTo(map);
+  visualWaypoints[visualWaypoints.length - 1] = [
+    visualDestinationLat,
+    visualDestinationLng
+  ];
 
-  let offset=0;
+  routeLine = L.polyline(
+    visualWaypoints,
+    {
+      color:'#0891B2',
+      weight:5,
+      opacity:0.85,
+      dashArray:'1,10',
+      lineCap:'round'
+    }
+  ).addTo(map);
+
+  let offset = 0;
+
   clearInterval(window._dashAnim);
-  window._dashAnim = setInterval(()=>{ offset=(offset+1)%20; routeLine.setStyle({dashOffset:String(offset)}); },60);
-  map.fitBounds(routeLine.getBounds(),{padding:[80,80]});
+
+  window._dashAnim = setInterval(() => {
+    offset = (offset + 1) % 20;
+
+    if(routeLine){
+      routeLine.setStyle({
+        dashOffset:String(offset)
+      });
+    }
+  }, 60);
+
+  map.fitBounds(
+    routeLine.getBounds(),
+    {padding:[80,80]}
+  );
+}
 
   const profile = t.profiles.find(p=>p.id===currentProfile);
 const distanceMeters =
@@ -1896,7 +2041,10 @@ const distanceMeters =
       );
   const speedMps = currentProfile==='mobility' ? 0.8 : 1.2;
   const seconds = distanceMeters / speedMps;
-  const etaNum = seconds < 3600 ? Math.round(seconds/60) : Math.round(seconds/3600*10)/10;
+  const etaNum =
+  seconds < 3600
+    ? Math.max(1, Math.round(seconds / 60))
+    : Math.round(seconds / 3600 * 10) / 10;
   const startLabel = customStart && customStart.label === '📍 GPS' ? t.currentLocation : start.label;
   const displayDestination = localizedBuildingNameByEnglishName(name);
   document.getElementById('routeTitle').textContent = `${t.routeFrom} ${startLabel} → ${displayDestination}`;
