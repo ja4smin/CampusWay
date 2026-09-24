@@ -1563,6 +1563,53 @@ if(
   }
 }
 
+// Main rooms use the Floor 600 exit when travelling
+// toward Student, Rabin, or Madriga.
+if(
+  customStart?.buildingKey === 'main' &&
+  [
+    'Student House',
+    'Rabin Building',
+    'Terrace Building'
+  ].includes(name)
+){
+  const floor600Exit = (
+    BUILDING_ENTRANCES.main || []
+  ).find(
+    entrance => entrance.nodeId === 'floor600_n86'
+  );
+
+  if(floor600Exit){
+    customStart.lat = floor600Exit.lat;
+    customStart.lng = floor600Exit.lng;
+    customStart.entranceId = floor600Exit.nodeId;
+
+    try{
+      const startContext = JSON.parse(
+        sessionStorage.getItem('indoorStartContext') || '{}'
+      );
+
+      startContext.exitEntranceId = floor600Exit.nodeId;
+
+      sessionStorage.setItem(
+        'indoorStartContext',
+        JSON.stringify(startContext)
+      );
+    }catch(error){
+      console.warn(
+        'Could not update the Main exit:',
+        error
+      );
+    }
+
+    if(gpsMarker){
+      gpsMarker.setLatLng([
+        floor600Exit.lat,
+        floor600Exit.lng
+      ]);
+    }
+  }
+}
 const start = getStart();
 
 // Preserve the building's map position for visual display.
