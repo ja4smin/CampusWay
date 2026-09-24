@@ -541,93 +541,158 @@ async function loadGraph(){
   floorButtons();
   drawBaseMap();
 
-  // Restore an indoor destination selected in the main CampusWay app.
-const savedContext = sessionStorage.getItem('indoorContext');
+// Restore a room-to-exit route or an entrance-to-room route.
+const journeyStage =
+  sessionStorage.getItem('journeyStage') || 'destination';
 
-if(savedContext){
-  try{
-    const context = JSON.parse(savedContext);
+if(journeyStage === 'origin'){
+  const savedStartContext =
+    sessionStorage.getItem('indoorStartContext');
 
-// If arriving from outdoor navigation, use the exact entrance
-// selected by the outdoor route. Until entrance mapping is added,
-// fall back to the first mapped entrance like before.
-let entrance = null;
+  if(savedStartContext){
+    try{
+      const context = JSON.parse(savedStartContext);
 
-if(context.entranceId){
-  const savedEntrance = nodeById(context.entranceId);
+      const startNode = nodeById(context.startNodeId);
+      const exitNode = nodeById(context.exitEntranceId);
 
-  if(savedEntrance && savedEntrance.type === 'entrance'){
-    entrance = savedEntrance;
-  }
-}
-
-if(!entrance){
-  entrance = allNodes().find(
-    node => node.type === 'entrance'
-  );
-}
-
-if(entrance){
-  $('fromFloor').value = entrance.floor;
-
-  fillLocationSelect(
-    entrance.floor,
-    'from',
-    'Choose starting point...'
-  );
-
-  $('from').value = entrance.id;
-}
-
-    // Restore the room chosen in the main CampusWay app.
-    // Support both current and older saved context formats.
-    let matchingDestinations = [];
-if(context.destinationLabel){
-  matchingDestinations = allNodes().filter(
-    node =>
-      ['room', 'gym', 'library', 'landmark'].includes(node.type) &&
-      String(node.label).trim().toLowerCase() ===
-      String(context.destinationLabel).trim().toLowerCase()
-  );
-}
-
-if(!matchingDestinations.length && context.destinationNodeId){
-  const savedNode = nodeById(context.destinationNodeId);
-
-  if(
-    savedNode &&
-    ['room', 'gym', 'library', 'landmark'].includes(savedNode.type)
-  ){
-    matchingDestinations = [savedNode];
-  }
-}
-
-    if(matchingDestinations.length){
-      const startId = $('from').value;
-      const best = startId
-        ? bestDestinationNode(startId, matchingDestinations)
-        : { destination: matchingDestinations[0] };
-
-      const destination =
-        best.destination || matchingDestinations[0];
-
-      if(destination){
-        $('toFloor').value = destination.floor;
+      if(startNode){
+        $('fromFloor').value = startNode.floor;
 
         fillLocationSelect(
-          destination.floor,
+          startNode.floor,
+          'from',
+          'Choose starting point...'
+        );
+
+        $('from').value = startNode.id;
+      }
+
+      if(exitNode){
+        $('toFloor').value = exitNode.floor;
+
+        fillLocationSelect(
+          exitNode.floor,
           'to',
           'Choose destination...'
         );
 
-        $('to').value = destination.id;
+        $('to').value = exitNode.id;
       }
+    }catch(error){
+      console.warn(
+        'Could not restore indoor starting room:',
+        error
+      );
     }
-    
-  }catch(err){
-    console.warn('Could not restore indoor destination:', err);
   }
-}
+}else{
+  const savedContext =
+    sessionStorage.getItem('indoorContext');
+
+  if(savedContext){
+    try{
+      const context = JSON.parse(savedContext);
+
+      let entrance = null;
+
+      if(context.entranceId){
+        const savedEntrance =
+          nodeById(context.entranceId);
+
+        if(
+          savedEntrance &&
+          savedEntrance.type === 'entrance'
+        ){
+          entrance = savedEntrance;
+        }
+      }
+
+      if(!entrance){
+        entrance = allNodes().find(
+          node => node.type === 'entrance'
+        );
+      }
+
+      if(entrance){
+        $('fromFloor').value = entrance.floor;
+
+        fillLocationSelect(
+          entrance.floor,
+          'from',
+          'Choose starting point...'
+        );
+
+        $('from').value = entrance.id;
+      }
+
+      let matchingDestinations = [];
+
+      if(context.destinationLabel){
+        matchingDestinations = allNodes().filter(
+          node =>
+            ['room', 'gym', 'library', 'landmark'].includes(
+              node.type
+            ) &&
+            String(node.label).trim().toLowerCase() ===
+            String(context.destinationLabel).trim().toLowerCase()
+        );
+      }
+
+      if(
+        !matchingDestinations.length &&
+        context.destinationNodeId
+      ){
+        const savedNode =
+          nodeById(context.destinationNodeId);
+
+        if(
+          savedNode &&
+          ['room', 'gym', 'library', 'landmark'].includes(
+            savedNode.type
+          )
+        ){
+          matchingDestinations = [savedNode];
+        }
+      }
+
+      if(matchingDestinations.length){
+        const startId = $('from').value;
+
+        const best = startId
+          ? bestDestinationNode(
+              startId,
+              matchingDestinations
+            )
+          : {
+              destination:
+                matchingDestinations[0]
+            };
+
+        const destination =
+          best.destination ||
+          matchingDestinations[0];
+
+        if(destination){
+          $('toFloor').value = destination.floor;
+
+          fillLocationSelect(
+            destination.floor,
+            'to',
+            'Choose destination...'
+          );
+
+          $('to').value = destination.id;
+        }
+      }
+    }catch(error){
+      console.warn(
+        'Could not restore indoor destination:',
+        error
+      );
+     }
+    }
+  }
 }
 
 document.getElementById('building').onchange = async () => {
@@ -1418,6 +1483,44 @@ function completeNavigation(){
   $('progressBar').style.width='100%';
   $('startBtn').disabled=true;
   $('status').textContent='Arrived.';
+  if(sessionStorage.getItem('journeyStage') === 'origin'){
+  sessionStorage.setItem(
+    'originIndoorComplete',
+    'true'
+  );
+
+  let continueButton =
+    document.getElementById('continueOutdoorBtn');
+
+  if(!continueButton){
+    continueButton =
+      document.createElement('button');
+
+    continueButton.id = 'continueOutdoorBtn';
+    continueButton.textContent =
+      'Continue outdoors →';
+
+    continueButton.style.marginTop = '12px';
+    continueButton.style.padding = '10px 16px';
+    continueButton.style.border = '0';
+    continueButton.style.borderRadius = '10px';
+    continueButton.style.background = '#00B09B';
+    continueButton.style.color = 'white';
+    continueButton.style.fontWeight = '700';
+    continueButton.style.cursor = 'pointer';
+
+    continueButton.onclick = () => {
+      sessionStorage.setItem(
+        'journeyStage',
+        'destination'
+      );
+
+      history.back();
+    };
+
+    $('routeCard').appendChild(continueButton);
+  }
+}
 }
 
 function recordOrientation(beta,gamma){
