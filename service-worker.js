@@ -1,4 +1,4 @@
-const CACHE_NAME = 'campusway-v5';
+const CACHE_NAME = 'campusway-v9';
 
 const APP_FILES = [
 './',

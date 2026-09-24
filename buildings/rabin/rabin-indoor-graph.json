@@ -1358,7 +1358,7 @@
         {
           "id": "floor5_n161",
           "label": "Node 162",
-          "type": "corridor",
+          "type": "entrance",
           "connectorId": "",
           "x": 0.623593,
           "y": 0.483777,

@@ -1510,7 +1510,16 @@ if(routeLine) map.removeLayer(routeLine);
 
 const start = getStart();
 
+// Preserve the building's map position for visual display.
+// The actual route and indoor handoff still use the real entrance.
+const visualDestinationLat = lat;
+const visualDestinationLng = lng;
+
 const entranceKeyByBuilding = {
+  'Terrace Building': 'madriga',
+  'Main Building': 'main',
+  'Rabin Building': 'rabin',
+  'Student House': 'student',
   'Multi-Purpose Building': 'multi-purpose',
   'Education and Science': 'education'
 };
@@ -1519,8 +1528,12 @@ const entranceKey = entranceKeyByBuilding[name];
 
 if(entranceKey){
   const entrances = BUILDING_ENTRANCES[entranceKey] || [];
+  const routingEntrances =
+  entrances.some(entrance => entrance.primary)
+    ? entrances.filter(entrance => entrance.primary)
+    : entrances;
 
-  const selectedEntrance = entrances.reduce((nearest, entrance) => {
+  const selectedEntrance = routingEntrances.reduce((nearest, entrance) => {
     if(!nearest) return entrance;
 
     const entranceDistance = CampusOutdoorRouting.distance(
@@ -1600,8 +1613,15 @@ if(outdoorResult && outdoorResult.coordinates.length > 1){
   );
 }
 
+const visualWaypoints = [...waypoints];
+
+visualWaypoints[visualWaypoints.length - 1] = [
+  visualDestinationLat,
+  visualDestinationLng
+];
+
 routeLine = L.polyline(
-  waypoints,
+  visualWaypoints,
   {
     color:'#0891B2',
     weight:5,
