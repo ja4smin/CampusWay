@@ -410,6 +410,16 @@ const CAMERA_W=1000, CAMERA_H=700;
 
 const $=id=>document.getElementById(id);
 
+function indoorDistanceMeters(a, b){
+const dxMeters = (b.x - a.x) * 132.6;
+const dyMeters = (b.y - a.y) * 101.2;
+
+  return Math.hypot(
+    dxMeters,
+    dyMeters
+  );
+}
+
 const svg=$('mapSvg');
 
 // Translation layer only. Routing, graph loading and room handoff stay unchanged.
@@ -847,7 +857,7 @@ for(const c of (f.connections||[])){
     continue;
   }
 
-  const w=Math.hypot(a.x-b.x,a.y-b.y);
+  const w = indoorDistanceMeters(a, b);
   adj.get(a.id).push({id:b.id,w,kind:'walk'});
   adj.get(b.id).push({id:a.id,w,kind:'walk'});
 }
@@ -923,10 +933,7 @@ function bestDestinationNode(startId, destinations){
       if(a.floor !== b.floor){
         distance += 0.02;
       }else{
-        distance += Math.hypot(
-          a.x - b.x,
-          a.y - b.y
-        );
+        distance += indoorDistanceMeters(a, b);
       }
     }
 
@@ -1266,10 +1273,8 @@ for(let i = 0; i < routeNodes.length - 1; i++){
 
   if(a.floor !== b.floor) continue;
 
-  const dxMeters = (b.x - a.x) * 13.26;
-  const dyMeters = (b.y - a.y) * 10.12;
+  routeMeters += indoorDistanceMeters(a, b);
 
-  routeMeters += Math.hypot(dxMeters, dyMeters);
 }
 
 console.log(`Route distance: ${routeMeters.toFixed(2)} m`);
@@ -1379,9 +1384,8 @@ if(a.floor!==b.floor){
 
   return;
 }
-    const dxMeters=(b.x-a.x)*13.26;
-    const dyMeters=(b.y-a.y)*10.12;
-    const segLenMeters=Math.hypot(dxMeters,dyMeters);
+    const segLenMeters =
+    indoorDistanceMeters(a, b);
 
     if(segLenMeters<0.001){
       progressIndex++;
@@ -1671,7 +1675,7 @@ function startAutoDemo(){
       return;
     }
 
-    advanceAlongRoute(0.10);
+    advanceAlongRoute(1.0);
   }, 80);
 }
 

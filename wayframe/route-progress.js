@@ -6,8 +6,8 @@
   'use strict';
 
   const EPSILON = 1e-9;
-  const X_METRES = 13.26;
-  const Y_METRES = 10.12;
+  const X_METRES = 132.6;
+  const Y_METRES = 101.2;
 
   function validateNodes(nodes) {
     if (!Array.isArray(nodes) || !nodes.length) throw new TypeError('Route must contain nodes');
