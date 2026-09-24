@@ -983,10 +983,23 @@ function showAlert(profileId){
 // MAP
 // ═══════════════════════════════════════════
 const center = [32.7615, 35.0195];
-const map = L.map('map',{zoomControl:true,attributionControl:false}).setView(center,16);
+
+const campusBounds = L.latLngBounds(
+  [32.7560, 35.0140],
+  [32.7655, 35.0255]
+);
+
+const map = L.map('map', {
+  zoomControl: true,
+  attributionControl: false,
+  minZoom: 15,
+  maxBounds: campusBounds,
+  maxBoundsViscosity: 1.0
+}).setView(center, 16);
 
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
+  noWrap: true,
   attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
