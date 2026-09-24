@@ -1746,15 +1746,146 @@ function useGPS_do(){
 const startSuggestions = document.getElementById('startSuggestions');
 
 function showStartSuggestions(filter){
-  const list = CAMPUS_DATA.buildings.filter(b=>
-    !filter || b.name.toLowerCase().includes(filter.toLowerCase()) || b.name_he.includes(filter)
+  const q = (filter || '').trim().toLowerCase();
+
+  const buildingMatches = CAMPUS_DATA.buildings.filter(building =>
+    !q ||
+    building.name.toLowerCase().includes(q) ||
+    building.name_he.includes(filter || '')
   );
-  if(!list.length){ startSuggestions.style.display='none'; return; }
-  startSuggestions.innerHTML = list.map(b=>`
-    <div class="suggestion-item" onclick="pickStart('${b.name.replace(/'/g,"\\'")}',${b.lat},${b.lng})">
-      <span>${b.name}</span><span style="color:var(--mid);font-size:11px;">${b.name_he}</span>
-    </div>`).join('');
-  startSuggestions.style.display='block';
+
+  const roomMatches = [];
+
+  const searchableGraphs = [
+    {
+      graph: typeof MADRIGA_GRAPH !== 'undefined' ? MADRIGA_GRAPH : null,
+      buildingName: 'Terrace Building',
+      buildingKey: 'madriga'
+    },
+    {
+      graph: typeof MAIN_GRAPH !== 'undefined' ? MAIN_GRAPH : null,
+      buildingName: 'Main Building',
+      buildingKey: 'main'
+    },
+    {
+      graph: typeof RABIN_GRAPH !== 'undefined' ? RABIN_GRAPH : null,
+      buildingName: 'Rabin Building',
+      buildingKey: 'rabin'
+    },
+    {
+      graph: typeof STUDENT_GRAPH !== 'undefined' ? STUDENT_GRAPH : null,
+      buildingName: 'Student House',
+      buildingKey: 'student'
+    }
+  ];
+
+  if(q){
+    for(const item of searchableGraphs){
+      if(!item.graph) continue;
+
+      for(const [floorKey, floor] of Object.entries(item.graph.floors)){
+        for(const node of (floor.nodes || [])){
+          const nodeLabel = String(node.label || '').trim();
+
+          if(
+            ['room', 'gym', 'library', 'landmark'].includes(node.type) &&
+            nodeLabel.toLowerCase().includes(q) &&
+            !/^node\s*\d+$/i.test(nodeLabel)
+          ){
+            roomMatches.push({
+              node,
+              floor: floorKey,
+              buildingName: item.buildingName,
+              buildingKey: item.buildingKey
+            });
+          }
+        }
+      }
+    }
+  }
+
+  const seenRooms = new Set();
+
+  const uniqueRoomMatches = roomMatches.filter(match => {
+    const key =
+      `${match.buildingKey}:${String(match.node.label).trim().toLowerCase()}`;
+
+    if(seenRooms.has(key)) return false;
+
+    seenRooms.add(key);
+    return true;
+  });
+
+  if(!buildingMatches.length && !uniqueRoomMatches.length){
+    startSuggestions.style.display = 'none';
+    return;
+  }
+
+  const buildingHTML = buildingMatches.map(building => `
+    <div
+      class="suggestion-item"
+      onclick="pickStart(
+        '${building.name.replace(/'/g, "\\'")}',
+        ${building.lat},
+        ${building.lng}
+      )"
+    >
+      <span>${localizedBuildingName(building)}</span>
+      <span style="color:var(--mid);font-size:11px;">
+        ${lang === 'en' ? building.name_he : building.name}
+      </span>
+    </div>
+  `).join('');
+
+  // Rank room results:
+// exact match → starts with query → contains query
+uniqueRoomMatches.sort((a, b) => {
+  const query = q.trim().toLowerCase();
+
+  const aLabel = String(a.node.label).trim().toLowerCase();
+  const bLabel = String(b.node.label).trim().toLowerCase();
+
+  const rank = label => {
+    if(label === query || label === `room ${query}`) return 0;
+
+    const roomNumber = label.replace(/^room\s+/i, '');
+
+    if(roomNumber.startsWith(query)) return 1;
+    if(label.startsWith(query)) return 2;
+
+    return 3;
+  };
+
+  const difference = rank(aLabel) - rank(bLabel);
+
+  if(difference !== 0){
+    return difference;
+  }
+
+  return aLabel.localeCompare(bLabel, undefined, {
+    numeric: true
+  });
+});
+
+  const roomHTML = uniqueRoomMatches.map(match => `
+    <div
+      class="suggestion-item"
+      onclick="pickIndoorStart(
+        '${match.node.id}',
+        '${String(match.node.label).replace(/'/g, "\\'")}',
+        '${match.buildingKey}'
+      )"
+    >
+      <span>${t.room} ${match.node.label}</span>
+      <span style="color:var(--mid);font-size:11px;">
+        ${localizedBuildingNameByEnglishName(match.buildingName)}
+        · ${match.floor.replace('floorminus1','-1').replace('floor','')}
+      </span>
+    </div>
+  `).join('');
+
+  startSuggestions.innerHTML = buildingHTML + roomHTML;
+  startSuggestions.style.display = 'block';
 }
 
 function pickStart(name, lat, lng){
@@ -1771,6 +1902,81 @@ function pickStart(name, lat, lng){
     const match = CAMPUS_DATA.buildings.find(b=>b.name === dest);
     if(match) setTimeout(()=> routeTo(match.name, match.lat, match.lng), 700);
   }
+}
+
+function pickIndoorStart(nodeId, label, buildingKey){
+  const buildingNames = {
+    madriga: 'Terrace Building',
+    main: 'Main Building',
+    rabin: 'Rabin Building',
+    student: 'Student House'
+  };
+
+  const buildingName = buildingNames[buildingKey];
+
+  const building = CAMPUS_DATA.buildings.find(
+    item => item.name === buildingName
+  );
+
+  if(!building) return;
+
+  const entrances = BUILDING_ENTRANCES[buildingKey] || [];
+
+  const profileEntrances =
+    currentProfile === 'mobility'
+      ? entrances.filter(
+          entrance =>
+            !entrance.requiresStairs &&
+            !entrance.avoidForMobility
+        )
+      : entrances;
+
+  const routingEntrances =
+    profileEntrances.some(entrance => entrance.primary)
+      ? profileEntrances.filter(entrance => entrance.primary)
+      : profileEntrances;
+
+  const entrance = routingEntrances[0];
+
+  if(!entrance) return;
+
+  customStart = {
+    lat: entrance.lat,
+    lng: entrance.lng,
+    label: `${t.room} ${label} — ${localizedBuildingName(building)}`,
+    buildingKey,
+    nodeId,
+    entranceId: entrance.nodeId
+  };
+
+  sessionStorage.setItem(
+    'indoorStartContext',
+    JSON.stringify({
+      buildingKey,
+      startNodeId: nodeId,
+      exitEntranceId: entrance.nodeId,
+      label
+    })
+  );
+
+  document.getElementById('startInput').value = customStart.label;
+  startSuggestions.style.display = 'none';
+
+  if(gpsMarker) map.removeLayer(gpsMarker);
+
+  gpsMarker = L.circleMarker(
+    [entrance.lat, entrance.lng],
+    {
+      radius: 10,
+      color: '#00B09B',
+      fillColor: '#00B09B',
+      fillOpacity: 0.4,
+      weight: 3
+    }
+  ).addTo(map);
+
+  gpsMarker.bindPopup(`🚩 ${customStart.label}`).openPopup();
+  map.flyTo([entrance.lat, entrance.lng], 17, {duration: 0.6});
 }
 
 document.getElementById('startInput').addEventListener('focus', ()=> showStartSuggestions(''));
@@ -1838,9 +2044,12 @@ if(q){
 
       for(const node of (floor.nodes || [])){
 
+const nodeLabel = String(node.label || '').trim();
+
         if(
           ['room', 'gym', 'library', 'landmark'].includes(node.type) &&
-          String(node.label).toLowerCase().includes(q)
+          nodeLabel.toLowerCase().includes(q) &&
+          !/^node\s*\d+$/i.test(nodeLabel)
         ){
           roomMatches.push({
             node,
