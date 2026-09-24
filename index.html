@@ -1541,10 +1541,15 @@ const entranceKey = entranceKeyByBuilding[name];
 
 if(entranceKey){
   const entrances = BUILDING_ENTRANCES[entranceKey] || [];
-  const routingEntrances =
-  entrances.some(entrance => entrance.primary)
-    ? entrances.filter(entrance => entrance.primary)
+const profileEntrances =
+  currentProfile === 'mobility'
+    ? entrances.filter(entrance => !entrance.requiresStairs)
     : entrances;
+
+const routingEntrances =
+  profileEntrances.some(entrance => entrance.primary)
+    ? profileEntrances.filter(entrance => entrance.primary)
+    : profileEntrances;
 
   const selectedEntrance = routingEntrances.reduce((nearest, entrance) => {
     if(!nearest) return entrance;

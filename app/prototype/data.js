@@ -47,6 +47,12 @@ const BUILDING_ENTRANCES = {
       nodeId: 'floor5_n162',
       lat: 32.761430,
       lng: 35.020440
+    },
+    {
+    nodeId: 'floor7_n109',
+    lat: 32.761074,
+    lng: 35.020066,
+    requiresStairs: true
     }
   ],
 
