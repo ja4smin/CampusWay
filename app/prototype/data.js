@@ -64,8 +64,8 @@ const BUILDING_ENTRANCES = {
     },
     {
       nodeId: 'floor4_n3',
-      lat: 32.761660,
-      lng: 35.020900
+      lat: 32.761740,
+      lng: 35.021127
     }
   ],
 

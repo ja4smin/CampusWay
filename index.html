@@ -1519,7 +1519,49 @@ gateMarkers.forEach(marker => {
 }
 
 async function routeTo(name, lat, lng){
-if(routeLine) map.removeLayer(routeLine);
+  if(routeLine) map.removeLayer(routeLine);
+// Student rooms use the Floor 4 exit when travelling to Main.
+if(
+  customStart?.buildingKey === 'student' &&
+  name === 'Main Building'
+){
+  const floor4Exit = (
+    BUILDING_ENTRANCES.student || []
+  ).find(
+    entrance => entrance.nodeId === 'floor4_n3'
+  );
+
+  if(floor4Exit){
+    customStart.lat = floor4Exit.lat;
+    customStart.lng = floor4Exit.lng;
+    customStart.entranceId = floor4Exit.nodeId;
+
+    try{
+      const startContext = JSON.parse(
+        sessionStorage.getItem('indoorStartContext') || '{}'
+      );
+
+      startContext.exitEntranceId = floor4Exit.nodeId;
+
+      sessionStorage.setItem(
+        'indoorStartContext',
+        JSON.stringify(startContext)
+      );
+    }catch(error){
+      console.warn(
+        'Could not update the Student exit:',
+        error
+      );
+    }
+
+    if(gpsMarker){
+      gpsMarker.setLatLng([
+        floor4Exit.lat,
+        floor4Exit.lng
+      ]);
+    }
+  }
+}
 
 const start = getStart();
 
@@ -1550,10 +1592,40 @@ const profileEntrances =
       )
     : entrances;
 
-const routingEntrances =
+const originBuildingKey =
+  customStart?.buildingKey ||
+  entranceKeyByBuilding[customStart?.label] ||
+  null;
+
+const preferredMainEntranceByOrigin = {
+  student: 'floor600_n86',
+  rabin: 'floor600_n86',
+  madriga: 'floor600_n86',
+  education: 'floor700_n70'
+};
+
+const preferredEntranceId =
+  entranceKey === 'main'
+    ? preferredMainEntranceByOrigin[originBuildingKey]
+    : null;
+
+let routingEntrances = profileEntrances;
+
+if(preferredEntranceId){
+  const preferredEntrances = profileEntrances.filter(
+    entrance => entrance.nodeId === preferredEntranceId
+  );
+
+  if(preferredEntrances.length){
+    routingEntrances = preferredEntrances;
+  }
+}else if(
   profileEntrances.some(entrance => entrance.primary)
-    ? profileEntrances.filter(entrance => entrance.primary)
-    : profileEntrances;
+){
+  routingEntrances = profileEntrances.filter(
+    entrance => entrance.primary
+  );
+}
 
   const selectedEntrance = routingEntrances.reduce((nearest, entrance) => {
     if(!nearest) return entrance;
@@ -2254,8 +2326,13 @@ const buildingNames = {
 }
 
 function pickDestination(name, lat, lng){
+  // A building-only destination must not reuse an old room.
+  sessionStorage.removeItem('indoorContext');
+  sessionStorage.removeItem('indoorBuilding');
+
   document.getElementById('searchInput').value = name;
-  searchSuggestions.style.display='none';
+  searchSuggestions.style.display = 'none';
+
   routeTo(name, lat, lng);
 }
 
