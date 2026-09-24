@@ -1612,6 +1612,54 @@ if(
 }
 const start = getStart();
 
+// Rabin uses the Floor 7 bridge entrance when travelling to Main.
+if(
+  (
+    customStart?.buildingKey === 'rabin' ||
+    customStart?.label === 'Rabin Building'
+  ) &&
+  name === 'Main Building'
+){
+  const bridgeExit = (
+    BUILDING_ENTRANCES.rabin || []
+  ).find(
+    entrance => entrance.nodeId === 'floor7_n108'
+  );
+
+  if(bridgeExit){
+    customStart.lat = bridgeExit.lat;
+    customStart.lng = bridgeExit.lng;
+    customStart.entranceId = bridgeExit.nodeId;
+
+    try{
+      const startContext = JSON.parse(
+        sessionStorage.getItem('indoorStartContext') || 'null'
+      );
+
+      if(startContext){
+        startContext.exitEntranceId = bridgeExit.nodeId;
+
+        sessionStorage.setItem(
+          'indoorStartContext',
+          JSON.stringify(startContext)
+        );
+      }
+    }catch(error){
+      console.warn(
+        'Could not update the Rabin bridge exit:',
+        error
+      );
+    }
+
+    if(gpsMarker){
+      gpsMarker.setLatLng([
+        bridgeExit.lat,
+        bridgeExit.lng
+      ]);
+    }
+  }
+}
+
 // Preserve the building's map position for visual display.
 // The actual route and indoor handoff still use the real entrance.
 const visualDestinationLat = lat;
@@ -1729,7 +1777,68 @@ outdoorResult = await CampusOutdoorRouting.route(
 
 let waypoints;
 
-if(outdoorResult && outdoorResult.coordinates.length > 1){
+const startingBuildingKey =
+  customStart?.buildingKey ||
+  entranceKeyByBuilding[customStart?.label] ||
+  null;
+
+const usesMainRabinBridge =
+  (
+    startingBuildingKey === 'rabin' &&
+    entranceKey === 'main'
+  ) ||
+  (
+    startingBuildingKey === 'main' &&
+    entranceKey === 'rabin'
+  );
+
+if(usesMainRabinBridge){
+  const mainBridgeEnd = [
+    32.761753,
+    35.019978
+  ];
+
+  const rabinBridgeEnd = [
+    32.761728,
+    35.020010
+  ];
+
+  waypoints =
+    startingBuildingKey === 'rabin'
+      ? [
+          [start.lat, start.lng],
+          rabinBridgeEnd,
+          mainBridgeEnd,
+          [lat, lng]
+        ]
+      : [
+          [start.lat, start.lng],
+          mainBridgeEnd,
+          rabinBridgeEnd,
+          [lat, lng]
+        ];
+
+  const bridgeDistance = waypoints
+    .slice(1)
+    .reduce(
+      (total, point, index) =>
+        total +
+        CampusOutdoorRouting.distance(
+          waypoints[index],
+          point
+        ),
+      0
+    );
+
+  outdoorResult = {
+    coordinates: waypoints,
+    distance: bridgeDistance
+  };
+
+}else if(
+  outdoorResult &&
+  outdoorResult.coordinates.length > 1
+){
 
   // Real OSM pedestrian route
   waypoints = outdoorResult.coordinates;

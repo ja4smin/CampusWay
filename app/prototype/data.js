@@ -35,8 +35,8 @@ const BUILDING_ENTRANCES = {
   rabin: [
     {
       nodeId: 'floor7_n108',
-      lat: 32.761583,
-      lng: 35.020333
+    lat: 32.761569,
+    lng: 35.020316
     },
     {
       nodeId: 'floor6_n73',
