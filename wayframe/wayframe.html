@@ -779,14 +779,26 @@ else{
 
   if(floors.length){
 
+  const lastFloor = localStorage.getItem(
+    `campusway_wayframe_last_floor_${building}`
+  );
+
+  const savedFloorOption =
+    [...floorSelect.options].find(
+      option => option.dataset.floor === lastFloor
+    );
+
+  if(savedFloorOption){
+    floorSelect.value = savedFloorOption.value;
+  }else{
     floorSelect.value =
-  building === 'madriga'
-    ? '../buildings/madriga/floors/floor0.svg'
-    : floorSelect.options[0].value;
-
-    loadFloor();
-
+      building === 'madriga'
+        ? '../buildings/madriga/floors/floor0.svg'
+        : floorSelect.options[0].value;
   }
+
+  loadFloor();
+}
 
 
   updateRouteSelectors();
@@ -800,6 +812,14 @@ function loadFloor(){
 
   currentFloor = option.dataset.floor;
   ensureFloor(currentFloor);
+
+  const activeBuilding =
+  document.getElementById('buildingSelect').value;
+
+localStorage.setItem(
+  `campusway_wayframe_last_floor_${activeBuilding}`,
+  currentFloor
+);
 
   const building =
   document.getElementById('buildingSelect').value;
