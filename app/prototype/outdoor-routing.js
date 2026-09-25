@@ -416,6 +416,26 @@ removeEdge(
 );
 */
 
+
+// --------------------------------------------------
+// Student House <-> Main upper connector
+// This OSM edge is mapped as service, but the physical
+// level change is stairs + nearby elevator.
+// Keep it usable for mobility through the elevator.
+// --------------------------------------------------
+
+removeEdge(
+  7674525954,
+  1936600008
+);
+
+addEdge(
+  7674525954,
+  1936600008,
+  'elevator'
+);
+
+
   for(const correction of CAMPUS_CORRECTIONS){
 
     const {

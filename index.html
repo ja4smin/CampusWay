@@ -1998,19 +1998,24 @@ if(sharedTransfer){
 }
 }
 
+const startingBuildingKey =
+  customStart?.buildingKey ||
+  entranceKeyByBuilding[customStart?.label] ||
+  null;
+
+// Check if start and destination are in the same building
+const sameBuilding =
+  startingBuildingKey !== null &&
+  entranceKey !== null &&
+  startingBuildingKey === entranceKey;
+
 let outdoorResult = null;
 
-if(!activeSharedTransfer){
+if(!activeSharedTransfer && !sameBuilding){
   try{
     outdoorResult = await CampusOutdoorRouting.route(
-      start.lat,
-      start.lng,
-      lat,
-      lng,
-      {
-        avoidSteps:
-          currentProfile === 'mobility'
-      }
+      start.lat, start.lng, lat, lng,
+      { avoidSteps: currentProfile === 'mobility' }
     );
   }catch(error){
     console.error('Outdoor routing failed:', error);
@@ -2018,11 +2023,6 @@ if(!activeSharedTransfer){
 }
 
 let waypoints;
-
-const startingBuildingKey =
-  customStart?.buildingKey ||
-  entranceKeyByBuilding[customStart?.label] ||
-  null;
 
 const usesMainRabinBridge =
   (
@@ -2034,7 +2034,11 @@ const usesMainRabinBridge =
     entranceKey === 'rabin'
   );
 
-if(activeSharedTransfer){
+  if(sameBuilding){
+  // Same building: no outdoor route needed
+  waypoints = [];}
+
+else if(activeSharedTransfer){
   waypoints = [
     [start.lat, start.lng],
     [
@@ -2123,6 +2127,7 @@ if(waypoints.length > 1){
     visualDestinationLat,
     visualDestinationLng
   ];
+  
 
   routeLine = L.polyline(
     visualWaypoints,
@@ -2153,23 +2158,40 @@ if(waypoints.length > 1){
     routeLine.getBounds(),
     {padding:[80,80]}
   );
+}else if(sameBuilding && routeLine){
+  // Remove any existing route line when routing within the same building
+  map.removeLayer(routeLine);
+  routeLine = null;
+  clearInterval(window._dashAnim);
 }
 
-  const profile = t.profiles.find(p=>p.id===currentProfile);
-const distanceMeters =
-  outdoorResult && outdoorResult.distance > 0
-    ? outdoorResult.distance
-    : CampusOutdoorRouting.distance(
-        [start.lat, start.lng],
-        [lat, lng]
-      );
-  const speedMps = currentProfile==='mobility' ? 0.8 : 1.2;
-  const seconds = distanceMeters / speedMps;
-  const etaNum =
-  seconds < 3600
-    ? Math.max(1, Math.round(seconds / 60))
-    : Math.round(seconds / 3600 * 10) / 10;
-  const startLabel = customStart && customStart.label === '📍 GPS' ? t.currentLocation : start.label;
+const profile = t.profiles.find(p=>p.id===currentProfile);
+
+let distanceMeters = 0;
+let seconds = 0;
+let etaNum = 0;
+
+if(!sameBuilding){
+  distanceMeters =
+    outdoorResult && outdoorResult.distance > 0
+      ? outdoorResult.distance
+      : CampusOutdoorRouting.distance(
+          [start.lat, start.lng],
+          [lat, lng]
+        );
+
+  const speedMps =
+    currentProfile === 'mobility' ? 0.8 : 1.2;
+
+  seconds = distanceMeters / speedMps;
+
+  etaNum =
+    seconds < 3600
+      ? Math.max(1, Math.round(seconds / 60))
+      : Math.round(seconds / 3600 * 10) / 10;
+}
+
+const startLabel = customStart && customStart.label === '📍 GPS' ? t.currentLocation : start.label;
 const isRestroomRoute =
   name === 'Nearest restroom' ||
   name.toLowerCase().includes('restroom') ||
@@ -2182,7 +2204,15 @@ const displayDestination =
     : localizedBuildingNameByEnglishName(name);
   document.getElementById('routeTitle').textContent = `${t.routeFrom} ${startLabel} → ${displayDestination}`;
   document.getElementById('routeSub').textContent = `${t.optimizedFor}: ${profile.label}`;
-  document.getElementById('routeEta').textContent = etaNum + (seconds < 3600 ? ' '+t.minWalk : ' '+t.hour);
+const routeEta = document.getElementById('routeEta');
+
+if(sameBuilding){
+  routeEta.style.display = 'none';
+}else{
+  routeEta.style.display = '';
+  routeEta.textContent =
+    etaNum + (seconds < 3600 ? ' ' + t.minWalk : ' ' + t.hour);
+}
   const indoorBtn = document.getElementById('continueIndoorBtn');
 
   const INDOOR_BUILDINGS = {
@@ -2207,14 +2237,28 @@ if(INDOOR_BUILDINGS[name]){
     indoorStartContext = null;
   }
 
-  if(indoorStartContext && indoorStartContext.buildingKey){
-    indoorBtn.dataset.stage = 'origin';
-    indoorBtn.dataset.building = indoorStartContext.buildingKey;
-    indoorBtn.dataset.destinationBuilding = INDOOR_BUILDINGS[name];
+if(
+  sameBuilding &&
+  indoorStartContext &&
+  indoorStartContext.buildingKey
+){
+  indoorBtn.dataset.stage = 'same-building';
+  indoorBtn.dataset.building = indoorStartContext.buildingKey;
 
-    document.getElementById('lbl-continue-indoor').textContent =
-      'Start indoor route →';
-  }else{
+  delete indoorBtn.dataset.destinationBuilding;
+
+  document.getElementById('lbl-continue-indoor').textContent =
+    'Start indoor route →';
+
+}else if(indoorStartContext && indoorStartContext.buildingKey){
+  indoorBtn.dataset.stage = 'origin';
+  indoorBtn.dataset.building = indoorStartContext.buildingKey;
+  indoorBtn.dataset.destinationBuilding = INDOOR_BUILDINGS[name];
+
+  document.getElementById('lbl-continue-indoor').textContent =
+    'Start indoor route →';
+
+}else{
     indoorBtn.dataset.stage = 'destination';
     indoorBtn.dataset.building = INDOOR_BUILDINGS[name];
 
@@ -2442,9 +2486,28 @@ uniqueRoomMatches.sort((a, b) => {
 
 function pickStart(name, lat, lng){
 
-  clearIndoorStartJourney();
+clearIndoorStartJourney();
 
+if(name === 'Main Building'){
+  customStart = {
+    lat,
+    lng,
+    label: name,
+    buildingKey: 'main',
+    nodeId: 'floor700_n69'
+  };
+
+  sessionStorage.setItem(
+    'indoorStartContext',
+    JSON.stringify({
+      buildingKey: 'main',
+      startNodeId: 'floor700_n69',
+      label: 'Main entrance 700'
+    })
+  );
+}else{
   customStart = {lat, lng, label:name};
+}
   document.getElementById('startInput').value = name;
   startSuggestions.style.display = 'none';
   if(gpsMarker) map.removeLayer(gpsMarker);

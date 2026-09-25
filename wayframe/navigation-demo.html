@@ -558,7 +558,73 @@ async function loadGraph(){
 const journeyStage =
   sessionStorage.getItem('journeyStage') || 'destination';
 
-if(journeyStage === 'origin'){
+if(journeyStage === 'same-building'){
+  const savedStartContext =
+    sessionStorage.getItem('indoorStartContext');
+
+  const savedContext =
+    sessionStorage.getItem('indoorContext');
+
+  if(savedStartContext && savedContext){
+    try{
+      const startContext = JSON.parse(savedStartContext);
+      const destinationContext = JSON.parse(savedContext);
+
+      const startNode = nodeById(startContext.startNodeId);
+
+      if(startNode){
+        $('fromFloor').value = startNode.floor;
+
+        fillLocationSelect(
+          startNode.floor,
+          'from',
+          'Choose starting point...'
+        );
+
+        ensureNodeOption('from', startNode);
+        $('from').value = startNode.id;
+
+        let destinations = [];
+
+        if(
+          String(destinationContext.destinationLabel)
+            .toLowerCase()
+            .includes('restroom')
+        ){
+          destinations = allNodes().filter(
+            node => node.type === 'restroom'
+          );
+        }
+
+        if(destinations.length){
+          const best =
+            bestDestinationNode(startNode.id, destinations);
+
+          const destination = best.destination;
+
+          if(destination){
+            $('toFloor').value = destination.floor;
+
+            fillLocationSelect(
+              destination.floor,
+              'to',
+              'Choose destination...'
+            );
+
+            ensureNodeOption('to', destination);
+            $('to').value = destination.id;
+          }
+        }
+      }
+    }catch(error){
+      console.warn(
+        'Could not restore same-building indoor route:',
+        error
+      );
+    }
+  }
+
+}else if(journeyStage === 'origin'){
   const savedStartContext =
     sessionStorage.getItem('indoorStartContext');
 
