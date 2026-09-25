@@ -239,7 +239,7 @@ button{cursor:pointer;font-weight:700}
   id="backToCampusBtn"
   class="secondary"
   type="button"
-  onclick="history.back()"
+  onclick="window.location.href='../index.html'"
 >
   ← Campus map
 </button>
@@ -584,13 +584,15 @@ if(journeyStage === 'origin'){
       if(exitNode){
         $('toFloor').value = exitNode.floor;
 
-        fillLocationSelect(
-          exitNode.floor,
-          'to',
-          'Choose destination...'
-        );
+      fillLocationSelect(
+        exitNode.floor,
+        'to',
+        'Choose destination...'
+      );
 
-        $('to').value = exitNode.id;
+      ensureNodeOption('to', exitNode);
+
+      $('to').value = exitNode.id;
       }
     }catch(error){
       console.warn(
@@ -615,7 +617,9 @@ if(journeyStage === 'origin'){
 
         if(
           savedEntrance &&
-          savedEntrance.type === 'entrance'
+          ['entrance', 'elevator'].includes(
+            savedEntrance.type
+          )
         ){
           entrance = savedEntrance;
         }
@@ -635,6 +639,8 @@ if(journeyStage === 'origin'){
           'from',
           'Choose starting point...'
         );
+
+        ensureNodeOption('from', entrance);
 
         $('from').value = entrance.id;
       }
@@ -703,6 +709,14 @@ if(journeyStage === 'origin'){
         'Could not restore indoor destination:',
         error
       );
+      if(
+        $('from').value &&
+        $('to').value
+      ){
+        setTimeout(() => {
+          route();
+        }, 0);
+      }
      }
     }
   }
@@ -841,6 +855,31 @@ function fillLocationSelect(floorId, selectId, placeholder){
   select.innerHTML=`<option value="">${placeholder}</option>`+options;
   select.value='';
   select.disabled=false;
+}
+
+function ensureNodeOption(selectId, node){
+  if(!node) return;
+
+  const select = $(selectId);
+
+  const alreadyExists =
+    [...select.options].some(
+      option => option.value === node.id
+    );
+
+  if(alreadyExists) return;
+
+  let label = node.label || node.type;
+
+  if(node.type === 'elevator'){
+    label = 'Elevator';
+  }else if(node.type === 'entrance'){
+    label += ' — Entrance';
+  }
+
+  select.add(
+    new Option(label, node.id)
+  );
 }
 
 function buildGraph(){
@@ -1235,7 +1274,51 @@ function describeRoute(){
       steps.push(localizedInstruction(`Take the ${method} to Floor ${floorLabel(n.floor)}`,`استخدم ${method==='elevator'?'المصعد':'الدرج'} إلى ${localizedFloor(n.floor)}`,`עלה ב${method==='elevator'?'מעלית':'מדרגות'} אל ${localizedFloor(n.floor)}`));
     }
   }
-  steps.push(localizedInstruction(`Arrive at ${bLabel}`,`وصل إلى ${localizedNodeLabel(bLabel)}`,`הגע אל ${localizedNodeLabel(bLabel)}`));
+  let sharedTransfer = null;
+
+try{
+  sharedTransfer = JSON.parse(
+    sessionStorage.getItem('sharedIndoorTransfer') || 'null'
+  );
+}catch(error){
+  sharedTransfer = null;
+}
+
+const currentBuilding =
+  new URLSearchParams(
+    window.location.search
+  ).get('building');
+
+const isSharedOrigin =
+  sessionStorage.getItem('journeyStage') === 'origin' &&
+  sharedTransfer &&
+  sharedTransfer.originBuilding === currentBuilding;
+
+if(isSharedOrigin){
+  const destinationName =
+    sharedTransfer.destinationBuilding === 'rabin'
+      ? 'Rabin'
+      : 'Madriga';
+
+  const destinationFloor =
+    sharedTransfer.destinationBuilding === 'rabin'
+      ? '5'
+      : '4';
+
+  steps.push(
+    sharedTransfer.method === 'elevator'
+      ? `Take the elevator directly to ${destinationName} Floor ${destinationFloor}`
+      : `Take the stairs to ${destinationName} Floor ${destinationFloor}`
+  );
+}else{
+  steps.push(
+    localizedInstruction(
+      `Arrive at ${bLabel}`,
+      `وصل إلى ${localizedNodeLabel(bLabel)}`,
+      `הגע אל ${localizedNodeLabel(bLabel)}`
+    )
+  );
+}
   $('steps').innerHTML=steps.map(s=>`<div class="step"><div class="dot"></div><div>${esc(s)}</div></div>`).join('');
   $('instruction').textContent=localizedInstruction('Follow the highlighted route','اتبع المسار المحدد','עקוב אחר המסלול המסומן');
   $('subInstruction').textContent=localizedInstruction(`Destination: ${bLabel}`,`الوجهة: ${localizedNodeLabel(bLabel)}`,`יעד: ${localizedNodeLabel(bLabel)}`);
@@ -1370,9 +1453,15 @@ if(a.floor!==b.floor){
   $('subInstruction').textContent =
     `Continue on Floor ${floorLabel(b.floor)}`;
 
-  progressIndex++;
-  progressT=0;
-  activeFloor=b.floor;
+    progressIndex++;
+    progressT=0;
+
+    if(progressIndex >= routeNodes.length - 1){
+      completeNavigation();
+      return;
+    }
+
+    activeFloor=b.floor;
 
   floorButtons();
   drawBaseMap();
@@ -1545,6 +1634,42 @@ if(sessionStorage.getItem('journeyStage') === 'origin'){
     sharedTransfer &&
     sharedTransfer.originBuilding === currentBuilding;
 
+    if(usesSharedTransfer){
+  const destinationBuilding =
+    sharedTransfer.destinationBuilding;
+
+  $('status').textContent =
+    `Switching to ${
+      destinationBuilding === 'rabin'
+        ? 'Rabin'
+        : 'Madriga'
+    }...`;
+
+  sessionStorage.setItem(
+    'journeyStage',
+    'destination'
+  );
+
+  sessionStorage.setItem(
+    'indoorBuilding',
+    destinationBuilding
+  );
+
+  sessionStorage.removeItem(
+    'originIndoorComplete'
+  );
+
+  setTimeout(() => {
+    window.location.assign(
+      `./navigation-demo.html?building=${
+        encodeURIComponent(destinationBuilding)
+      }`
+    );
+  }, 400);
+
+  return;
+}
+
   if(!usesSharedTransfer){
     sessionStorage.setItem(
       'originIndoorComplete',
@@ -1587,25 +1712,23 @@ if(sessionStorage.getItem('journeyStage') === 'origin'){
     );
 
     if(usesSharedTransfer){
+      const destinationBuilding =
+        sharedTransfer.destinationBuilding;
+
       sessionStorage.setItem(
         'indoorBuilding',
-        sharedTransfer.destinationBuilding
+        destinationBuilding
       );
 
       sessionStorage.removeItem(
         'originIndoorComplete'
       );
 
-      sessionStorage.removeItem(
-        'sharedIndoorTransfer'
+      window.location.assign(
+        `./navigation-demo.html?building=${
+          encodeURIComponent(destinationBuilding)
+        }`
       );
-
-      window.location.href =
-        `navigation-demo.html?building=${
-          encodeURIComponent(
-            sharedTransfer.destinationBuilding
-          )
-        }`;
 
       return;
     }

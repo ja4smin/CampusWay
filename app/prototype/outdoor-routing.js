@@ -541,7 +541,7 @@ function closestNodesBetweenComponents(componentA, componentB){
   // Dijkstra
   // --------------------------------------------------
 
- function shortestPath(start, end) {
+function shortestPath(start, end, options = {}) {
 
     const distances = new Map();
     const previous = new Map();
@@ -586,6 +586,13 @@ function closestNodesBetweenComponents(componentA, componentB){
 for(const edge of graph.get(current) || []){
 
   if(!unvisited.has(edge.node)){
+    continue;
+  }
+
+    if(
+    options.avoidSteps &&
+    edge.type === 'steps'
+  ){
     continue;
   }
 
@@ -782,87 +789,89 @@ async function route(
   startLat,
   startLng,
   endLat,
-  endLng
+  endLng,
+  options = {}
 ){
+  await load();
 
-    await load();
+  const startNode =
+    nearestNode(
+      startLat,
+      startLng
+    );
 
-    const startNode =
-      nearestNode(
-        startLat,
-        startLng
-      );
+  const endNode =
+    nearestNode(
+      endLat,
+      endLng
+    );
 
-    const endNode =
-      nearestNode(
-        endLat,
-        endLng
-      );
+  if(
+    startNode === null ||
+    endNode === null
+  ){
+    return null;
+  }
 
-    if(
-      startNode === null ||
-      endNode === null
-    ){
-      return null;
-    }
+  const result =
+    shortestPath(
+      startNode,
+      endNode,
+      options
+    );
 
-const result =
-  shortestPath(
-    startNode,
-    endNode
-  );
+  if(!result){
+    const startComponent =
+      connectedComponent(startNode);
 
-if(!result){
-
-  const startComponent =
-    connectedComponent(startNode);
-
-  const endComponent =
-    connectedComponent(endNode);
+    const endComponent =
+      connectedComponent(endNode);
 
     const closestGap =
-  closestNodesBetweenComponents(
-    startComponent,
-    endComponent
-  );
+      closestNodesBetweenComponents(
+        startComponent,
+        endComponent
+      );
 
-  console.warn(
-    'No connected OSM route found',
-    {
-      startNode,
-      startCoordinate: coordinates.get(startNode),
-      startComponentSize: startComponent.size,
+    console.warn(
+      'No connected OSM route found',
+      {
+        startNode,
+        startCoordinate:
+          coordinates.get(startNode),
+        startComponentSize:
+          startComponent.size,
 
-      endNode,
-      endCoordinate: coordinates.get(endNode),
-      endComponentSize: endComponent.size,
-    
-      closestGap
-    }
-  );
+        endNode,
+        endCoordinate:
+          coordinates.get(endNode),
+        endComponentSize:
+          endComponent.size,
 
-  return null;
-}
+        closestGap
+      }
+    );
 
-    const routeCoordinates = [
+    return null;
+  }
+
+  return {
+    coordinates: [
       [startLat, startLng],
 
       ...result.nodes.map(
-        node =>
-          coordinates.get(node)
+        node => coordinates.get(node)
       ),
 
       [endLat, endLng]
-    ];
+    ],
 
-    return {
-      coordinates: routeCoordinates,
-      distance: result.distance,
-      edges: result.edges,
-      startNode,
-      endNode
-    };
-  }
+    distance: result.distance,
+    edges: result.edges,
+    startNode,
+    endNode
+  };
+}
 
 
   // --------------------------------------------------

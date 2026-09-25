@@ -1554,9 +1554,15 @@ function sharedIndoorTransfer(originBuilding, destinationBuilding){
 
   if(!connection) return null;
 
-  return currentProfile === 'mobility'
-    ? connection.mobility
-    : connection.standard;
+    const mobilitySelected =
+      currentProfile === 'mobility' ||
+      sessionStorage.getItem(
+        'accessibilityProfile'
+      ) === 'mobility';
+
+    return mobilitySelected
+      ? connection.mobility
+      : connection.standard;
 }
 
 
@@ -1886,7 +1892,11 @@ if(!activeSharedTransfer){
       start.lat,
       start.lng,
       lat,
-      lng
+      lng,
+      {
+        avoidSteps:
+          currentProfile === 'mobility'
+      }
     );
   }catch(error){
     console.error('Outdoor routing failed:', error);
@@ -2920,30 +2930,99 @@ function startIndoorTransition(){
   sessionStorage.setItem('journeyStage', stage);
   sessionStorage.setItem('indoorBuilding', building);
 
-  window.location.href =
-    `wayframe/navigation-demo.html?building=${encodeURIComponent(building)}`;
+const transitionScreen =
+  document.getElementById('indoorTransition');
+
+if(transitionScreen){
+  transitionScreen.style.display = 'flex';
+}
+
+window.location.href =
+  `wayframe/navigation-demo.html?building=${
+    encodeURIComponent(building)
+  }`;
 }
 
 window.addEventListener('pageshow', () => {
-  if(sessionStorage.getItem('originIndoorComplete') !== 'true'){
+  const transitionScreen =
+    document.getElementById('indoorTransition');
+
+  const transitionDirection =
+    sessionStorage.getItem(
+      'campusTransitionDirection'
+    );
+
+  if(
+    transitionScreen &&
+    transitionDirection === 'outdoor'
+  ){
+    const transitionText =
+      document.getElementById(
+        'lbl-switching-indoor'
+      );
+
+    if(transitionText){
+      transitionText.textContent =
+        'Switching to outdoor mode...';
+    }
+
+    transitionScreen.style.display = 'flex';
+
+    setTimeout(() => {
+      transitionScreen.style.display = 'none';
+
+      if(transitionText){
+        transitionText.textContent =
+          'Switching to indoor mode...';
+      }
+    }, 350);
+
+    sessionStorage.removeItem(
+      'campusTransitionDirection'
+    );
+  }else if(transitionScreen){
+    transitionScreen.style.display = 'none';
+  }
+
+  if(
+    sessionStorage.getItem(
+      'originIndoorComplete'
+    ) !== 'true'
+  ){
     return;
   }
 
-  const indoorBtn = document.getElementById('continueIndoorBtn');
+  const indoorBtn =
+    document.getElementById(
+      'continueIndoorBtn'
+    );
+
   const destinationBuilding =
     indoorBtn.dataset.destinationBuilding;
 
   if(destinationBuilding){
     indoorBtn.dataset.stage = 'destination';
-    indoorBtn.dataset.building = destinationBuilding;
+    indoorBtn.dataset.building =
+      destinationBuilding;
 
-    document.getElementById('lbl-continue-indoor').textContent =
-      t.continueIndoors;
+    document.getElementById(
+      'lbl-continue-indoor'
+    ).textContent = t.continueIndoors;
   }
 
-  sessionStorage.removeItem('originIndoorComplete');
+  sessionStorage.removeItem(
+    'originIndoorComplete'
+  );
 });
 
+window.addEventListener('pagehide', () => {
+  const transitionScreen =
+    document.getElementById('indoorTransition');
+
+  if(transitionScreen){
+    transitionScreen.style.display = 'none';
+  }
+});
 
 </script>
 
