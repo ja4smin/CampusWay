@@ -664,7 +664,7 @@ const T = {
       spatial:'Step-by-step landmarks enabled — fewer turns, simpler directions.',
     },
     voices:['US English','UK English','Default'],
-    legendBuilding:'Building', legendRestroom:'Restroom',
+    legendBuilding:'Building',
     legendGate:'Gate / Entrance', legendFood:'Food & Shops', legendClinic:'Clinic',
     minWalk:'min walk',
     favourites:'Favourites',
@@ -715,7 +715,7 @@ const T = {
       spatial:'ניווט לפי ציוני דרך פעיל — פחות פניות, הוראות פשוטות.',
     },
     voices:['עברית','אנגלית','ברירת מחדל'],
-    legendBuilding:'בניין', legendRestroom:'שירותים',
+    legendBuilding:'בניין',
     legendGate:'שער / כניסה', legendFood:'מזון וחנויות', legendClinic:'קליניקה',
     legendElevator:'מעלית', legendStairs:'מדרגות',
     minWalk:'דק׳ הליכה',
@@ -766,7 +766,7 @@ const T = {
       spatial:'الملاحة بالمعالم مفعّلة — أقل منعطفات، توجيهات أبسط.',
     },
     voices:['عربية','إنجليزية','افتراضي'],
-    legendBuilding:'مبنى', legendRestroom:'دورة مياه',
+    legendBuilding:'مبنى',
     legendGate:'بوابة / مدخل', legendFood:'طعام ومحلات', legendClinic:'عيادة',
     legendElevator:'مصعد', legendStairs:'سلالم',
     minWalk:'دقيقة سيرًا',
@@ -791,6 +791,7 @@ let audioOn = false;
 let customStart = null; // {lat, lng, label}
 let userLocationMarker = null;
 let foodMode = false;
+let restroomMode = false;
 
 // ═══════════════════════════════════════════
 // LANGUAGE PICKER
@@ -1120,8 +1121,7 @@ CAMPUS_DATA.points.restrooms.slice(0,30).forEach(r=>{
   const icon = L.divIcon({className:'',
     html:`<div style="width:14px;height:14px;border-radius:50%;background:#0891B2;border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.2);"></div>`,
     iconSize:[14,14],iconAnchor:[7,7]});
- const marker = L.marker([r.lat,r.lng],{icon})
-  .addTo(map)
+const marker = L.marker([r.lat,r.lng],{icon})
   .bindPopup(`<b>🚻</b> ${r.name}`);
 
 restroomMarkers.push(marker);
@@ -1144,11 +1144,17 @@ gateMarkers.push(marker);
 // Food — green
 const foodMarkers = [];
 
+const normalFoodIcon = L.divIcon({
+  className:'',
+  html:`<div style="width:14px;height:14px;border-radius:50%;background:#00B09B;border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.2);"></div>`,
+  iconSize:[14,14],
+  iconAnchor:[7,7]
+});
+
 CAMPUS_DATA.points.food.forEach(f=>{
-  const icon = L.divIcon({className:'',
-    html:`<div style="width:14px;height:14px;border-radius:50%;background:#00B09B;border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.2);"></div>`,
-    iconSize:[14,14],iconAnchor:[7,7]});
-  const marker = L.marker([f.lat,f.lng],{icon})
+  const marker = L.marker([f.lat,f.lng],{
+    icon: normalFoodIcon
+  })
   .addTo(map)
   .bindPopup(`
     <b>🍽️ ${f.name}</b>
@@ -1161,8 +1167,8 @@ CAMPUS_DATA.points.food.forEach(f=>{
     </button>
   `);
 
-marker.foodData = f;
-foodMarkers.push(marker);
+  marker.foodData = f;
+  foodMarkers.push(marker);
 });
 
 // Clinic — red cross
@@ -1213,7 +1219,6 @@ function buildLegend(){
   
   document.getElementById('mapLegend').innerHTML = `
     <div class="legend-row">${dot('#0D1B3E','4px','','■')} ${t.legendBuilding}</div>
-    <div class="legend-row">${dot('#0891B2','50%','','🚻')} ${t.legendRestroom}</div>
     <div class="legend-row">${dot('#F59E0B','50%','','🚪')} ${t.legendGate}</div>
     <div class="legend-row">${dot('#00B09B','50%','','🍽️')} ${t.legendFood}</div>
     <div class="legend-row">${dot('#8B5CF6','4px','▲','▲')} ${t.legendElevator}</div>
@@ -1253,9 +1258,11 @@ function getStart(){
 
 function restoreServiceMarkers(){
 
-  restroomMarkers.forEach(marker => {
-    if(!map.hasLayer(marker)) marker.addTo(map);
-  });
+restroomMarkers.forEach(marker => {
+  if(map.hasLayer(marker)) map.removeLayer(marker);
+});
+
+restroomMode = false;
 
   clinicMarkers.forEach(marker => {
     if(!map.hasLayer(marker)) marker.addTo(map);
@@ -1266,6 +1273,72 @@ function restoreServiceMarkers(){
   });
 
   foodMode = false;
+}
+function collectIndoorRestroomServices(){
+
+  const buildings = [
+    {
+      key: 'madriga',
+      name: 'Terrace Building',
+      graph: typeof MADRIGA_GRAPH !== 'undefined' ? MADRIGA_GRAPH : null
+    },
+    {
+      key: 'main',
+      name: 'Main Building',
+      graph: typeof MAIN_GRAPH !== 'undefined' ? MAIN_GRAPH : null
+    },
+    {
+      key: 'rabin',
+      name: 'Rabin Building',
+      graph: typeof RABIN_GRAPH !== 'undefined' ? RABIN_GRAPH : null
+    },
+    {
+      key: 'student',
+      name: 'Student House',
+      graph: typeof STUDENT_GRAPH !== 'undefined' ? STUDENT_GRAPH : null
+    },
+    {
+      key: 'multi-purpose',
+      name: 'Multi-Purpose Building',
+      graph: typeof MULTI_PURPOSE_GRAPH !== 'undefined' ? MULTI_PURPOSE_GRAPH : null
+    }
+  ];
+
+  const services = [];
+
+  buildings.forEach(building => {
+
+    const graph = building.graph;
+    const campusBuilding = CAMPUS_DATA.buildings.find(
+  b => b.name === building.name
+);
+
+if(!campusBuilding) return;
+
+    if(!graph || !campusBuilding) return;
+
+    let hasRestroom = false;
+
+    Object.values(graph.floors || {}).forEach(floor => {
+      (floor.nodes || []).forEach(node => {
+        if(node.type === 'restroom'){
+          hasRestroom = true;
+        }
+      });
+    });
+
+    if(!hasRestroom) return;
+
+services.push({
+  name: 'Nearest restroom',
+  buildingName: building.name,
+  buildingKey: building.key,
+  lat: campusBuilding.lat,
+  lng: campusBuilding.lng
+});
+  });
+
+  return services;
 }
 
 function findNearbyIndoorService(type){
@@ -1374,7 +1447,7 @@ function routeToIndoorService(match){
 
 function findNearbyService(type){
 
-  if(type !== 'food'){
+  if(type !== 'food' && type !== 'restroom'){
     restoreServiceMarkers();
   }
 
@@ -1387,34 +1460,34 @@ function findNearbyService(type){
     return;
   }
 
-
   const start = getStart();
 
   let services = [];
 
   if(type === 'restroom'){
-    services = CAMPUS_DATA.points.restrooms;
+
+    services = collectIndoorRestroomServices();
   }
 
- if(type === 'food'){
-  showFoodPlaces();
-  return;
-}
+  if(type === 'food'){
+    showFoodPlaces();
+    return;
+  }
 
-if(type === 'clinic'){
+  if(type === 'clinic'){
 
-  const clinic = CAMPUS_DATA.points.clinic[0];
+    const clinic = CAMPUS_DATA.points.clinic[0];
 
-  if(!clinic) return;
+    if(!clinic) return;
 
-  routeTo(
-    clinic.name,
-    clinic.lat,
-    clinic.lng
-  );
+    routeTo(
+      clinic.name,
+      clinic.lat,
+      clinic.lng
+    );
 
-  return;
-}
+    return;
+  }
 
   if(!services || !services.length) return;
 
@@ -1436,6 +1509,43 @@ if(type === 'clinic'){
 
   if(!nearest) return;
 
+  if(type === 'restroom'){
+    sessionStorage.setItem(
+      'indoorContext',
+      JSON.stringify({
+        entranceId: null,
+        startNodeId: null,
+        destinationLabel: 'Restroom'
+      })
+    );
+
+    sessionStorage.setItem(
+      'indoorBuilding',
+      nearest.buildingKey
+    );
+
+routeTo(
+  nearest.buildingName,
+  nearest.lat,
+  nearest.lng
+);
+
+setTimeout(() => {
+  const title = document.getElementById('routeTitle');
+  if(title){
+    const startLabel =
+      customStart && customStart.label === '📍 GPS'
+        ? t.currentLocation
+        : getStart().label;
+
+    title.textContent =
+      `${t.routeFrom} ${startLabel} → Nearest restroom`;
+  }
+}, 100);
+
+return;
+  }
+
   routeTo(
     nearest.name,
     nearest.lat,
@@ -1450,6 +1560,10 @@ function showFoodPlaces(){
     restroomMarkers.forEach(marker => marker.addTo(map));
     clinicMarkers.forEach(marker => marker.addTo(map));
     gateMarkers.forEach(marker => marker.addTo(map));
+
+    foodMarkers.forEach(marker => {
+    marker.setIcon(normalFoodIcon);
+  });
 
     foodMode = false;
 
@@ -2056,7 +2170,16 @@ const distanceMeters =
     ? Math.max(1, Math.round(seconds / 60))
     : Math.round(seconds / 3600 * 10) / 10;
   const startLabel = customStart && customStart.label === '📍 GPS' ? t.currentLocation : start.label;
-  const displayDestination = localizedBuildingNameByEnglishName(name);
+const isRestroomRoute =
+  name === 'Nearest restroom' ||
+  name.toLowerCase().includes('restroom') ||
+  name.toLowerCase().includes('toilet') ||
+  name.toLowerCase().includes('cell near the exit');
+
+const displayDestination =
+  isRestroomRoute
+    ? 'Nearest restroom'
+    : localizedBuildingNameByEnglishName(name);
   document.getElementById('routeTitle').textContent = `${t.routeFrom} ${startLabel} → ${displayDestination}`;
   document.getElementById('routeSub').textContent = `${t.optimizedFor}: ${profile.label}`;
   document.getElementById('routeEta').textContent = etaNum + (seconds < 3600 ? ' '+t.minWalk : ' '+t.hour);
@@ -2110,7 +2233,7 @@ if(INDOOR_BUILDINGS[name]){
 
   document.getElementById('routeCard').classList.add('show');
   map.closePopup();
-  speak(`${t.routeFrom} ${startLabel} to ${name}. ${etaNum} ${seconds < 3600 ? t.minWalk : t.hours}.`);
+  speak(`${t.routeFrom} ${startLabel} to ${displayDestination}. ${etaNum} ${seconds < 3600 ? t.minWalk : t.hours}.`);
 }
 
 function closeRoute(){
