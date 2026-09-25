@@ -373,6 +373,49 @@ addEdge(
   'footway'
 );
 
+/*
+ // --------------------------------------------------
+ // Accessible ramp: street <-> Rabin Floor 6 plaza
+ // Provides step-free access toward Student House Floor 4
+ // --------------------------------------------------
+
+ addCampusNode(
+   'campus_rabin_ramp_lower',
+   32.7618565,
+   35.0204916
+ );
+
+ addCampusNode(
+   'campus_rabin_ramp_upper',
+   32.7615516,
+   35.0208770
+ );
+
+ addEdge(
+   7674525954,
+   'campus_rabin_ramp_lower',
+   'footway'
+ );
+
+ addEdge(
+   'campus_rabin_ramp_lower',
+   'campus_rabin_ramp_upper',
+   'footway'
+ );
+
+ addEdge(
+   'campus_rabin_ramp_upper',
+   1936600008,
+   'footway'
+ );
+
+ // Split the existing direct sidewalk edge so routing follows the ramp geometry
+removeEdge(
+  7674525954,
+  1936600008
+);
+*/
+
   for(const correction of CAMPUS_CORRECTIONS){
 
     const {
