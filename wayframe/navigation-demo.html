@@ -645,6 +645,41 @@ if(journeyStage === 'same-building'){
     }
   }
 
+  }else if(journeyStage === 'intermediate'){
+  const startNode = nodeById('floor7_n108');
+
+  if(startNode){
+    $('fromFloor').value = startNode.floor;
+
+    fillLocationSelect(
+      startNode.floor,
+      'from',
+      'Choose starting point...'
+    );
+
+    ensureNodeOption('from', startNode);
+    $('from').value = startNode.id;
+
+    const destinationNode = nodeById(
+  $('accessibleRoute').checked
+    ? 'floor5_n104'
+    : 'floor5_n204'
+);
+
+if(destinationNode){
+  $('toFloor').value = destinationNode.floor;
+
+  fillLocationSelect(
+    destinationNode.floor,
+    'to',
+    'Choose destination...'
+  );
+
+  ensureNodeOption('to', destinationNode);
+  $('to').value = destinationNode.id;
+}
+  }
+
 }else if(journeyStage === 'origin'){
   const savedStartContext =
     sessionStorage.getItem('indoorStartContext');
@@ -698,7 +733,23 @@ if(journeyStage === 'same-building'){
 
       let entrance = null;
 
-      if(context.entranceId){
+      const transferEntranceId =
+  sessionStorage.getItem('madrigaTransferEntrance');
+
+if(transferEntranceId){
+  const transferEntrance =
+    nodeById(transferEntranceId);
+
+  if(transferEntrance){
+    entrance = transferEntrance;
+
+    sessionStorage.removeItem(
+      'madrigaTransferEntrance'
+    );
+  }
+}
+
+      if(!entrance && context.entranceId){
         const savedEntrance =
           nodeById(context.entranceId);
 
@@ -1755,6 +1806,20 @@ if(sessionStorage.getItem('journeyStage') === 'origin'){
     sharedTransfer &&
     sharedTransfer.originBuilding === currentBuilding;
 
+    let intermediateTransfer = null;
+
+try{
+  intermediateTransfer = JSON.parse(
+    sessionStorage.getItem('intermediateIndoorTransfer') || 'null'
+  );
+}catch(error){
+  intermediateTransfer = null;
+}
+
+const usesIntermediateTransfer =
+  currentBuilding === 'main' &&
+  intermediateTransfer?.building === 'rabin';
+
     if(usesSharedTransfer){
   const destinationBuilding =
     sharedTransfer.destinationBuilding;
@@ -1856,6 +1921,36 @@ if(sessionStorage.getItem('journeyStage') === 'origin'){
 
     history.back();
   };
+}
+
+if(sessionStorage.getItem('journeyStage') === 'intermediate'){
+sessionStorage.setItem(
+  'madrigaTransferEntrance',
+  'floor4_n43'
+);
+  sessionStorage.setItem(
+    'journeyStage',
+    'destination'
+  );
+
+  sessionStorage.setItem(
+    'indoorBuilding',
+    'madriga'
+  );
+
+  sessionStorage.removeItem(
+    'intermediateIndoorTransfer'
+  );
+
+  $('status').textContent = 'Switching to Madriga...';
+
+  setTimeout(() => {
+    window.location.assign(
+      './navigation-demo.html?building=madriga'
+    );
+  }, 400);
+
+  return;
 }
 }
 

@@ -1844,6 +1844,10 @@ const entranceKeyByBuilding = {
 const entranceKey = entranceKeyByBuilding[name];
 let activeSharedTransfer = null;
 
+const usesMainToMadrigaChain =
+  customStart?.buildingKey === 'main' &&
+  entranceKey === 'madriga';
+
 if(entranceKey){
   const entrances = BUILDING_ENTRANCES[entranceKey] || [];
 const profileEntrances =
@@ -2015,7 +2019,7 @@ const sameBuilding =
 
 let outdoorResult = null;
 
-if(!activeSharedTransfer && !sameBuilding){
+if(!activeSharedTransfer && !sameBuilding && !usesMainToMadrigaChain){
   try{
     outdoorResult = await CampusOutdoorRouting.route(
       start.lat, start.lng, lat, lng,
@@ -2041,6 +2045,24 @@ const usesMainRabinBridge =
   if(sameBuilding){
   // Same building: no outdoor route needed
   waypoints = [];}
+
+  else if(usesMainToMadrigaChain){
+  const mainBridgeEnd = [
+    32.761753,
+    35.019978
+  ];
+
+  const rabinBridgeEnd = [
+    32.761728,
+    35.020010
+  ];
+
+  waypoints = [
+    [start.lat, start.lng],
+    mainBridgeEnd,
+    rabinBridgeEnd
+  ];
+}
 
 else if(activeSharedTransfer){
   waypoints = [
@@ -2119,6 +2141,17 @@ else if(activeSharedTransfer){
 
   console.warn(
     'No connected OSM walking route found. Using temporary fallback.'
+  );
+}
+
+if(usesMainToMadrigaChain){
+  sessionStorage.setItem(
+    'intermediateIndoorTransfer',
+    JSON.stringify({
+      building: 'rabin',
+      startNodeId: 'floor7_n108',
+      destinationBuilding: 'madriga'
+    })
   );
 }
 
@@ -3255,15 +3288,36 @@ window.addEventListener('pageshow', () => {
   const destinationBuilding =
     indoorBtn.dataset.destinationBuilding;
 
-  if(destinationBuilding){
-    indoorBtn.dataset.stage = 'destination';
-    indoorBtn.dataset.building =
-      destinationBuilding;
+    let intermediateTransfer = null;
 
-    document.getElementById(
-      'lbl-continue-indoor'
-    ).textContent = t.continueIndoors;
-  }
+try{
+  intermediateTransfer = JSON.parse(
+    sessionStorage.getItem('intermediateIndoorTransfer') || 'null'
+  );
+}catch(error){
+  intermediateTransfer = null;
+}
+
+if(
+  intermediateTransfer?.building === 'rabin' &&
+  destinationBuilding === 'madriga'
+){
+  indoorBtn.dataset.stage = 'intermediate';
+  indoorBtn.dataset.building = 'rabin';
+
+  document.getElementById(
+    'lbl-continue-indoor'
+).textContent = t.continueIndoors;
+
+}else if(destinationBuilding){
+  indoorBtn.dataset.stage = 'destination';
+  indoorBtn.dataset.building =
+    destinationBuilding;
+
+  document.getElementById(
+    'lbl-continue-indoor'
+  ).textContent = t.continueIndoors;
+}
 
   sessionStorage.removeItem(
     'originIndoorComplete'
