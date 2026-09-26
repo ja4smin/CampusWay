@@ -459,6 +459,46 @@ addEdge(
   'footway'
 );
 
+// --------------------------------------------------
+// Main -> Multi-Purpose sidewalk
+// --------------------------------------------------
+
+addCampusNode(
+  'campus_multi_sidewalk_top',
+  32.7600705,
+  35.0205183
+);
+
+addCampusNode(
+  'campus_multi_sidewalk_bottom',
+  32.7597002,
+  35.0208703
+);
+
+addEdge(
+  'campus_multi_sidewalk_top',
+  'campus_multi_sidewalk_bottom',
+  'footway'
+);
+
+addEdge(
+  'campus_multi_sidewalk_bottom',
+  1446999294,
+  'footway'
+);
+
+addEdge(
+  'campus_multi_sidewalk_top',
+  1447013834,
+  'footway'
+);
+
+addEdge(
+  2102958523,
+  1447013838,
+  'footway'
+);
+
 /*
  // --------------------------------------------------
  // Accessible ramp: street <-> Rabin Floor 6 plaza
