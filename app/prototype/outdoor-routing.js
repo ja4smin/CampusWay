@@ -373,6 +373,92 @@ addEdge(
   'footway'
 );
 
+// --------------------------------------------------
+// Rabin Floor 7 exit -> outdoor plaza
+// --------------------------------------------------
+
+addCampusNode(
+  'campus_rabin_floor7_exit',
+  32.7611893,
+  35.0203915
+);
+
+addCampusNode(
+  'campus_rabin_floor7_plaza',
+  32.7609968,
+  35.0201634
+);
+
+addEdge(
+  'campus_rabin_floor7_exit',
+  'campus_rabin_floor7_plaza',
+  'footway'
+);
+
+addCampusNode(
+  'campus_rabin_floor7_right_path',
+  32.7610884,
+  35.0200528
+);
+
+addEdge(
+  'campus_rabin_floor7_plaza',
+  'campus_rabin_floor7_right_path',
+  'footway'
+);
+
+addCampusNode(
+  'campus_rabin_floor7_lower_path',
+  32.7610547,
+  35.0198543
+);
+
+addEdge(
+  'campus_rabin_floor7_right_path',
+  'campus_rabin_floor7_lower_path',
+  'footway'
+);
+
+addCampusNode(
+  'campus_rabin_floor7_street',
+  32.7610031,
+  35.0197058
+);
+
+addEdge(
+  'campus_rabin_floor7_lower_path',
+  'campus_rabin_floor7_street',
+  'footway'
+);
+
+addCampusNode(
+  'campus_rabin_floor7_street_join',
+  32.761000844805366,
+  35.019637016563756
+);
+removeEdge(
+  1447013840,
+  2102958523
+);
+
+addEdge(
+  1447013840,
+  'campus_rabin_floor7_street_join',
+  'service'
+);
+
+addEdge(
+  'campus_rabin_floor7_street_join',
+  2102958523,
+  'service'
+);
+
+addEdge(
+  'campus_rabin_floor7_street',
+  'campus_rabin_floor7_street_join',
+  'footway'
+);
+
 /*
  // --------------------------------------------------
  // Accessible ramp: street <-> Rabin Floor 6 plaza

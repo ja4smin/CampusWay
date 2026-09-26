@@ -1346,7 +1346,7 @@ function floorButtons(){
   });
 }
 
-function describeRoute(){
+  function describeRoute(routeMeters, verticalSeconds){
   const a=routeNodes[0],b=routeNodes.at(-1);
   const aLabel=a._displayLabel||a.label;
   const bLabel=b._displayLabel||b.label;
@@ -1409,7 +1409,17 @@ if(isSharedOrigin){
   $('steps').innerHTML=steps.map(s=>`<div class="step"><div class="dot"></div><div>${esc(s)}</div></div>`).join('');
   $('instruction').textContent=localizedInstruction('Follow the highlighted route','اتبع المسار المحدد','עקוב אחר המסלול המסומן');
   $('subInstruction').textContent=localizedInstruction(`Destination: ${bLabel}`,`الوجهة: ${localizedNodeLabel(bLabel)}`,`יעד: ${localizedNodeLabel(bLabel)}`);
-  $('eta').textContent='Demo';
+const walkingSpeedMps = 1.2;
+
+const totalSeconds =
+  (routeMeters / walkingSpeedMps) + verticalSeconds;
+
+const walkingMinutes = Math.max(
+  1,
+  Math.ceil(totalSeconds / 60)
+);
+
+$('eta').textContent = `${walkingMinutes} min`;
 }
 
 function route(){
@@ -1435,18 +1445,42 @@ function route(){
   // Remember user-facing labels, especially for the virtual "Elevators" destination.
   routeNodes[0]._displayLabel=selectionLabel(rawFrom);
   routeNodes[routeNodes.length-1]._displayLabel=selectionLabel(rawTo);
-  let routeMeters = 0;
+let routeMeters = 0;
+let verticalSeconds = 0;
+let elevatorRideActive = false;
 
 for(let i = 0; i < routeNodes.length - 1; i++){
   const a = routeNodes[i];
   const b = routeNodes[i + 1];
 
-  if(a.floor !== b.floor) continue;
+  if(a.floor !== b.floor){
+    if(a.type === 'elevator' && b.type === 'elevator'){
+      // One-time waiting + doors cost when entering an elevator ride.
+      if(!elevatorRideActive){
+        verticalSeconds += 30;
+        elevatorRideActive = true;
+      }
+
+      // Travel time for each floor crossed.
+      verticalSeconds += 10;
+
+    }else if(a.type === 'stairs' && b.type === 'stairs'){
+      // Approximate stair travel time per floor.
+      verticalSeconds += 30;
+      elevatorRideActive = false;
+
+    }else{
+      elevatorRideActive = false;
+    }
+
+    continue;
+  }
+
+  // Once we are walking again, the elevator ride is over.
+  elevatorRideActive = false;
 
   routeMeters += indoorDistanceMeters(a, b);
-
 }
-
 console.log(`Route distance: ${routeMeters.toFixed(2)} m`);
 
   activeFloor=routeNodes[0].floor;
@@ -1457,7 +1491,7 @@ console.log(`Route distance: ${routeMeters.toFixed(2)} m`);
   headingDeg=currentHeading();
   $('startBtn').disabled=false;
   $('status').textContent=localizedInstruction('Route ready.','المسار جاهز.','המסלול מוכן.');
-  describeRoute();floorButtons();drawBaseMap();updateProgressUI();
+  describeRoute(routeMeters, verticalSeconds);floorButtons();drawBaseMap();updateProgressUI();
 }
 
 

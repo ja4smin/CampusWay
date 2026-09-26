@@ -1683,6 +1683,10 @@ function sharedIndoorTransfer(originBuilding, destinationBuilding){
 
 async function routeTo(name, lat, lng){
   if(routeLine) map.removeLayer(routeLine);
+
+    if(gpsMarker && customStart?.buildingKey){
+    map.removeLayer(gpsMarker);
+  }
 // Student rooms use the Floor 4 exit when travelling to Main.
 if(
   customStart?.buildingKey === 'student' &&
@@ -2123,6 +2127,23 @@ const visualWaypoints = [...waypoints];
 if(waypoints.length > 1){
   const visualWaypoints = [...waypoints];
 
+  if(startingBuildingKey){
+  const startBuildingName = Object.keys(entranceKeyByBuilding).find(
+    name => entranceKeyByBuilding[name] === startingBuildingKey
+  );
+
+  const startBuilding = CAMPUS_DATA.buildings.find(
+    building => building.name === startBuildingName
+  );
+
+  if(startBuilding){
+    visualWaypoints[0] = [
+      startBuilding.lat,
+      startBuilding.lng
+    ];
+  }
+}
+
   visualWaypoints[visualWaypoints.length - 1] = [
     visualDestinationLat,
     visualDestinationLng
@@ -2191,7 +2212,18 @@ if(!sameBuilding){
       : Math.round(seconds / 3600 * 10) / 10;
 }
 
-const startLabel = customStart && customStart.label === '📍 GPS' ? t.currentLocation : start.label;
+let startLabel =
+  customStart && customStart.label === '📍 GPS'
+    ? t.currentLocation
+    : start.label;
+
+if(sameBuilding){
+  startLabel = startLabel.replace(
+    /\s*[—-]\s*[^—-]+ Building$/i,
+    ''
+  );
+}
+
 const isRestroomRoute =
   name === 'Nearest restroom' ||
   name.toLowerCase().includes('restroom') ||
@@ -2221,6 +2253,16 @@ if(isRestroomRoute){
 }else{
   displayDestination =
     localizedBuildingNameByEnglishName(name);
+}
+
+if(sameBuilding && displayDestination){
+  if(!/^room\s/i.test(displayDestination)){
+    displayDestination = `Room ${displayDestination}`;
+  }
+
+  if(!/^room\s/i.test(startLabel) && /^\d/.test(startLabel)){
+    startLabel = `Room ${startLabel}`;
+  }
 }
   document.getElementById('routeTitle').textContent = `${t.routeFrom} ${startLabel} → ${displayDestination}`;
   document.getElementById('routeSub').textContent = `${t.optimizedFor}: ${profile.label}`;
@@ -2600,10 +2642,17 @@ function pickIndoorStart(nodeId, label, buildingKey){
   document.getElementById('startInput').value = customStart.label;
   startSuggestions.style.display = 'none';
 
+  const buildingMarkerPosition = CAMPUS_DATA.buildings.find(
+  b => b.name === building.name
+);
+
+const visualStartLat = buildingMarkerPosition?.lat ?? entrance.lat;
+const visualStartLng = buildingMarkerPosition?.lng ?? entrance.lng;
+
   if(gpsMarker) map.removeLayer(gpsMarker);
 
-  gpsMarker = L.circleMarker(
-    [entrance.lat, entrance.lng],
+gpsMarker = L.circleMarker(
+  [visualStartLat, visualStartLng],
     {
       radius: 10,
       color: '#00B09B',
@@ -2614,7 +2663,7 @@ function pickIndoorStart(nodeId, label, buildingKey){
   ).addTo(map);
 
   gpsMarker.bindPopup(`🚩 ${customStart.label}`).openPopup();
-  map.flyTo([entrance.lat, entrance.lng], 17, {duration: 0.6});
+  map.flyTo([visualStartLat, visualStartLng], 17, {duration: 0.6});
 }
 
 document.getElementById('startInput').addEventListener('focus', ()=> showStartSuggestions(''));
