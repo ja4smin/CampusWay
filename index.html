@@ -1680,6 +1680,421 @@ function sharedIndoorTransfer(originBuilding, destinationBuilding){
       : connection.standard;
 }
 
+async function loadIndoorGraphForEta(buildingKey){
+  const response = await fetch(
+    `buildings/${buildingKey}/${buildingKey}-indoor-graph.json`
+  );
+
+  if(!response.ok){
+    throw new Error(
+      `Could not load ${buildingKey} indoor graph for ETA`
+    );
+  }
+
+  return await response.json();
+}
+
+function indoorEtaNodes(graph){
+  return Object.values(graph.floors)
+    .flatMap(floor => floor.nodes || []);
+}
+
+function indoorEtaDistanceMeters(a, b){
+  const dxMeters = (b.x - a.x) * 132.6;
+  const dyMeters = (b.y - a.y) * 101.2;
+
+  return Math.hypot(
+    dxMeters,
+    dyMeters
+  );
+}
+
+function indoorEtaConnectorId(node){
+  const id = String(node.connectorId || '').trim();
+
+  return (
+    !id ||
+    ['null', 'none', 'no', 'n/a'].includes(id.toLowerCase())
+  ) ? '' : id;
+}
+
+const INDOOR_ETA_FLOOR_ORDER = [
+  'floorminus1',
+  'floor0',
+  'floor1',
+  'floor2',
+  'floor3',
+  'floor4',
+  'floor5',
+  'floor6',
+  'floor7',
+  'floor500',
+  'floor600',
+  'floor700'
+];
+
+function buildIndoorEtaGraph(graph, accessible){
+  const nodes = indoorEtaNodes(graph);
+  const byId = new Map(
+    nodes.map(node => [node.id, node])
+  );
+
+  const adjacency = new Map(
+    nodes.map(node => [node.id, []])
+  );
+
+  for(const floor of Object.values(graph.floors)){
+    for(const connection of (floor.connections || [])){
+      const a = byId.get(connection.from);
+      const b = byId.get(connection.to);
+
+      if(!a || !b) continue;
+
+      if(
+        accessible &&
+        (a.type === 'stairs' || b.type === 'stairs')
+      ){
+        continue;
+      }
+
+      const weight = indoorEtaDistanceMeters(a, b);
+
+      adjacency.get(a.id).push({
+        id: b.id,
+        weight
+      });
+
+      adjacency.get(b.id).push({
+        id: a.id,
+        weight
+      });
+    }
+  }
+
+  const connectorGroups = new Map();
+
+for(const node of nodes){
+  if(
+    accessible &&
+    node.type === 'stairs'
+  ){
+    continue;
+  }
+
+  const connectorId =
+    indoorEtaConnectorId(node);
+
+  if(
+    !connectorId ||
+    !['stairs', 'elevator'].includes(node.type)
+  ){
+    continue;
+  }
+
+  const key =
+    `${node.type}:${connectorId}`;
+
+  if(!connectorGroups.has(key)){
+    connectorGroups.set(key, new Map());
+  }
+
+  const floors = connectorGroups.get(key);
+
+  if(!floors.has(node.floor)){
+    floors.set(node.floor, []);
+  }
+
+  floors.get(node.floor).push(node);
+}
+
+for(const [key, floors] of connectorGroups){
+  const orderedFloors =
+    [...floors.keys()].sort(
+      (a, b) =>
+        INDOOR_ETA_FLOOR_ORDER.indexOf(a) -
+        INDOOR_ETA_FLOOR_ORDER.indexOf(b)
+    );
+
+  for(let i = 0; i < orderedFloors.length - 1; i++){
+    const currentNodes =
+      floors.get(orderedFloors[i]);
+
+    const nextNodes =
+      floors.get(orderedFloors[i + 1]);
+
+    const a =
+      currentNodes[currentNodes.length - 1];
+
+    const b =
+      nextNodes[nextNodes.length - 1];
+
+    const weight =
+      key.startsWith('elevator:') ? 0.02 : 0.04;
+
+    adjacency.get(a.id).push({
+      id: b.id,
+      weight
+    });
+
+    adjacency.get(b.id).push({
+      id: a.id,
+      weight
+    });
+  }
+}
+
+  return { nodes, byId, adjacency };
+}
+
+function findIndoorEtaPath(graph, startId, endId, accessible){
+  const { byId, adjacency } =
+    buildIndoorEtaGraph(graph, accessible);
+
+  if(!byId.has(startId) || !byId.has(endId)){
+    return null;
+  }
+
+  const distances = new Map(
+    [...byId.keys()].map(id => [id, Infinity])
+  );
+
+  const previous = new Map();
+  const unvisited = new Set(byId.keys());
+
+  distances.set(startId, 0);
+
+  while(unvisited.size){
+    let current = null;
+    let bestDistance = Infinity;
+
+    for(const id of unvisited){
+      const distance = distances.get(id);
+
+      if(distance < bestDistance){
+        bestDistance = distance;
+        current = id;
+      }
+    }
+
+    if(current === null || bestDistance === Infinity){
+      break;
+    }
+
+    if(current === endId){
+      break;
+    }
+
+    unvisited.delete(current);
+
+    for(const edge of adjacency.get(current) || []){
+      if(!unvisited.has(edge.id)) continue;
+
+      const alternative =
+        bestDistance + edge.weight;
+
+      if(alternative < distances.get(edge.id)){
+        distances.set(edge.id, alternative);
+        previous.set(edge.id, current);
+      }
+    }
+  }
+
+  if(distances.get(endId) === Infinity){
+    return null;
+  }
+
+  const path = [];
+  let current = endId;
+
+  while(current !== undefined){
+    path.unshift(current);
+
+    if(current === startId){
+      break;
+    }
+
+    current = previous.get(current);
+  }
+
+  return path[0] === startId
+    ? path
+    : null;
+}
+
+function calculateIndoorEtaSeconds(graph, path){
+  if(!path || path.length < 2){
+    return 0;
+  }
+
+  const nodes = indoorEtaNodes(graph);
+  const byId = new Map(
+    nodes.map(node => [node.id, node])
+  );
+
+  let routeMeters = 0;
+  let verticalSeconds = 0;
+  let elevatorRideActive = false;
+
+  for(let i = 0; i < path.length - 1; i++){
+    const a = byId.get(path[i]);
+    const b = byId.get(path[i + 1]);
+
+    if(!a || !b) continue;
+
+    if(a.floor !== b.floor){
+      if(
+        a.type === 'elevator' &&
+        b.type === 'elevator'
+      ){
+        if(!elevatorRideActive){
+          verticalSeconds += 30;
+          elevatorRideActive = true;
+        }
+
+        verticalSeconds += 10;
+
+      }else if(
+        a.type === 'stairs' &&
+        b.type === 'stairs'
+      ){
+        verticalSeconds += 30;
+        elevatorRideActive = false;
+
+      }else{
+        elevatorRideActive = false;
+      }
+
+      continue;
+    }
+
+    elevatorRideActive = false;
+
+    routeMeters +=
+      indoorEtaDistanceMeters(a, b);
+  }
+
+  return (routeMeters / 1.2) + verticalSeconds;
+}
+
+async function getIndoorLegEtaSeconds(
+  buildingKey,
+  startNodeId,
+  endNodeId,
+  accessible
+){
+  const graph =
+    await loadIndoorGraphForEta(buildingKey);
+
+  const path =
+    findIndoorEtaPath(
+      graph,
+      startNodeId,
+      endNodeId,
+      accessible
+    );
+
+  if(!path){
+    return null;
+  }
+
+  return calculateIndoorEtaSeconds(
+    graph,
+    path
+  );
+}
+
+function getOutdoorEtaSeconds(waypoints, accessible){
+  let distanceMeters = 0;
+
+  for(let i = 0; i < waypoints.length - 1; i++){
+    distanceMeters += CampusOutdoorRouting.distance(
+      waypoints[i],
+      waypoints[i + 1]
+    );
+  }
+
+  const speedMps = accessible ? 0.8 : 1.2;
+
+  return distanceMeters / speedMps;
+}
+
+async function getMainToMadrigaEtaSeconds(){
+  const accessible =
+    currentProfile === 'mobility';
+
+  let indoorContext = {};
+
+  try{
+    indoorContext = JSON.parse(
+      sessionStorage.getItem('indoorContext') || '{}'
+    );
+  }catch(error){
+    indoorContext = {};
+  }
+
+  const mainStartNodeId =
+    customStart?.nodeId;
+
+const madrigaDestinationNodeId =
+  indoorContext.destinationNodeId || 'floor4_n43';
+
+if(!mainStartNodeId){
+  return null;
+}
+
+  const mainSeconds =
+    await getIndoorLegEtaSeconds(
+      'main',
+      mainStartNodeId,
+      'floor600_n86',
+      accessible
+    );
+
+  const rabinSeconds =
+    await getIndoorLegEtaSeconds(
+      'rabin',
+      'floor7_n108',
+      'floor5_n104',
+      accessible
+    );
+
+  const madrigaSeconds =
+    await getIndoorLegEtaSeconds(
+      'madriga',
+      'floor4_n43',
+      madrigaDestinationNodeId,
+      accessible
+    );
+
+  if(
+    mainSeconds === null ||
+    rabinSeconds === null ||
+    madrigaSeconds === null
+  ){
+    return null;
+  }
+
+const bridgeSeconds =
+  getOutdoorEtaSeconds(
+    [
+      [32.761944, 35.019778],
+      [32.761753, 35.019978],
+      [32.761728, 35.020010]
+    ],
+    accessible
+  );
+
+  const rabinToMadrigaTransferSeconds = 40;
+
+return (
+  mainSeconds +
+  bridgeSeconds +
+  rabinSeconds +
+  rabinToMadrigaTransferSeconds +
+  madrigaSeconds
+);
+}
+
 
 async function routeTo(name, lat, lng){
   if(routeLine) map.removeLayer(routeLine);
@@ -2224,27 +2639,43 @@ const profile = t.profiles.find(p=>p.id===currentProfile);
 let distanceMeters = 0;
 let seconds = 0;
 let etaNum = 0;
-
 if(!sameBuilding){
-  distanceMeters =
-    outdoorResult && outdoorResult.distance > 0
-      ? outdoorResult.distance
-      : CampusOutdoorRouting.distance(
-          [start.lat, start.lng],
-          [lat, lng]
-        );
+  if(usesMainToMadrigaChain){
+    try{
+      const fullJourneySeconds =
+        await getMainToMadrigaEtaSeconds();
 
-  const speedMps =
-    currentProfile === 'mobility' ? 0.8 : 1.2;
+      if(fullJourneySeconds !== null){
+        seconds = fullJourneySeconds;
+      }
+    }catch(error){
+      console.warn(
+        'Could not calculate full Main to Terrace ETA:',
+        error
+      );
+    }
+  }
 
-  seconds = distanceMeters / speedMps;
+  if(seconds === 0){
+    distanceMeters =
+      outdoorResult && outdoorResult.distance > 0
+        ? outdoorResult.distance
+        : CampusOutdoorRouting.distance(
+            [start.lat, start.lng],
+            [lat, lng]
+          );
+
+    const speedMps =
+      currentProfile === 'mobility' ? 0.8 : 1.2;
+
+    seconds = distanceMeters / speedMps;
+  }
 
   etaNum =
     seconds < 3600
       ? Math.max(1, Math.round(seconds / 60))
       : Math.round(seconds / 3600 * 10) / 10;
 }
-
 let startLabel =
   customStart && customStart.label === '📍 GPS'
     ? t.currentLocation
@@ -2906,11 +3337,12 @@ const buildingNames = {
 
   sessionStorage.setItem(
     'indoorContext',
-    JSON.stringify({
-      entranceId: null,
-      startNodeId: null,
-      destinationLabel: label
-    })
+JSON.stringify({
+  entranceId: null,
+  startNodeId: null,
+  destinationNodeId: nodeId,
+  destinationLabel: label
+})
   );
 
   sessionStorage.setItem('indoorBuilding', buildingKey);
@@ -2919,6 +3351,8 @@ const buildingNames = {
     `${t.room} ${label} — ${localizedBuildingName(building)}`;
 
   searchSuggestions.style.display = 'none';
+
+  console.log('INDOOR CONTEXT BEFORE ROUTETO:', sessionStorage.getItem('indoorContext'));
 
   routeTo(
     building.name,
