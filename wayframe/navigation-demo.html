@@ -586,13 +586,34 @@ if(journeyStage === 'same-building'){
 
         let destinations = [];
 
-        if(
-          String(destinationContext.destinationLabel)
-            .toLowerCase()
-            .includes('restroom')
-        ){
+      if(destinationContext.destinationNodeId){
+        const savedDestination =
+          nodeById(destinationContext.destinationNodeId);
+
+        if(savedDestination){
+          destinations = [savedDestination];
+        }
+
+}else if(
+  String(destinationContext.destinationLabel)
+    .toLowerCase()
+    .includes('restroom')
+){
+  destinations = allNodes().filter(
+    node => node.type === 'restroom'
+  );
+
+        }else if(destinationContext.destinationLabel){
+          const wantedLabel =
+            String(destinationContext.destinationLabel)
+              .trim()
+              .toLowerCase();
+
           destinations = allNodes().filter(
-            node => node.type === 'restroom'
+            node =>
+              String(node.label)
+                .trim()
+                .toLowerCase() === wantedLabel
           );
         }
 
