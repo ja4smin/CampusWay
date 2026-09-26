@@ -2095,6 +2095,153 @@ return (
 );
 }
 
+async function getJourneyEtaSeconds({
+  originBuildingKey,
+  destinationBuildingKey,
+  waypoints,
+  activeSharedTransfer,
+  usesMainToMadrigaChain
+}){
+  const accessible =
+    currentProfile === 'mobility';
+
+  let startContext = {};
+  let destinationContext = {};
+
+  try{
+    startContext = JSON.parse(
+      sessionStorage.getItem('indoorStartContext') || '{}'
+    );
+  }catch(error){
+    startContext = {};
+  }
+
+  try{
+    destinationContext = JSON.parse(
+      sessionStorage.getItem('indoorContext') || '{}'
+    );
+  }catch(error){
+    destinationContext = {};
+  }
+
+  let totalSeconds = 0;
+
+  // 1. Indoor journey from the origin room to the exit
+  if(
+    originBuildingKey &&
+    startContext.startNodeId &&
+    startContext.exitEntranceId &&
+    startContext.startNodeId !== startContext.exitEntranceId
+  ){
+    const originSeconds =
+      await getIndoorLegEtaSeconds(
+        originBuildingKey,
+        startContext.startNodeId,
+        startContext.exitEntranceId,
+        accessible
+      );
+
+    if(originSeconds !== null){
+      totalSeconds += originSeconds;
+    }
+  }
+
+  // 2. Special Main -> Rabin -> Madriga journey
+  if(usesMainToMadrigaChain){
+    const bridgeSeconds =
+      getOutdoorEtaSeconds(
+        [
+          [32.761944, 35.019778],
+          [32.761753, 35.019978],
+          [32.761728, 35.020010]
+        ],
+        accessible
+      );
+
+    totalSeconds += bridgeSeconds;
+
+    const rabinSeconds =
+      await getIndoorLegEtaSeconds(
+        'rabin',
+        'floor7_n108',
+        'floor5_n104',
+        accessible
+      );
+
+    if(rabinSeconds === null){
+      return null;
+    }
+
+    totalSeconds += rabinSeconds;
+
+    // Shared elevator between Rabin Floor 5
+    // and Madriga Floor 4.
+    totalSeconds += 40;
+
+    const madrigaDestinationNodeId =
+      destinationContext.destinationNodeId ||
+      'floor4_n43';
+
+    if(madrigaDestinationNodeId !== 'floor4_n43'){
+      const madrigaSeconds =
+        await getIndoorLegEtaSeconds(
+          'madriga',
+          'floor4_n43',
+          madrigaDestinationNodeId,
+          accessible
+        );
+
+      if(madrigaSeconds === null){
+        return null;
+      }
+
+      totalSeconds += madrigaSeconds;
+    }
+
+    return totalSeconds;
+  }
+
+  // 3. Direct shared indoor transfer
+  if(activeSharedTransfer){
+    if(activeSharedTransfer.method === 'elevator'){
+      totalSeconds += 40;
+    }else if(activeSharedTransfer.method === 'stairs'){
+      totalSeconds += 30;
+    }
+  }else if(waypoints && waypoints.length > 1){
+    // 4. Normal outdoor portion of the journey
+    totalSeconds +=
+      getOutdoorEtaSeconds(
+        waypoints,
+        accessible
+      );
+  }
+
+  // 5. Destination entrance -> exact room
+  if(
+    destinationBuildingKey &&
+    destinationContext.startNodeId &&
+    destinationContext.destinationNodeId &&
+    destinationContext.startNodeId !==
+      destinationContext.destinationNodeId
+  ){
+    const destinationSeconds =
+      await getIndoorLegEtaSeconds(
+        destinationBuildingKey,
+        destinationContext.startNodeId,
+        destinationContext.destinationNodeId,
+        accessible
+      );
+
+    if(destinationSeconds !== null){
+      totalSeconds += destinationSeconds;
+    }
+  }
+
+  return totalSeconds > 0
+    ? totalSeconds
+    : null;
+}
 
 async function routeTo(name, lat, lng){
   if(routeLine) map.removeLayer(routeLine);
@@ -2640,29 +2787,38 @@ let distanceMeters = 0;
 let seconds = 0;
 let etaNum = 0;
 if(!sameBuilding){
-  if(usesMainToMadrigaChain){
-    try{
-      const fullJourneySeconds =
-        await getMainToMadrigaEtaSeconds();
+  try{
+    const fullJourneySeconds =
+      await getJourneyEtaSeconds({
+        originBuildingKey: startingBuildingKey,
+        destinationBuildingKey: entranceKey,
+        waypoints,
+        activeSharedTransfer,
+        usesMainToMadrigaChain
+      });
 
-      if(fullJourneySeconds !== null){
-        seconds = fullJourneySeconds;
-      }
-    }catch(error){
-      console.warn(
-        'Could not calculate full Main to Terrace ETA:',
-        error
-      );
+    if(fullJourneySeconds !== null){
+      seconds = fullJourneySeconds;
     }
+  }catch(error){
+    console.warn(
+      'Could not calculate full journey ETA:',
+      error
+    );
   }
 
+  // Fallback if the full journey ETA could not be calculated.
   if(seconds === 0){
     distanceMeters =
       outdoorResult && outdoorResult.distance > 0
         ? outdoorResult.distance
-        : CampusOutdoorRouting.distance(
-            [start.lat, start.lng],
-            [lat, lng]
+        : getOutdoorEtaSeconds(
+            waypoints,
+            currentProfile === 'mobility'
+          ) * (
+            currentProfile === 'mobility'
+              ? 0.8
+              : 1.2
           );
 
     const speedMps =
