@@ -2198,10 +2198,30 @@ const isRestroomRoute =
   name.toLowerCase().includes('toilet') ||
   name.toLowerCase().includes('cell near the exit');
 
-const displayDestination =
-  isRestroomRoute
-    ? 'Nearest restroom'
-    : localizedBuildingNameByEnglishName(name);
+let displayDestination;
+
+if(isRestroomRoute){
+  displayDestination = 'Nearest restroom';
+
+}else if(sameBuilding){
+  try{
+    const indoorContext = JSON.parse(
+      sessionStorage.getItem('indoorContext') || 'null'
+    );
+
+    displayDestination =
+      indoorContext?.destinationLabel ||
+      localizedBuildingNameByEnglishName(name);
+
+  }catch(error){
+    displayDestination =
+      localizedBuildingNameByEnglishName(name);
+  }
+
+}else{
+  displayDestination =
+    localizedBuildingNameByEnglishName(name);
+}
   document.getElementById('routeTitle').textContent = `${t.routeFrom} ${startLabel} → ${displayDestination}`;
   document.getElementById('routeSub').textContent = `${t.optimizedFor}: ${profile.label}`;
 const routeEta = document.getElementById('routeEta');
