@@ -21,6 +21,9 @@ test('an L-shaped route turns once, with the distance before the turn', () => {
   assert.ok(Math.abs(steps[1].meters - 60) < 1);
   assert.equal(instructions.formatStep(steps[1], 'en'), 'Walk 60 m, then turn right');
   assert.equal(instructions.formatStep(steps[2], 'en'), 'Walk 45 m to arrive at B');
+  assert.equal(instructions.formatCompactStep(steps[0], 'en'), 'Head north');
+  assert.equal(instructions.formatCompactStep(steps[1], 'en'), 'turn right');
+  assert.equal(instructions.formatCompactStep(steps[2], 'en'), 'Arrive at B');
 });
 
 test('small wiggles do not become turns and a nearby building names the turn', () => {
@@ -35,6 +38,7 @@ test('small wiggles do not become turns and a nearby building names the turn', (
   assert.equal(steps[1].landmark, 'Rabin Building');
   assert.match(instructions.formatStep(steps[1], 'he'), /פנה שמאלה ליד Rabin Building/);
   assert.match(instructions.formatStep(steps[1], 'ar'), /انعطف يسارًا قرب Rabin Building/);
+  assert.equal(instructions.formatCompactStep(steps[1], 'ar'), 'انعطف يسارًا');
 });
 
 test('entering a flight of steps is its own step', () => {

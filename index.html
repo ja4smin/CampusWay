@@ -175,6 +175,7 @@
           <strong id="routeTitle">Route</strong>
           <span id="routeSub"></span>
         </div>
+        <section class="journey-plan" id="outdoorJourneyPlan" hidden aria-label="Journey plan"></section>
         <div class="status-note" id="routeStatusNote" hidden></div>
         <button id="continueIndoorBtn" class="btn btn-primary" type="button" style="display:none;" onclick="startIndoorTransition()">
           <span id="lbl-continue-indoor">Continue indoors →</span>
@@ -289,10 +290,7 @@
   <p class="panel-hint" id="share-location-hint" style="margin-top:8px">
     Create a one-time link so someone on campus can find you.
   </p>
-</section>
-
-      <!-- Saved places -->
-      <section class="panel places" aria-labelledby="lbl-favourites">
+</section>      <!-- Saved places -->      <section class="panel places" aria-labelledby="lbl-favourites">
         <h2 class="panel-title" id="lbl-favourites">⭐ Favourites</h2>
         <div class="building-list" id="favouriteList">
           <div class="empty-state" id="favEmpty">No saved places yet. Click "Save" on any building.</div>
@@ -302,6 +300,23 @@
 
     <main class="map-wrap" aria-label="Campus map">
       <div id="map"></div>
+      <section class="mobile-route-guide" id="mobileOutdoorGuide" hidden aria-label="Current direction">
+        <div class="mobile-route-current" role="status" aria-live="polite">
+          <span class="mobile-route-icon" aria-hidden="true">↑</span>
+          <div>
+            <strong id="mobileOutdoorInstruction">Your next direction will appear here.</strong>
+            <span id="mobileOutdoorProgress"></span>
+          </div>
+          <button class="mobile-route-toggle" id="mobileOutdoorGuideToggle" type="button" aria-expanded="false" aria-controls="mobileOutdoorGuidePanel" aria-label="Show directions" title="Show directions"><span aria-hidden="true">›</span></button>
+        </div>
+        <div class="mobile-route-panel" id="mobileOutdoorGuidePanel" hidden>
+          <div class="mobile-route-panel-head">
+            <strong>Directions</strong>
+            <button class="mobile-route-close" id="mobileOutdoorGuideClose" type="button" aria-label="Close directions">✕</button>
+          </div>
+          <ol id="mobileOutdoorSteps"></ol>
+        </div>
+      </section>
       <div class="legend-wrap">
         <button class="map-chip" id="legendToggle" type="button" aria-expanded="true" aria-controls="mapLegend">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg>
@@ -1076,6 +1091,7 @@ let keepIndoorContextForCurrentRoute = false;
 let currentOutdoorDestination = null;
 let outdoorRouteRequestId = 0;
 const OUTDOOR_JOURNEY_STORAGE_KEY = 'outdoorJourneyContext';
+const JOURNEY_PLAN_STORAGE_KEY = 'journeyPlan';
 const NEW_ROUTE_START_STORAGE_KEY = 'newRouteStartContext';
 let shopMode = false;
 let activeRouteService = null;
@@ -1892,10 +1908,8 @@ if(controls.hidden && suggestion){
   suggestion.hidden = true;
   suggestion.replaceChildren();
 }
-}
-
-function updateRestSpaceServiceButton(){
-  updateMentalBreakControls();
+}function updateRestSpaceServiceButton(){
+    updateMentalBreakControls();
   const mentalProfile = currentProfile === 'mental';
   const button = document.getElementById('landmarkServiceBtn');
   const icon = document.getElementById('landmarkServiceIcon');
@@ -3786,7 +3800,6 @@ for(const place of floorChoices){
       if(popup.childElementCount){
         row.style.borderTop = '1px solid #ccc';
       }
-
       const floor = String(place.floor)
         .replace(/^floor/, '')
         .replace(/^minus/, '-');
@@ -3877,9 +3890,7 @@ actions.style.flexDirection = 'column';
 button.style.width = '100%';
 reportButton.style.width = '100%';
 actions.append(button, reportButton);
-row.append(description, actions);
-      popup.appendChild(row);
-    }
+row.append(description, actions);      popup.appendChild(row);    }
 
     const marker = L.marker(
       [group[0].building.lat, group[0].building.lng],
@@ -5401,9 +5412,7 @@ async function getJourneyEtaSeconds({
 async function routeTo(name, lat, lng, options={}){
     clearOutdoorEndpointMarkers();
   const avoidNoise =
-  currentProfile === 'mental' && options.emergency !== true;
-  const keepIndoorContext = options.keepIndoorContext === true;
-  keepIndoorContextForCurrentRoute = keepIndoorContext;
+  currentProfile === 'mental' && options.emergency !== true;  const keepIndoorContext = options.keepIndoorContext === true;  keepIndoorContextForCurrentRoute = keepIndoorContext;
   currentOutdoorDestination = {
   name,
   lat,
@@ -7422,7 +7431,9 @@ if(hasOriginIndoorJourney){
   delete indoorBtn.dataset.destinationBuilding;
 }
 
+  saveJourneyPlan(buildJourneyPlan({includeOutdoor: Boolean(outdoorResult && !sameBuilding && !activeSharedTransfer)}));
   document.getElementById('routeCard').classList.add('show');
+  renderJourneyPlan();
   map.closePopup();
 if(currentProfile === 'visual' && visualVoiceActive){
   // The guided flow announces the result after routing finishes.
@@ -7472,7 +7483,7 @@ if(gpsMarker){
   outdoorRouteRequestId++;
   currentOutdoorDestination = null;
   [
-    OUTDOOR_JOURNEY_STORAGE_KEY, 'journeyStage', 'indoorContext',
+    OUTDOOR_JOURNEY_STORAGE_KEY, JOURNEY_PLAN_STORAGE_KEY, 'journeyStage', 'indoorContext',
     'indoorStartContext', 'sharedIndoorTransfer',
     'intermediateIndoorTransfer', 'originIndoorComplete',
     'sharedNavigationResume', 'madrigaTransferEntrance',
@@ -7486,9 +7497,54 @@ if(gpsMarker){
 }
 
 var routeStepTexts = [];
+var routeStepShortTexts = [];
 var readingSteps = false;
 var lastRouteStepsInput = null;
-var outdoorGuidance = null;
+var activeRouteStepIndex = 0;
+
+function mobileRouteGuideCopy(key){
+  const copy={
+    directions:{ar:'التعليمات',he:'הנחיות',ru:'Указания',en:'Directions'},
+    close:{ar:'إغلاق التعليمات',he:'סגירת ההנחיות',ru:'Закрыть указания',en:'Close directions'},
+    show:{ar:'إظهار التعليمات',he:'הצגת ההנחיות',ru:'Показать указания',en:'Show directions'},
+    hide:{ar:'إخفاء التعليمات',he:'הסתרת ההנחיות',ru:'Скрыть указания',en:'Hide directions'},
+    step:{ar:'الخطوة',he:'שלב',ru:'Шаг',en:'Step'}
+  };
+  return copy[key]?.[lang] || copy[key]?.en || '';
+}
+
+function syncMobileOutdoorGuide(){
+  const guide=document.getElementById('mobileOutdoorGuide');
+  const current=document.getElementById('mobileOutdoorInstruction');
+  const progress=document.getElementById('mobileOutdoorProgress');
+  const list=document.getElementById('mobileOutdoorSteps');
+  if(!guide || !current || !progress || !list) return;
+  if(!routeStepTexts.length){ guide.hidden=true; list.innerHTML=''; return; }
+  const index=Math.max(0,Math.min(activeRouteStepIndex,routeStepTexts.length-1));
+  guide.hidden=false;
+  current.textContent=routeStepShortTexts[index] || routeStepTexts[index];
+  progress.textContent=`${mobileRouteGuideCopy('step')} ${index+1} / ${routeStepTexts.length}`;
+  list.innerHTML=routeStepTexts.map((text,stepIndex)=>`<li class="${stepIndex===index?'current':''}" data-route-step="${stepIndex}">${text}</li>`).join('');
+  const toggle=document.getElementById('mobileOutdoorGuideToggle');
+  const panel=document.getElementById('mobileOutdoorGuidePanel');
+  if(toggle) toggle.setAttribute('aria-label',mobileRouteGuideCopy('show'));
+  if(panel){
+    const title=panel.querySelector('.mobile-route-panel-head strong');
+    const close=panel.querySelector('.mobile-route-close');
+    if(title) title.textContent=mobileRouteGuideCopy('directions');
+    if(close) close.setAttribute('aria-label',mobileRouteGuideCopy('close'));
+  }
+}
+
+function setMobileOutdoorGuideOpen(open){
+  const panel=document.getElementById('mobileOutdoorGuidePanel');
+  const toggle=document.getElementById('mobileOutdoorGuideToggle');
+  if(!panel || !toggle) return;
+  panel.hidden=!open;
+  toggle.setAttribute('aria-expanded',String(open));
+  toggle.setAttribute('aria-label',mobileRouteGuideCopy(open?'hide':'show'));
+  document.getElementById('mobileOutdoorGuide')?.classList.toggle('is-open',open);
+}var outdoorGuidance = null;
 var outdoorSpeechToken = 0;
 
 function outdoorGuidanceText(en, he, ar, ru){
@@ -7553,7 +7609,10 @@ function highlightRouteStep(index){
     if(active) item.setAttribute('aria-current', 'step');
     else item.removeAttribute('aria-current');
   });
-}
+  if(index >= 0 && index < routeStepTexts.length){
+    activeRouteStepIndex = index;
+    syncMobileOutdoorGuide();
+  }}
 
 function updateReadStepsButton(){
   const button = document.getElementById('readStepsBtn');
@@ -8176,9 +8235,7 @@ state.watchdog = setInterval(() => {
       maximumAge: 3000,
       timeout: 15000
     }
-  );
-}
-
+  );}
 function renderRouteSteps(result, options = {}){
   const wrap = document.getElementById('routeStepsWrap');
   const list = document.getElementById('routeSteps');
@@ -8186,11 +8243,15 @@ function renderRouteSteps(result, options = {}){
 
   stopOutdoorGuidance();
   routeStepTexts = [];
+  routeStepShortTexts = [];
+  activeRouteStepIndex = 0;
   list.innerHTML = '';
-  lastRouteStepsInput = null;
-
+  setMobileOutdoorGuideOpen(false);
+  setMobileOutdoorGuideOpen(false);
+  lastRouteStepsInput = result ? {result, options} : null;
   if(!result || typeof CampusRouteInstructions === 'undefined'){
     wrap.hidden = true;
+    syncMobileOutdoorGuide();
     return;
   }
 
@@ -8217,7 +8278,13 @@ function renderRouteSteps(result, options = {}){
       name => localizedBuildingNameByEnglishName(name)
     )
   );
-
+  routeStepShortTexts = steps.map(step =>
+    CampusRouteInstructions.formatCompactStep(step, lang, name => localizedBuildingNameByEnglishName(name))
+  );
+  if(options.indoorNext){
+    routeStepTexts.push(options.indoorNext);
+    routeStepShortTexts.push(({en:'Continue indoors',ar:'تابع إلى الداخل',he:'המשך פנימה',ru:'Продолжайте в здании'})[lang] || 'Continue indoors');
+  }
   routeStepTexts.forEach((text, index) => {
     const item = document.createElement('li');
     item.textContent = text;
@@ -8240,6 +8307,7 @@ function renderRouteSteps(result, options = {}){
   });
 
   wrap.hidden = routeStepTexts.length === 0;
+  syncMobileOutdoorGuide();
 }
 
 function refreshRouteSteps(){
@@ -8770,6 +8838,7 @@ function clearIndoorStartJourney(){
   sessionStorage.removeItem('indoorStartContext');
   sessionStorage.removeItem('originIndoorComplete');
   sessionStorage.removeItem(OUTDOOR_JOURNEY_STORAGE_KEY);
+  sessionStorage.removeItem(JOURNEY_PLAN_STORAGE_KEY);
 
     // --------------------------------------------------
   // Clear transfer state from the previous journey
@@ -11475,10 +11544,49 @@ function storedJourneyFallback(){
     searchInput:
       destinationContext?.destinationLabel ||
       destinationBuilding.name,
-    hasIndoorDestination
+    hasIndoorDestination,
+    journeyPlan: buildJourneyPlan()
   };
 }
 
+function buildJourneyPlan({includeOutdoor=true}={}){
+  const read = key => {
+    try{return JSON.parse(sessionStorage.getItem(key) || 'null');}
+    catch(error){return null;}
+  };
+  const start = read('indoorStartContext');
+  const destination = read('indoorContext');
+  const transfer = read('sharedIndoorTransfer');
+  const intermediate = read('intermediateIndoorTransfer');
+  const legs = [];
+
+  if(start?.startNodeId && start?.exitEntranceId && start.startNodeId !== start.exitEntranceId){
+    legs.push({kind:'indoor', building:start.buildingKey, from:start.startNodeId, to:start.exitEntranceId});
+  }
+  if(transfer?.originBuilding && transfer?.destinationBuilding){
+    legs.push({kind:'transfer', fromBuilding:transfer.originBuilding, toBuilding:transfer.destinationBuilding, method:transfer.method || 'connection'});
+  }
+  if(intermediate?.building && intermediate?.startNodeId && intermediate?.destinationNodeId){
+    legs.push({kind:'indoor', building:intermediate.building, from:intermediate.startNodeId, to:intermediate.destinationNodeId});
+  }
+  if(includeOutdoor){ legs.push({kind:'outdoor'}); }
+  if(destination?.buildingKey && destination?.startNodeId && destination?.destinationNodeId && destination.startNodeId !== destination.destinationNodeId){
+    legs.push({kind:'indoor', building:destination.buildingKey, from:destination.startNodeId, to:destination.destinationNodeId});
+  }
+
+  return {version:1, currentLeg:0, legs};
+}
+
+function saveJourneyPlan(plan){
+  const storageKey=typeof JOURNEY_PLAN_STORAGE_KEY === 'string'
+    ? JOURNEY_PLAN_STORAGE_KEY
+    : 'journeyPlan';
+  if(!plan?.legs || plan.legs.length < 2){
+    sessionStorage.removeItem(storageKey);
+    return;
+  }
+  sessionStorage.setItem(storageKey, JSON.stringify(plan));
+}
 function saveOutdoorJourneyForTransition(stage){
   if(stage === 'destination'){
     sessionStorage.removeItem(
@@ -11514,13 +11622,15 @@ function saveOutdoorJourneyForTransition(stage){
     hasIndoorDestination: Boolean(
       indoorContext?.destinationNodeId ||
       indoorContext?.destinationLabel
-    )
+    ),
+    journeyPlan: buildJourneyPlan()
   };
 
   sessionStorage.setItem(
     OUTDOOR_JOURNEY_STORAGE_KEY,
     JSON.stringify(snapshot)
   );
+  saveJourneyPlan(snapshot.journeyPlan);
 
   return true;
 }
@@ -11548,6 +11658,7 @@ async function resumeOutdoorJourneyAfterOrigin(){
         OUTDOOR_JOURNEY_STORAGE_KEY,
         JSON.stringify(snapshot)
       );
+      saveJourneyPlan(snapshot.journeyPlan);
     }
   }
 
@@ -11601,6 +11712,68 @@ async function resumeOutdoorJourneyAfterOrigin(){
   };
 }
 
+function setJourneyPlanLeg(legIndex){
+  try{
+    const plan=JSON.parse(sessionStorage.getItem(JOURNEY_PLAN_STORAGE_KEY) || 'null');
+    if(!plan?.legs?.[legIndex]) return;
+    plan.currentLeg=legIndex;
+    sessionStorage.setItem(JOURNEY_PLAN_STORAGE_KEY,JSON.stringify(plan));
+  }catch(error){
+    console.warn('Could not update the journey plan:',error);
+  }
+}
+function journeyLegLabel(leg){
+  const buildingNames={
+    main:'Main Building',rabin:'Rabin Building',student:'Student House',
+    madriga:'Terrace Building','multi-purpose':'Multi-Purpose Building',education:'Education and Science'
+  };
+  const name=localizedBuildingNameByEnglishName(buildingNames[leg.building] || leg.building || '');
+  if(leg.kind==='indoor') return `${{en:'Inside',he:'בתוך',ar:'داخل',ru:'Внутри'}[lang] || 'Inside'} ${name}`;
+  if(leg.kind==='outdoor') return ({en:'Walk outdoors',he:'הליכה בחוץ',ar:'المشي خارج المباني',ru:'Маршрут снаружи'}[lang] || 'Walk outdoors');
+  const from=localizedBuildingNameByEnglishName(buildingNames[leg.fromBuilding] || leg.fromBuilding || '');
+  const to=localizedBuildingNameByEnglishName(buildingNames[leg.toBuilding] || leg.toBuilding || '');
+  return `${from} → ${to}`;
+}
+
+const mobileOutdoorGuideToggle=document.getElementById('mobileOutdoorGuideToggle');
+if(mobileOutdoorGuideToggle && typeof mobileOutdoorGuideToggle.addEventListener==='function') mobileOutdoorGuideToggle.addEventListener('click',()=>{
+  if(mobileOutdoorGuideToggle.dataset.dragged==='true'){
+    mobileOutdoorGuideToggle.dataset.dragged='';
+    return;
+  }
+  const panel=document.getElementById('mobileOutdoorGuidePanel');
+  setMobileOutdoorGuideOpen(panel?.hidden);
+});
+if(mobileOutdoorGuideToggle && typeof mobileOutdoorGuideToggle.addEventListener==='function'){
+  let drawerStartX=null;
+  mobileOutdoorGuideToggle.addEventListener('pointerdown',event=>{ drawerStartX=event.clientX; });
+  mobileOutdoorGuideToggle.addEventListener('pointerup',event=>{
+    if(drawerStartX===null) return;
+    const delta=event.clientX-drawerStartX;
+    drawerStartX=null;
+    if(Math.abs(delta)<18) return;
+    mobileOutdoorGuideToggle.dataset.dragged='true';
+    setMobileOutdoorGuideOpen(delta>0);
+  });
+}
+const mobileOutdoorGuideClose=document.getElementById('mobileOutdoorGuideClose');
+if(mobileOutdoorGuideClose && typeof mobileOutdoorGuideClose.addEventListener==='function') mobileOutdoorGuideClose.addEventListener('click',()=>setMobileOutdoorGuideOpen(false));
+const mobileOutdoorSteps=document.getElementById('mobileOutdoorSteps');
+if(mobileOutdoorSteps && typeof mobileOutdoorSteps.addEventListener==='function') mobileOutdoorSteps.addEventListener('click',event=>{
+  const item=event.target.closest('[data-route-step]');
+  if(item) speakRouteSteps(Number(item.dataset.routeStep),{single:true});
+});
+
+function renderJourneyPlan(){
+  const container=document.getElementById('outdoorJourneyPlan');
+  if(!container) return;
+  let plan=null;
+  try{plan=JSON.parse(sessionStorage.getItem(JOURNEY_PLAN_STORAGE_KEY) || 'null');}catch(error){plan=null;}
+  if(!plan?.legs || plan.legs.length<2){container.hidden=true;return;}
+  const title={en:'Your journey',he:'המסלול שלך',ar:'رحلتك',ru:'Ваш маршрут'}[lang] || 'Your journey';
+  container.hidden=false;
+  container.innerHTML=`<strong>${title}</strong><ol>${plan.legs.map((leg,index)=>`<li class="${index<plan.currentLeg?'done':index===plan.currentLeg?'current':''}"><span>${index<plan.currentLeg?'✓':index+1}</span>${journeyLegLabel(leg)}</li>`).join('')}</ol>`;
+}
 function startIndoorTransition(){
   const indoorBtn = document.getElementById('continueIndoorBtn');
   const building = indoorBtn.dataset.building;
@@ -11620,8 +11793,17 @@ function startIndoorTransition(){
   stopOutdoorGuidance();
 
   saveOutdoorJourneyForTransition(stage);
+  if(stage === 'origin') setJourneyPlanLeg(0);
+  else {
+    try{
+      const plan=JSON.parse(sessionStorage.getItem(JOURNEY_PLAN_STORAGE_KEY) || 'null');
+      const lastIndoor=plan?.legs?.map((leg,index)=>leg.kind==='indoor'?index:-1).filter(index=>index>=0).at(-1);
+      if(Number.isInteger(lastIndoor)) setJourneyPlanLeg(lastIndoor);
+    }catch(error){ /* invalid plan is ignored */ }
+  }
 
   sessionStorage.setItem('journeyStage', stage);
+  renderJourneyPlan();
   sessionStorage.setItem('indoorBuilding', building);
 
 const transitionScreen =

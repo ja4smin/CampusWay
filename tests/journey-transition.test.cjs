@@ -317,7 +317,7 @@ test('finishing the origin indoor leg waits for the user to continue outdoors', 
 
   const transitionCode = between(
     navigation,
-    'function returnToOutdoorJourney()',
+    'function setJourneyPlanLegByKind(kind)',
     'function screenOrientationAngle()'
   );
 

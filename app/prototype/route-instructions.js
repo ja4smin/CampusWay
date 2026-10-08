@@ -302,7 +302,8 @@
       turn: (d, turn, landmark) => `Walk ${d}, then ${turn}${landmark ? ` near ${landmark}` : ''}`,
       stairs: d => `Walk ${d}, then take the stairs`,
       pass: (d, landmark, side) => `Walk ${d}, passing ${landmark} on your ${side}`,
-      arrive: (d, name) => name ? `Walk ${d} to arrive at ${name}` : `Walk ${d} to arrive`
+      arrive: (d, name) => name ? `Walk ${d} to arrive at ${name}` : `Walk ${d} to arrive`,
+      compact: {continue:'Continue straight', stairs:'Take the stairs', arrive:name => name ? `Arrive at ${name}` : 'You have arrived'}
     },
     he: {
       meters: n => `${n} מטר`,
@@ -316,7 +317,8 @@
       turn: (d, turn, landmark) => `לך ${d}, ואז ${turn}${landmark ? ` ליד ${landmark}` : ''}`,
       stairs: d => `לך ${d}, ואז השתמש במדרגות`,
       pass: (d, landmark, side) => `לך ${d}, ותעבור ליד ${landmark} ${side === 'left' ? 'משמאלך' : 'מימינך'}`,
-      arrive: (d, name) => name ? `לך ${d} עד ${name}` : `לך ${d} עד היעד`
+      arrive: (d, name) => name ? `לך ${d} עד ${name}` : `לך ${d} עד היעד`,
+      compact: {continue:'המשך ישר', stairs:'השתמש במדרגות', arrive:name => name ? `הגעת אל ${name}` : 'הגעת ליעד'}
     },
     ar: {
       meters: n => `${n} م`,
@@ -330,7 +332,8 @@
       turn: (d, turn, landmark) => `امشِ ${d}، ثم ${turn}${landmark ? ` قرب ${landmark}` : ''}`,
       stairs: d => `امشِ ${d}، ثم استخدم الدرج`,
       pass: (d, landmark, side) => `امشِ ${d}، مارًّا بجانب ${landmark} على ${side === 'left' ? 'يسارك' : 'يمينك'}`,
-      arrive: (d, name) => name ? `امشِ ${d} حتى تصل إلى ${name}` : `امشِ ${d} حتى تصل`
+      arrive: (d, name) => name ? `امشِ ${d} حتى تصل إلى ${name}` : `امشِ ${d} حتى تصل`,
+      compact: {continue:'تابع مباشرة', stairs:'استخدم الدرج', arrive:name => name ? `وصلت إلى ${name}` : 'لقد وصلت'}
     },
     ru: {
       meters: n => `${n} м`,
@@ -344,7 +347,8 @@
       turn: (d, turn, landmark) => `Пройдите ${d}, затем ${turn}${landmark ? ` рядом с ориентиром «${landmark}»` : ''}`,
       stairs: d => `Пройдите ${d}, затем воспользуйтесь лестницей`,
       pass: (d, landmark, side) => `Пройдите ${d}; ориентир «${landmark}» будет ${side === 'left' ? 'слева' : 'справа'}`,
-      arrive: (d, name) => name ? `Пройдите ${d} до точки «${name}»` : `Пройдите ${d} до места назначения`
+      arrive: (d, name) => name ? `Пройдите ${d} до точки «${name}»` : `Пройдите ${d} до места назначения`,
+      compact: {continue:'Продолжайте прямо', stairs:'Поднимитесь по лестнице', arrive:name => name ? `Вы прибыли: ${name}` : 'Вы прибыли'}
     }
   };
 
@@ -363,5 +367,18 @@
     return '';
   }
 
-  return {buildOutdoorSteps, formatStep, roundMeters, headingChange};
+  // Short, glanceable text for the small current-direction banner. The full
+  // formatStep wording remains available for the directions list and speech.
+  function formatCompactStep(step, lang = 'en', nameFor = name => name){
+    const text = TEXT[lang] || TEXT.en;
+    const name = step.name ? nameFor(step.name) : '';
+    if(step.kind === 'start') return text.start('', text.compass[step.heading] || step.heading);
+    if(step.kind === 'turn') return text.turns[step.turn] || step.turn;
+    if(step.kind === 'stairs') return text.compact.stairs;
+    if(step.kind === 'pass') return text.compact.continue;
+    if(step.kind === 'arrive') return text.compact.arrive(name);
+    return '';
+  }
+
+  return {buildOutdoorSteps, formatStep, formatCompactStep, roundMeters, headingChange};
 });

@@ -114,6 +114,7 @@
       <!-- 2. Route summary, how to move, start, progress -->
       <section class="card" aria-labelledby="navTitle">
         <h2 class="card-title" id="navTitle">Navigation</h2>
+        <section class="journey-plan" id="indoorJourneyPlan" hidden aria-label="Journey plan"></section>
 
         <div id="routeCard" aria-live="polite">
           <strong>No route yet</strong>
@@ -186,6 +187,24 @@
         </div>
 
         <button id="recenterBtn" class="recenterBtn" type="button">◎ Recenter</button>
+
+        <section class="mobile-route-guide" id="mobileIndoorGuide" hidden aria-label="Current direction">
+          <div class="mobile-route-current" role="status" aria-live="polite">
+            <span class="mobile-route-icon" aria-hidden="true">↑</span>
+            <div>
+              <strong id="mobileIndoorInstruction">Your next direction will appear here.</strong>
+              <span id="mobileIndoorProgress"></span>
+            </div>
+            <button class="mobile-route-toggle" id="mobileIndoorGuideToggle" type="button" aria-expanded="false" aria-controls="mobileIndoorGuidePanel" aria-label="Show directions" title="Show directions"><span aria-hidden="true">›</span></button>
+          </div>
+          <div class="mobile-route-panel" id="mobileIndoorGuidePanel" hidden>
+            <div class="mobile-route-panel-head">
+              <strong>Directions</strong>
+              <button class="mobile-route-close" id="mobileIndoorGuideClose" type="button" aria-label="Close directions">✕</button>
+            </div>
+            <ol id="mobileIndoorSteps"></ol>
+          </div>
+        </section>
 
         <div class="navStack">
           <div class="navBanner">
@@ -544,7 +563,24 @@ function localizedInstruction(en, ar, he, ru){
   return indoorLang==='ar' ? ar : indoorLang==='he' ? he : indoorLang==='ru' ? ru : en;
 }
 
+function renderIndoorJourneyPlan(){
+  const container=$('indoorJourneyPlan');
+  if(!container) return;
+  let plan=null;
+  try{plan=JSON.parse(sessionStorage.getItem('journeyPlan') || 'null');}catch(error){plan=null;}
+  if(!plan?.legs || plan.legs.length<2){container.hidden=true;return;}
+  const buildingName=key=>indoorBuildingName(key);
+  const label=leg=>{
+    if(leg.kind==='indoor') return `${localizedInstruction('Inside','داخل','בתוך','Внутри')} ${buildingName(leg.building)}`;
+    if(leg.kind==='outdoor') return localizedInstruction('Walk outdoors','المشي خارج المباني','הליכה בחוץ','Маршрут снаружи');
+    return `${buildingName(leg.fromBuilding)} → ${buildingName(leg.toBuilding)}`;
+  };
+  const title=localizedInstruction('Your journey','رحلتك','המסלול שלך','Ваш маршрут');
+  container.hidden=false;
+  container.innerHTML=`<strong>${title}</strong><ol>${plan.legs.map((leg,index)=>`<li class="${index<plan.currentLeg?'done':index===plan.currentLeg?'current':''}"><span>${index<plan.currentLeg?'✓':index+1}</span>${label(leg)}</li>`).join('')}</ol>`;
+}
 function applyIndoorTranslations(){
+  renderIndoorJourneyPlan();
   const floorPlanLabel = $('lbl-show-floor-plan');
 
 if(floorPlanLabel){
@@ -3591,8 +3627,27 @@ function handleDetectedStep(stepTime){
   }
 }
 
-function returnToOutdoorJourney(){
-  sessionStorage.setItem(
+function setJourneyPlanLegByKind(kind){
+  try{
+    const plan=JSON.parse(sessionStorage.getItem('journeyPlan') || 'null');
+    const index=plan?.legs?.findIndex(leg=>leg.kind===kind);
+    if(index < 0) return;
+    plan.currentLeg=index;
+    sessionStorage.setItem('journeyPlan',JSON.stringify(plan));
+  }catch(error){
+    console.warn('Could not update the journey plan:',error);
+  }
+}
+function advanceJourneyPlanLeg(){
+  try{
+    const plan=JSON.parse(sessionStorage.getItem('journeyPlan') || 'null');
+    if(!plan?.legs?.length) return;
+    plan.currentLeg=Math.min(Number(plan.currentLeg || 0)+1,plan.legs.length-1);
+    sessionStorage.setItem('journeyPlan',JSON.stringify(plan));
+  }catch(error){
+    console.warn('Could not advance the journey plan:',error);
+  }
+}function returnToOutdoorJourney(){  sessionStorage.setItem(
     'campusTransitionDirection',
     'outdoor'
   );
@@ -3676,10 +3731,13 @@ function completeNavigation(){
         'Переход достигнут. Продолжайте в следующее здание, когда будете готовы.'
       );
 
+      setJourneyPlanLegByKind('transfer');
+      if(typeof renderIndoorJourneyPlan === 'function') renderIndoorJourneyPlan();
       arrivalNextStep={
         kind:'building',
         building:destinationBuilding,
         run(){
+          advanceJourneyPlanLeg();
           window.location.replace(
             `./navigation-demo.html?building=${encodeURIComponent(destinationBuilding)}`
           );
@@ -3727,6 +3785,8 @@ function completeNavigation(){
       'Вы достигли выхода. Продолжайте по внешнему маршруту, когда будете готовы.'
     );
 
+setJourneyPlanLegByKind('outdoor');
+if(typeof renderIndoorJourneyPlan === 'function') renderIndoorJourneyPlan();
 arrivalNextStep={kind:'outdoor',run:returnToOutdoorJourney};
 announceArrival();
 return;
@@ -3757,28 +3817,21 @@ return;
         'הגעת למעבר. המשך לבניין מדרגה כשתהיה מוכן.',
         'Переход достигнут. Продолжайте в здание «Терраса», когда будете готовы.'
       );
-    // Continue the shared elevator ride without a connection dialog.
-if(dest.type === 'elevator'){
-  window.location.replace(
-    './navigation-demo.html?building=madriga'
-  );
-  return;
-}
-
-        arrivalNextStep={
-          kind:'building',
-          building:'madriga',
-          run(){
-            window.location.replace(
-              './navigation-demo.html?building=madriga'
-            );
-          }
-        };
-        announceArrival();
+      // An uninterrupted elevator transfer goes directly to the Terrace screen.
+      if(dest.type === 'elevator'){
+        window.location.replace('./navigation-demo.html?building=madriga');
         return;
-        }
-
-    sessionStorage.setItem('originIndoorComplete','true');
+      }
+      advanceJourneyPlanLeg();
+      if(typeof renderIndoorJourneyPlan === 'function') renderIndoorJourneyPlan();
+      arrivalNextStep={
+        kind:'building',
+        building:'madriga',
+        run(){ window.location.replace('./navigation-demo.html?building=madriga'); }
+      };
+      announceArrival();
+      return;
+    }    sessionStorage.setItem('originIndoorComplete','true');
     sessionStorage.setItem('campusTransitionDirection','outdoor');
     sessionStorage.removeItem('intermediateIndoorTransfer');
     $('instruction').textContent=localizedInstruction(
@@ -3794,6 +3847,8 @@ if(dest.type === 'elevator'){
       'Exit reached. Continue on the outdoor route when you are ready.','وصلت إلى المخرج. تابع على المسار الخارجي عندما تكون جاهزًا.','הגעת ליציאה. המשך במסלול החיצוני כשתהיה מוכן.',
       'Вы достигли выхода. Продолжайте по внешнему маршруту, когда будете готовы.'
     );
+setJourneyPlanLegByKind('outdoor');
+if(typeof renderIndoorJourneyPlan === 'function') renderIndoorJourneyPlan();
 arrivalNextStep={kind:'outdoor',run:returnToOutdoorJourney};
 announceArrival();
 return;
@@ -4951,7 +5006,7 @@ function clearCompletedJourneyState(){
     'sharedIndoorTransfer','intermediateIndoorTransfer',
     'originIndoorComplete','sharedNavigationResume',
     'madrigaTransferEntrance','campusTransitionDirection',
-    'outdoorJourneyContext'
+    'outdoorJourneyContext','journeyPlan'
   ].forEach(key=>sessionStorage.removeItem(key));
 }
 
@@ -5271,6 +5326,52 @@ function currentGuidanceText(){
   return sub ? `${main}. ${sub}` : main;
 }
 
+function mobileIndoorGuideCopy(key){
+  const copy={
+    directions:{ar:'التعليمات',he:'הנחיות',ru:'Указания',en:'Directions'},
+    close:{ar:'إغلاق التعليمات',he:'סגירת ההנחיות',ru:'Закрыть указания',en:'Close directions'},
+    show:{ar:'إظهار التعليمات',he:'הצגת ההנחיות',ru:'Показать указания',en:'Show directions'},
+    hide:{ar:'إخفاء التعليمات',he:'הסתרת ההנחיות',ru:'Скрыть указания',en:'Hide directions'},
+    step:{ar:'الخطوة',he:'שלב',ru:'Шаг',en:'Step'}
+  };
+  return copy[key]?.[indoorLang] || copy[key]?.en || '';
+}
+
+function syncMobileIndoorGuide(){
+  const guide=$('mobileIndoorGuide');
+  const current=$('mobileIndoorInstruction');
+  const progress=$("mobileIndoorProgress");
+  const list=$('mobileIndoorSteps');
+  if(!guide || !current || !progress || !list) return;
+  const steps=[...document.querySelectorAll('#steps .stepList li')];
+  if(!routeNodes.length || !steps.length){ guide.hidden=true; list.innerHTML=''; return; }
+  let active=0;
+  steps.forEach((item,index)=>{ if(Number(item.dataset.stepNode)<=progressIndex) active=index; });
+  guide.hidden=false;
+  current.textContent=$('instruction').textContent.trim() || steps[active].textContent;
+  progress.textContent=`${mobileIndoorGuideCopy('step')} ${active+1} / ${steps.length}`;
+  list.innerHTML=steps.map((item,index)=>`<li class="${index===active?'current':''}" data-indoor-step="${index}">${item.innerHTML}</li>`).join('');
+  const toggle=$('mobileIndoorGuideToggle');
+  const panel=$('mobileIndoorGuidePanel');
+  if(toggle) toggle.setAttribute('aria-label',mobileIndoorGuideCopy('show'));
+  if(panel){
+    const title=panel.querySelector('.mobile-route-panel-head strong');
+    const close=panel.querySelector('.mobile-route-close');
+    if(title) title.textContent=mobileIndoorGuideCopy('directions');
+    if(close) close.setAttribute('aria-label',mobileIndoorGuideCopy('close'));
+  }
+}
+
+function setMobileIndoorGuideOpen(open){
+  const panel=$('mobileIndoorGuidePanel');
+  const toggle=$('mobileIndoorGuideToggle');
+  if(!panel || !toggle) return;
+  panel.hidden=!open;
+  toggle.setAttribute('aria-expanded',String(open));
+  toggle.setAttribute('aria-label',mobileIndoorGuideCopy(open?'hide':'show'));
+  $('mobileIndoorGuide').classList.toggle('is-open',open);
+}
+
 // ── Steps: highlight where you are, tap a step to hear it ──
 function highlightIndoorStep(){
   const items=[...document.querySelectorAll('#steps .stepList li')];
@@ -5278,6 +5379,7 @@ function highlightIndoorStep(){
   let current=0;
   items.forEach((item,index)=>{ if(Number(item.dataset.stepNode)<=progressIndex) current=index; });
   items.forEach((item,index)=>item.classList.toggle('current',index===current && (navigationActive || progressIndex>0)));
+  syncMobileIndoorGuide();
 }
 
 // ── Live status ──
@@ -5429,6 +5531,29 @@ function setupIndoorExtras(){
     const item=event.target.closest('li');
     if(item && (event.key==='Enter'||event.key===' ')){ event.preventDefault(); speakIndoor(item.textContent,true); }
   });
+  $('mobileIndoorGuideToggle').addEventListener('click',()=>{
+    if($('mobileIndoorGuideToggle').dataset.dragged==='true'){
+      $('mobileIndoorGuideToggle').dataset.dragged='';
+      return;
+    }
+    setMobileIndoorGuideOpen($('mobileIndoorGuidePanel').hidden);
+  });
+  let indoorDrawerStartX=null;
+  $('mobileIndoorGuideToggle').addEventListener('pointerdown',event=>{ indoorDrawerStartX=event.clientX; });
+  $('mobileIndoorGuideToggle').addEventListener('pointerup',event=>{
+    if(indoorDrawerStartX===null) return;
+    const delta=event.clientX-indoorDrawerStartX;
+    indoorDrawerStartX=null;
+    if(Math.abs(delta)<18) return;
+    $('mobileIndoorGuideToggle').dataset.dragged='true';
+    setMobileIndoorGuideOpen(delta>0);
+  });
+  $('mobileIndoorGuideClose').addEventListener('click',()=>setMobileIndoorGuideOpen(false));
+  $('mobileIndoorSteps').addEventListener('click',event=>{
+    const item=event.target.closest('[data-indoor-step]');
+    if(item) speakIndoor(item.textContent,true);
+  });
+  new MutationObserver(syncMobileIndoorGuide).observe($('steps'),{childList:true,subtree:true,characterData:true});
 
   // Speak each new instruction while a route is shown.
   let speakTimer=null;
@@ -5443,6 +5568,8 @@ function setupIndoorExtras(){
       }
     },150);
   }).observe($('instruction'),{childList:true,characterData:true,subtree:true});
+
+  new MutationObserver(syncMobileIndoorGuide).observe($('instruction'),{childList:true,characterData:true,subtree:true});
 
   new MutationObserver(highlightIndoorStep).observe($('livePos'),{childList:true,characterData:true,subtree:true});
 

@@ -441,7 +441,6 @@ const PROBLEMS = {
   landmark:['quiet', 'noisy', 'crowded', 'closed', 'other'],
   other:['blocked', 'closed', 'other']
 };
-
   function el(tag, attributes = {}, children = []){
     const node = document.createElement(tag);
     for(const [key, value] of Object.entries(attributes)){
@@ -671,7 +670,5 @@ function showThanks(report){
     hours, hoursText,
     reports, addReport, removeReport, openReportDialog,
     restSpaceUnavailable,
-    get noiseAreas(){ return official.noiseAreas || []; },
-    get reportEmail(){ return official.reportEmail; }
-  };
+    get noiseAreas(){ return official.noiseAreas || []; },    get reportEmail(){ return official.reportEmail; }  };
 })(typeof self !== 'undefined' ? self : this);
