@@ -79,7 +79,16 @@ window.clearTimeout = clearTimeoutMock;
     run(between(nav,'function currentInterpolated(){','function drawUserMarker(){'));
     // Actual route, signed movement, instructions, sensor and lifecycle code; only drawing/loading are stubbed.
     run(between(nav,'function route(){',"$('fromFloor').onchange="));
-    run(between(nav,"let navMode = 'auto';","$('routeBtn').onclick=route;"));
+    run(
+  between(
+    nav,
+    "let navMode = indoorDemoMode ? 'auto' : 'sensor';",
+    "$('routeBtn').onclick=route;"
+  ).replace(
+    "let navMode = indoorDemoMode ? 'auto' : 'sensor';",
+    "let navMode = 'auto';"
+  )
+);
     run(between(nav,"document.getElementById('building').onchange =",'function floorLabel('));
     run('routeNodes=testNodes.slice();sensorsEnabled=true;');
   }

@@ -2381,8 +2381,8 @@ const campusBounds = L.latLngBounds(
 const map = L.map('map', {
   zoomControl: false,
   attributionControl: false,
-  minZoom: 15,
-  maxZoom: 23,
+  minZoom: 14.5,
+  maxZoom: 20,
   maxBounds: campusBounds,
   maxBoundsViscosity: 1.0
 }).setView(center, 16);
@@ -11607,6 +11607,10 @@ function startIndoorTransition(){
   const stage = indoorBtn.dataset.stage || 'destination';
 
   if(!building) return;
+  if('speechSynthesis' in window){
+  window.speechSynthesis.cancel();
+}
+  writeStoredPreference(PREFERENCE_KEYS.audio, String(audioOn));
   sessionStorage.setItem(
   'campusway.outdoorDemo',
   new URLSearchParams(window.location.search).get('demo') === '1'

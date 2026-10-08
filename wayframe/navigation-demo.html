@@ -120,8 +120,8 @@
           <div class="muted">Choose where you're starting and where you want to go.</div>
         </div>
 
-        <span class="modeLabel" id="lbl-how-to-move">How do you want to move?</span>
-        <div class="modeGroup" role="group" aria-labelledby="lbl-how-to-move">
+<span class="modeLabel" id="lbl-how-to-move" style="display:none">How do you want to move?</span>
+<div class="modeGroup" role="group" aria-labelledby="lbl-how-to-move" style="display:none">
           <button id="autoModeBtn" class="primary" type="button" aria-pressed="true">
             <span class="mode-title">Auto Mode</span>
             <span class="mode-desc">Preview the route automatically</span>
@@ -4417,7 +4417,6 @@ async function enableSensors(requestToken){
 
 let autoTimer = null;
 let autoFloorPauseUntil = 0;
-
 function startAutoDemo(){
   if(autoTimer) clearInterval(autoTimer);
 
@@ -4433,7 +4432,7 @@ function startAutoDemo(){
     }
 
     advanceAlongRoute(1.0);
-  }, 80);
+  }, 200);
 }
 
 async function calibrateHeadingAutomatically(token){
@@ -4638,7 +4637,11 @@ $('to').onchange=()=>{
   if(routeNodes.length || navigationActive) clearRouteState();
 };
 
-let navMode = 'auto';
+const indoorDemoMode =
+  new URLSearchParams(window.location.search).get('demo') === '1' ||
+  sessionStorage.getItem('campusway.outdoorDemo') === 'true';
+
+let navMode = indoorDemoMode ? 'auto' : 'sensor';
 
 function syncNavigationModeUI(){
   $('autoModeBtn').className=navMode==='auto'?'primary':'secondary';
