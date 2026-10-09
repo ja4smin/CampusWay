@@ -1,0 +1,8 @@
+# CampusWay local database (reports, admin accounts, usage counts, audit log,
+# cloud inbox key). It lives only on the PC that runs server/campusway-server.js.
+server/db/
+
+# Cloudflare wrangler working files (cloud inbox).
+cloud/.wrangler/
+cloud/node_modules/
+.dev.vars

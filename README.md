@@ -37,6 +37,18 @@ Keep the terminal open while using the app. Press Ctrl+C to stop the server.
 
 A static HTTP server is the local preview setup used for this project.
 
+## Admin screen
+
+The campus team can manage problem reports, elevator outages, closures, announcements, place names and opening hours from an admin screen. It runs on one PC with the CampusWay local server, which uses only Node.js and saves to JSON files in `server/db/` (no database account or cloud service):
+
+```powershell
+node server/campusway-server.js
+```
+
+Then open http://localhost:8080/admin.html (or double-click `start-admin.bat`). The first visit creates the administrator account. See [docs/17-admin-screen.md](docs/17-admin-screen.md).
+
+To also receive reports from the public GitHub Pages site, set up the optional free cloud inbox in [`cloud/`](cloud/README.md); the admin screen's **Cloud inbox** page walks through it.
+
 ## Plan a route
 
 Choose the start and destination on the main campus screen. A mapped indoor room can be used as either point.

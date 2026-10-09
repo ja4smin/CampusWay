@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>CampusWay Admin</title>
+<link rel="icon" href="app/vendor/images/cw2.png">
+<link rel="stylesheet" href="app/vendor/leaflet.css">
+<link rel="stylesheet" href="app/ui/campusway.css">
+<link rel="stylesheet" href="app/admin/admin.css">
+</head>
+<body>
+
+<!-- Shown when the page is not opened from the CampusWay local server. -->
+<div id="noServer" class="gate" hidden>
+  <div class="gate-card">
+    <img src="app/vendor/images/cw2.png" alt="" class="gate-logo">
+    <h1>CampusWay Admin needs the local server</h1>
+    <p>The admin screen saves to a small database on your PC, so it only works when CampusWay is started with the local server. Open a terminal in the CampusWay folder and run:</p>
+    <pre class="code">node server/campusway-server.js</pre>
+    <p>Then open <a href="http://localhost:8080/admin.html">http://localhost:8080/admin.html</a>. On Windows you can also double-click <code>start-admin.bat</code>.</p>
+  </div>
+</div>
+
+<!-- First run: create the first administrator. -->
+<div id="setupScreen" class="gate" hidden>
+  <form class="gate-card" id="setupForm" autocomplete="off">
+    <img src="app/vendor/images/cw2.png" alt="" class="gate-logo">
+    <h1>Set up CampusWay Admin</h1>
+    <p>Create the first administrator account. It is stored only on this PC, in <code>server/db/users.json</code> (the password is hashed).</p>
+    <label class="field"><span>Your name</span><input name="displayName" required maxlength="80"></label>
+    <label class="field"><span>User name</span><input name="username" required pattern="[a-zA-Z0-9._\-]{3,40}" autocomplete="username"></label>
+    <label class="field"><span>Password (at least 8 characters)</span><input name="password" type="password" required minlength="8" autocomplete="new-password"></label>
+    <label class="field"><span>Repeat password</span><input name="password2" type="password" required minlength="8" autocomplete="new-password"></label>
+    <p class="form-error" role="alert" hidden></p>
+    <button class="btn btn-primary btn-block" type="submit">Create administrator</button>
+  </form>
+</div>
+
+<!-- Sign in -->
+<div id="loginScreen" class="gate" hidden>
+  <form class="gate-card" id="loginForm">
+    <img src="app/vendor/images/cw2.png" alt="" class="gate-logo">
+    <h1>CampusWay Admin</h1>
+    <p>Sign in to manage reports, live status and content.</p>
+    <label class="field"><span>User name</span><input name="username" required autocomplete="username"></label>
+    <label class="field"><span>Password</span><input name="password" type="password" required autocomplete="current-password"></label>
+    <p class="form-error" role="alert" hidden></p>
+    <button class="btn btn-primary btn-block" type="submit">Sign in</button>
+  </form>
+</div>
+
+<!-- Admin app -->
+<div id="adminApp" class="admin" hidden>
+  <header class="admin-top">
+    <button class="icon-btn nav-toggle" id="navToggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="adminNav">☰</button>
+    <a class="admin-brand" href="#overview">
+      <img src="app/vendor/images/cw2.png" alt="">
+      <span>CampusWay <strong>Admin</strong></span>
+    </a>
+    <div class="admin-top-actions">
+      <a class="btn btn-ghost btn-sm" href="index.html" target="_blank" rel="noopener">Open app ↗</a>
+      <span class="admin-user" id="adminUser"></span>
+      <button class="btn btn-ghost btn-sm" id="logoutBtn" type="button">Sign out</button>
+    </div>
+  </header>
+  <nav class="admin-nav" id="adminNav" aria-label="Admin sections"></nav>
+  <main class="admin-main" id="adminMain" tabindex="-1"></main>
+  <div class="save-bar" id="saveBar" hidden role="region" aria-label="Unsaved changes">
+    <div class="save-bar-text">
+      <strong>Unsaved changes</strong>
+      <span id="saveBarSections"></span>
+    </div>
+    <button class="btn btn-ghost btn-sm" id="discardBtn" type="button">Discard</button>
+    <button class="btn btn-primary btn-sm" id="saveBtn" type="button">Save to live status</button>
+  </div>
+</div>
+
+<div class="toast-region" id="toastRegion" aria-live="polite"></div>
+
+<script src="app/vendor/leaflet.js"></script>
+<script src="app/prototype/data.js"></script>
+<script src="wayframe/route-planner.js"></script>
+<script src="app/prototype/outdoor-routing.js"></script>
+<script src="app/admin/status-schema.js"></script>
+<script src="app/admin/data-health.js"></script>
+<script src="app/admin/admin-core.js"></script>
+<script src="app/admin/admin-pickers.js"></script>
+<script src="app/admin/admin-overview.js"></script>
+<script src="app/admin/admin-reports.js"></script>
+<script src="app/admin/admin-status.js"></script>
+<script src="app/admin/admin-announce.js"></script>
+<script src="app/admin/admin-content.js"></script>
+<script src="app/admin/admin-health.js"></script>
+<script src="app/admin/admin-insights.js"></script>
+<script src="app/admin/admin-cloud.js"></script>
+<script src="app/admin/admin-storage.js"></script>
+<script src="app/admin/admin-tests.js"></script>
+<script src="app/admin/admin-people.js"></script>
+<script src="app/admin/admin-start.js"></script>
+</body>
+</html>

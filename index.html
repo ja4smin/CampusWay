@@ -89,6 +89,9 @@
     </div>
   </header>
 
+  <!-- Announcements and emergency banner from app/data/campus-status.json -->
+  <div id="cwAnnouncements" class="cw-announcements" hidden></div>
+
   <div class="app">
     <aside class="sidebar" aria-label="Route planner">
 
@@ -1182,6 +1185,10 @@ function revealApp({resetView = false} = {}){
       // A shared link (?to=…) or the indoor emergency button (?emergency=1).
       if(typeof openSharedLink === 'function') openSharedLink();
     }
+    if(!appRevealHandled && window.CampusStatus){
+      CampusStatus.track('language', lang);
+      CampusStatus.track('profile', currentProfile);
+    }
     appRevealHandled = true;
   }, 100);
 }
@@ -1750,6 +1757,8 @@ function secondaryBuildingName(building){
 
 function localizedBuildingName(building){
   if(!building) return '';
+  const corrected = typeof CampusStatus !== 'undefined' ? CampusStatus.nameFor?.(building.name, lang) : '';
+  if(corrected) return corrected;
   if(lang === 'ru') return BUILDING_NAMES_RU[building.name] || building.name;
   if(lang === 'ar'){
     const arabicName = BUILDING_NAMES_AR[building.name] || building.name;
@@ -1970,6 +1979,7 @@ function updateVisualVoiceControls(){
 
 function applyTranslations(){
   updateVisualVoiceControls();
+  window.CampusStatus?.setAnnouncementLanguage?.(lang);
   const audioButton = document.getElementById('audioBtn');
 if(audioButton){
   audioButton.classList.toggle('active', audioOn);
@@ -2807,7 +2817,7 @@ CAMPUS_DATA.points.food.forEach(f=>{
     >
       ${t.navigateHere}
     </button>
-    <button class="building-popup-btn secondary" onclick="sharePlace('${f.name.replace(/'/g,"\\'")}')">↗ ${t.shareLabel}</button>
+    <button class="building-popup-btn secondary" onclick="sharePlace('${f.name.replace(/'/g,"\\'")}', '${f.indoor?.buildingKey || ''}')">↗ ${t.shareLabel}</button>
   `);
 
   marker.foodData = f;
@@ -2895,7 +2905,7 @@ CAMPUS_DATA.points.shops.forEach(s=>{
     >
       ${t.navigateHere}
     </button>
-    <button class="building-popup-btn secondary" onclick="sharePlace('${s.name.replace(/'/g,"\\'")}')">↗ ${t.shareLabel}</button>
+    <button class="building-popup-btn secondary" onclick="sharePlace('${s.name.replace(/'/g,"\\'")}', '${s.indoor?.buildingKey || ''}')">↗ ${t.shareLabel}</button>
   `);
 
   marker.shopData = s;
@@ -4878,8 +4888,20 @@ const INDOOR_ETA_FLOOR_ORDER = [
   'floor700'
 ];
 
+// Live status (app/data/campus-status.json): closed places and elevators out of
+// service, the same rules the indoor page uses, so journey times and the
+// nearest-shelter choice never rely on a route the indoor page would refuse.
+function indoorEtaLiveStatus(graph){
+  if(typeof CampusStatus === 'undefined' || !graph || !graph.building) return null;
+  return {
+    closed: CampusStatus.closedNodes(graph.building),
+    elevatorOut: connectorId => CampusStatus.isElevatorOut(graph.building, connectorId)
+  };
+}
+
 function buildIndoorEtaGraph(graph, accessible){
   const nodes = indoorEtaNodes(graph);
+  const live = indoorEtaLiveStatus(graph);
   const byId = new Map(
     nodes.map(node => [node.id, node])
   );
@@ -4894,6 +4916,8 @@ function buildIndoorEtaGraph(graph, accessible){
       const b = byId.get(connection.to);
 
       if(!a || !b) continue;
+
+      if(live && (live.closed.has(a.id) || live.closed.has(b.id))) continue;
 
       if(
         accessible &&
@@ -4935,6 +4959,9 @@ for(const node of nodes){
   ){
     continue;
   }
+
+  if(live && live.closed.has(node.id)) continue;
+  if(live && node.type === 'elevator' && live.elevatorOut(connectorId)) continue;
 
   const key =
     `${node.type}:${connectorId}`;
@@ -5411,6 +5438,7 @@ async function getJourneyEtaSeconds({
 
 async function routeTo(name, lat, lng, options={}){
     clearOutdoorEndpointMarkers();
+  window.CampusStatus?.track?.('route', options.emergency === true ? 'Nearest shelter' : name);
   const avoidNoise =
   currentProfile === 'mental' && options.emergency !== true;  const keepIndoorContext = options.keepIndoorContext === true;  keepIndoorContextForCurrentRoute = keepIndoorContext;
   currentOutdoorDestination = {
@@ -6804,6 +6832,7 @@ if(outdoorLegRequired && !outdoorResult && currentProfile === 'mobility'){
   delete indoorBtn.dataset.building;
   document.getElementById('routeTitle').textContent = t.noAccessibleRoute;
   document.getElementById('routeSub').textContent = t.noAccessibleRouteHelp;
+  window.CampusStatus?.track?.('no-step-free', name);
   document.getElementById('routeEta').textContent = '—';
   document.getElementById('routeCard').classList.add('show');
   speak(t.noAccessibleRoute + ' ' + t.noAccessibleRouteHelp);
@@ -8344,7 +8373,7 @@ function drawNoGoZones(){
   CampusStatus.noGoAreas().forEach(zone => {
     const layer = L.polygon(zone.area, {
       color:'#DC2626', weight:2, dashArray:'6,6', fillColor:'#DC2626', fillOpacity:.15
-    }).addTo(map).bindPopup(`<b>⛔ ${t.closedRoute}</b> ${zone.reason || ''}`);
+    }).addTo(map).bindPopup(`<b>⛔ ${escapeHtml(t.closedRoute)}</b> ${escapeHtml(zone.reason || '')}`);
     noGoLayers.push(layer);
   });
 }
@@ -8352,6 +8381,7 @@ function drawNoGoZones(){
 if(window.CampusStatus){
   CampusStatus.onChange(applyLiveStatus);
   CampusStatus.load('app/data/campus-status.json');
+  CampusStatus.mountAnnouncements({lang, shelterButtonId:'emergencyBtn'});
   applyLiveStatus();
 }
 
@@ -8490,7 +8520,7 @@ function showRouteStatusNote(buildingKeys){
 function shareTargetCode(target){
   if(!target) return '';
   if(target.kind === 'room') return `room:${target.buildingKey}:${target.nodeId}`;
-  if(target.kind === 'place') return `place:${target.name}`;
+  if(target.kind === 'place') return `place:${target.name}${target.buildingKey ? `@${target.buildingKey}` : ''}`;
   return `building:${target.name}`;
 }
 
@@ -8566,11 +8596,14 @@ function shareMyLocation(){
   );
 }
 
-function sharePlace(name){
-  const place = searchableCampusPlaces().find(item => item.name === name);
+function sharePlace(name, buildingKey = ''){
+  const matches = searchableCampusPlaces().filter(item => item.name === name);
+  const place = (buildingKey && matches.find(item => item.indoor?.buildingKey === buildingKey)) || matches[0];
   if(!place) return;
   map.closePopup();
-  openShareDialog(localizedPlaceName(place), {kind:'place', name});
+  // Only names shared by several branches need the building in the link.
+  const branch = matches.length > 1 ? place.indoor?.buildingKey || '' : '';
+  openShareDialog(localizedPlaceName(place), {kind:'place', name, buildingKey:branch});
 }
 
 function currentShareDestination(){
@@ -8638,7 +8671,12 @@ function findSharedTarget(code){
     return building ? {kind, building} : null;
   }
   if(kind === 'place'){
-    const place = searchableCampusPlaces().find(item => item.name === name);
+    // "place:<name>" or, for a name with several branches, "place:<name>@<buildingKey>".
+    const at = name.lastIndexOf('@');
+    const branch = at > 0 ? name.slice(at + 1) : '';
+    const placeName = at > 0 ? name.slice(0, at) : name;
+    const matches = searchableCampusPlaces().filter(item => item.name === placeName);
+    const place = (branch && matches.find(item => item.indoor?.buildingKey === branch)) || matches[0];
     return place ? {kind, place} : null;
   }
   return null;
@@ -8723,8 +8761,10 @@ function shelterBuildings(){
     const graph = graphForBuilding(key);
     const building = CAMPUS_DATA.buildings.find(item => item.name === name);
     const shelters = [];
+    // A shelter closed in the live status is never offered.
+    const closed = typeof CampusStatus !== 'undefined' ? CampusStatus.closedNodes(key) : new Set();
     Object.values(graph?.floors || {}).forEach(floor => {
-      (floor.nodes || []).forEach(node => { if(node.type === 'shelter') shelters.push(node); });
+      (floor.nodes || []).forEach(node => { if(node.type === 'shelter' && !closed.has(node.id)) shelters.push(node); });
     });
     return {key, name, graph, building, shelters};
   }).filter(item => item.graph && item.building && item.shelters.length);
@@ -8750,6 +8790,7 @@ async function nearestShelterPlan(start){
     if(!insideSameBuilding){
       for(const entrance of entrances){
         let outdoor = null;
+        let noRoute = false;
         try{
           outdoor = await CampusOutdoorRouting.route(
           start.lat,
@@ -8761,9 +8802,14 @@ async function nearestShelterPlan(start){
             avoidNoise: false
           }
         );
+          // Mobility: the path network has no step-free way to this entrance,
+          // so it is never offered (the app would refuse to draw it). General
+          // routes keep the straight-line estimate, which the map can draw.
+          noRoute = !outdoor;
         }catch(error){
           outdoor = null;
         }
+        if(noRoute && accessible) continue;
         const meters = outdoor?.distance > 0
           ? outdoor.distance
           : CampusOutdoorRouting.distance([start.lat, start.lng], [entrance.lat, entrance.lng]) * 1.3;
@@ -8775,6 +8821,9 @@ async function nearestShelterPlan(start){
         let indoorSeconds = null;
         const path = findIndoorEtaPath(item.graph, origin.startNodeId, shelter.id, accessible);
         if(path) indoorSeconds = calculateIndoorEtaSeconds(item.graph, path);
+        // Mobility: a shelter with no mapped step-free path inside the
+        // building can only be reached by stairs, so it is not offered.
+        if(accessible && !path) continue;
         plans.push({
           ...item, entrance:origin.entrance, shelter,
           indoorGuided: indoorSeconds !== null,
@@ -9176,6 +9225,8 @@ function localizedPlaceName(place){
 
   if(place.type === 'clinic') return t.legendClinic;
   if(lang === 'en') return place.name;
+  const corrected = typeof CampusStatus !== 'undefined' ? CampusStatus.nameFor?.(place.name, lang) : '';
+  if(corrected) return corrected;
   if(lang === 'ru') return PLACE_NAMES_RU[place.name] || place.name_en || place.name;
 
   return PLACE_NAMES_HE[place.name] || place.name_he || place.name;
@@ -10214,6 +10265,7 @@ function doSearch(q){
     message.className = 'suggestion-item';
     message.setAttribute('role', 'status');
     message.textContent = `${t.noBuildingOrRoom} ${t.noMatchHint}`;
+    window.CampusStatus?.track?.('search-miss', q);
     searchSuggestions.appendChild(message);
     searchSuggestions.style.display = 'block';
   }

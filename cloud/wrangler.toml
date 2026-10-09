@@ -1,0 +1,22 @@
+# CampusWay cloud inbox — Cloudflare Worker settings. Setup steps: cloud/README.md
+name = "campusway-inbox"
+main = "worker.mjs"
+compatibility_date = "2025-01-01"
+
+[vars]
+# Sites allowed to send reports (no trailing slash). Add your own domain if it changes.
+ALLOWED_ORIGINS = "https://ja4smin.github.io,http://localhost:8080"
+# Usage counts are grouped by day in this time zone.
+TIMEZONE = "Asia/Jerusalem"
+# Storage and daily caps, far inside Cloudflare's free plan (5 GB storage,
+# 100,000 requests and 100,000 rows written per day). Above a cap the inbox
+# refuses new data and phones keep their reports until the next day.
+MAX_DB_MB = "100"
+REPORTS_PER_DAY = "1000"
+USAGE_PER_DAY = "20000"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "campusway-inbox"
+# Paste the database_id printed by: npx wrangler d1 create campusway-inbox
+database_id = "fa5aa1cf-fd0f-4d14-9883-72156c45bbaf"

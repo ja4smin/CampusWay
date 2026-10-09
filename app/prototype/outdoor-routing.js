@@ -2769,14 +2769,29 @@ const routeOptions = {
     const startComponent =
       connectedComponent(startNode);
 
+    // Both ends are connected: only the restrictions (no steps, closed
+    // areas) block the way, so there is no gap to report.
+    if(startComponent.has(endNode)){
+      console.warn('No route with the current restrictions', {
+        startNode, endNode,
+        avoidSteps: routeOptions.avoidSteps,
+        blockedAreas: restrictions.blockedAreas.length
+      });
+      return null;
+    }
+
     const endComponent =
       connectedComponent(endNode);
 
+    // The closest gap compares every pair of nodes, so it is only worked out
+    // for a small island (it is a hint for mapping, not for users).
     const closestGap =
-      closestNodesBetweenComponents(
-        startComponent,
-        endComponent
-      );
+      Math.min(startComponent.size, endComponent.size) <= 200
+        ? closestNodesBetweenComponents(
+          startComponent,
+          endComponent
+        )
+        : null;
 
     console.warn(
       'No connected OSM route found',
