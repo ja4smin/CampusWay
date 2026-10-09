@@ -104,7 +104,7 @@ function normalizeStatus(data){
   }
 
   function cloudBase(){
-    const value = official.reportEndpoint || '';
+    const value = (pendingFile && pendingFile.reportEndpoint) || official.reportEndpoint || '';
     return /^https:\/\//i.test(value) || /^http:\/\/(localhost|127\.0\.0\.1)[:/]/i.test(value) ? value : null;
   }
 
@@ -116,7 +116,7 @@ function normalizeStatus(data){
     const local = localBase && web && !onPages ? probe(localBase) : Promise.resolve(false);
     endpointPromise = local.then(found => {
       if(found) return localBase;
-      return ready().then(() => {
+      return fileReady().then(() => {
         const base = web ? cloudBase() : null;
         return base ? probe(base).then(ok => ok ? base : null) : null;
       });
@@ -171,24 +171,53 @@ function normalizeStatus(data){
     });
   }
 
+  // The status file from the site, kept aside until the cloud inbox has
+  // answered: the inbox has the newest version, published from the admin
+  // screen, so a change is live without a commit. The file is the fallback
+  // (no inbox, or offline) and the starting point (it names the inbox).
+  let pendingFile = null;
+  let fileReadyPromise = null;
+
+  function fileReady(){
+    return fileReadyPromise || Promise.resolve(null);
+  }
+
+  function liveStatus(base){
+    return fetch(new URL('api/status', base), {cache:'no-store'})
+      .then(response => response.ok ? response.json() : null)
+      .then(data => data && data.status && typeof data.status === 'object' && !Array.isArray(data.status)
+        ? normalizeStatus(data.status) : null)
+      .catch(() => null);
+  }
+
+  function apply(status){
+    official = status;
+    writeJson(STORAGE_CACHE, official);
+    notify();
+    return official;
+  }
+
   function load(url){
     try{
       localBase = new URL('../../', new URL(url, root.location.href)).href;
     }catch(error){
       localBase = null;
     }
-    readyPromise = fetch(url, {cache:'no-store'})
+    fileReadyPromise = fetch(url, {cache:'no-store'})
       .then(response => {
         if(!response.ok) throw new Error(`Status file ${response.status}`);
         return response.json();
       })
-      .then(data => {
-        official = normalizeStatus(data);
-        writeJson(STORAGE_CACHE, official);
-        notify();
-        return official;
-      })
-      .catch(() => official);
+      .then(data => { pendingFile = normalizeStatus(data); return pendingFile; })
+      .catch(() => null);
+    readyPromise = fileReadyPromise.then(async file => {
+      const base = await endpoint();
+      // Opened from the PC server, its file is already the latest.
+      const cloud = base && base !== localBase ? await liveStatus(base) : null;
+      pendingFile = null;
+      const chosen = cloud || file;
+      return chosen ? apply(chosen) : official;
+    });
     syncReports();
     return readyPromise;
   }

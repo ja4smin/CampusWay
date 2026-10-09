@@ -633,7 +633,9 @@ function createCampusWayServer(options = {}){
     checkWriteRequest(req, {admin:true});
     const user = requireUser(req);
     const body = await readBody(req, 1024 * 1024);
-    return saveStatus(user, body.status, {baseVersion:body.version, note:text(body.note, 200)});
+    const result = saveStatus(user, body.status, {baseVersion:body.version, note:text(body.note, 200)});
+    if(!result.unchanged) result.live = await publishLive();
+    return result;
   });
 
   route('GET', /^\/api\/admin\/status\/history$/, (req) => {
@@ -665,7 +667,9 @@ function createCampusWayServer(options = {}){
     const file = path.join(historyDir, `${text(body.id, 80).replace(/[^\w-]/g, '')}.json`);
     if(!fs.existsSync(file)) throw new HttpError(404, 'That version was not found.');
     const entry = JSON.parse(fs.readFileSync(file, 'utf8'));
-    return saveStatus(user, entry.status, {action:'status.restore', note:body.id});
+    const result = saveStatus(user, entry.status, {action:'status.restore', note:body.id});
+    result.live = await publishLive();
+    return result;
   });
 
   // Reports
@@ -907,6 +911,8 @@ function createCampusWayServer(options = {}){
         const {stats, ...summary} = result;
         db.update('cloud', {}, stored => ({...cloudDefaults, ...stored, pendingAck:null, lastSync:result.at, lastError:'', lastResult:summary, lastStats:stats || stored.lastStats || null}));
         if(user || result.reports) audit(user, 'cloud.sync', result);
+        // A save that could not be published (no internet) goes live now.
+        if(!liveUpToDate()) result.live = await publishLive();
         return result;
       }catch(error){
         db.update('cloud', {}, stored => ({...cloudDefaults, ...stored, lastError:error.message, lastErrorAt:new Date().toISOString()}));
@@ -916,12 +922,66 @@ function createCampusWayServer(options = {}){
     return cloudRunning;
   }
 
+  // ── Live status through the cloud inbox ──
+  // The public app reads the live status from the inbox, so saving in the
+  // admin screen is live within seconds, without a commit. The file in the
+  // repository stays as the offline copy. If publishing fails (no internet),
+  // it is retried with every cloud fetch until the inbox has this version.
+  let publishing = null;
+  function publishLive(){
+    if(publishing) return publishing.then(() => publishLive());
+    publishing = (async () => {
+      const config = cloudConfig();
+      if(!config.url || !config.key) return {state:'off'};
+      let current;
+      try{ current = readStatusFile(); }catch(error){ return {state:'failed', error:'The status file could not be read.'}; }
+      const {_help, ...status} = current.data;
+      const record = extra => db.update('cloud', {}, stored => ({...cloudDefaults, ...stored, lastPublish:{at:new Date().toISOString(), version:current.version, ...extra}}));
+      try{
+        const response = await fetch(new URL('api/status', config.url), {
+          method:'PUT',
+          headers:{'Content-Type':'application/json', Authorization:`Bearer ${config.key}`},
+          body:JSON.stringify({status}),
+          signal:AbortSignal.timeout(10000)
+        });
+        const data = await response.json().catch(() => ({}));
+        if(!response.ok) throw new Error(data.error || `The cloud inbox answered ${response.status}.`);
+        record({ok:true});
+        return {state:'live'};
+      }catch(error){
+        const message = error.name === 'TimeoutError' ? 'The cloud inbox did not answer in time.' : error.message;
+        record({ok:false, error:message});
+        return {state:'failed', error:message};
+      }
+    })().finally(() => { publishing = null; });
+    return publishing;
+  }
+
+  // True when the inbox has the same version as the file on this PC.
+  function liveUpToDate(){
+    const published = cloudConfig().lastPublish;
+    try{ return Boolean(published && published.ok && published.version === readStatusFile().version); }catch(error){ return false; }
+  }
+
+  route('POST', /^\/api\/admin\/cloud\/publish$/, async (req) => {
+    adminGuard(req);
+    checkWriteRequest(req, {admin:true});
+    const user = requireUser(req);
+    if(!['status', 'announce', 'emergency', 'content', 'settings'].some(permission => Schema.can(user.role, permission))){
+      throw new HttpError(403, 'Your role cannot publish the live status.');
+    }
+    const live = await publishLive();
+    audit(user, 'status.publish', {state:live.state});
+    return {live, cloud:publicCloud()};
+  });
+
   function publicCloud(){
     const config = cloudConfig();
     return {
       url:config.url, hasKey:Boolean(config.key), autoSync:config.autoSync !== false,
       lastSync:config.lastSync, lastError:config.lastError, lastErrorAt:config.lastErrorAt || null,
-      lastResult:config.lastResult, lastStats:config.lastStats || null, minutes:cloudMinutes, waitingToConfirm:Boolean(config.pendingAck)
+      lastResult:config.lastResult, lastStats:config.lastStats || null, minutes:cloudMinutes, waitingToConfirm:Boolean(config.pendingAck),
+      lastPublish:config.lastPublish || null, liveUpToDate:liveUpToDate()
     };
   }
 

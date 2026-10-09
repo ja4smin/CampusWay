@@ -30,11 +30,31 @@
     }
 
     // Publishing
-    if(overview.publish && overview.publish.unpublished){
+    // Publishing: through the cloud inbox when it is set up (automatic), otherwise with git.
+    const cloud = overview.cloud || {};
+    if(cloud.url && cloud.hasKey){
+      if(!cloud.liveUpToDate){
+        page.append(h('div', {class:'alert alert--warning'},
+          h('div', {},
+            h('strong', {text:'The latest live status is not on the public site yet. '}),
+            cloud.lastPublish && cloud.lastPublish.error ? `The cloud inbox could not be reached (${cloud.lastPublish.error}). ` : '',
+            'CampusWay retries every few minutes while this PC runs the server.'
+          ),
+          h('div', {}, h('button', {type:'button', class:'btn btn-ghost btn-sm', onclick:async event => {
+            event.currentTarget.disabled = true;
+            try{
+              const result = await Admin.api('POST', 'api/admin/cloud/publish', {});
+              Admin.toast(result.live.state === 'live' ? 'Live on the public site.' : `Still not live: ${result.live.error}`, result.live.state === 'live' ? 'success' : 'error', 8000);
+            }catch(error){ Admin.toast(error.message, 'error'); }
+            Admin.rerender();
+          }}, 'Publish now'))
+        ));
+      }
+    }else if(overview.publish && overview.publish.unpublished){
       page.append(h('div', {class:'alert alert--warning'},
         h('div', {},
           h('strong', {text:'The live status file has changes that are not on GitHub yet. '}),
-          'Phones that open CampusWay from this PC already see them. To publish them to the GitHub Pages site, commit and push:'
+          'Phones that open CampusWay from this PC already see them. To publish them to the GitHub Pages site, commit and push, or set up the Cloud inbox to publish automatically:'
         ),
         h('pre', {class:'code', text:`git add ${overview.publish.file}\ngit commit -m "Update campus status"\ngit push`})
       ));

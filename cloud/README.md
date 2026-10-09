@@ -9,11 +9,13 @@ Phones on GitHub Pages ──reports, counts──▶ cloud inbox ◀──fetch
 
 | File | What it is |
 |---|---|
-| `worker.mjs` | The Worker: public endpoints for the app and a key-protected `/api/sync` for the PC |
+| `worker.mjs` | The Worker: public endpoints for the app (reports, counts, the live status) and key-protected `/api/sync` and `PUT /api/status` for the PC |
 | `schema.sql` | The D1 tables |
 | `wrangler.toml` | Worker settings: name, allowed sites, time zone, database |
 
 ## What it keeps
+
+- **The live campus status** the admin screen publishes on every save (announcements, emergency mode, outages, closures, names, hours). The public app reads it from here, so changes are live without a commit.
 
 - **Reports waiting for the PC**, deleted after 90 days if never fetched. Once fetched, the text is deleted and only the id and status stay for 60 days, so reporters can see "Fixed" in the app.
 - **Usage counts** (destination, failed search, language…) per day, deleted once fetched.

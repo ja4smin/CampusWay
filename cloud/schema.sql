@@ -21,6 +21,14 @@ CREATE TABLE IF NOT EXISTS usage (
   PRIMARY KEY (day, type, key)
 );
 
+-- The live campus status the admin screen publishes (one row). The Worker also
+-- creates this table itself on first use.
+CREATE TABLE IF NOT EXISTS live_status (
+  id INTEGER PRIMARY KEY,
+  json TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
 -- Rate limits: hourly counters per hashed address, removed after two hours.
 CREATE TABLE IF NOT EXISTS hits (
   bucket TEXT PRIMARY KEY,

@@ -10,8 +10,10 @@
 //   POST /api/reports          {reports:[...]}
 //   GET  /api/reports/status   ?ids=a,b
 //   POST /api/usage            {type, key}
+//   GET  /api/status           the live campus status, as last published
 // For the PC only (Authorization: Bearer <SYNC_KEY>):
 //   POST /api/sync             {ackReports, ackUsage, statuses}
+//   PUT  /api/status           {status} — publish the live campus status
 
 const KINDS = ['elevator', 'elevator-group', 'restroom', 'rest-space', 'landmark', 'other'];
 const PROBLEMS = ['one-out', 'all-out', 'quiet', 'noisy', 'crowded', 'out-of-service', 'doors', 'closed', 'accessible-stall', 'cleaning', 'blocked', 'other'];
@@ -31,6 +33,7 @@ const LIMITS = {
   deliveredKeepDays:60,       // status lookups after the PC fetched a report
   pendingKeepDays:90,         // reports the PC never fetched
   syncBatch:200,
+  maxStatusBytes:256 * 1024,  // the published live status (a few KB in practice)
   maxDbMb:100,                // inbox database size cap (env MAX_DB_MB)
   reportsPerDay:1000,         // report submissions for the whole inbox (env REPORTS_PER_DAY)
   usagePerDay:20000           // usage counts for the whole inbox (env USAGE_PER_DAY)
@@ -114,6 +117,11 @@ export function d1Store(db){
     return result;
   };
   const rows = async statement => (track(await statement.all()).results || []);
+  // Created on first use, so an inbox set up before this feature needs no migration.
+  let statusTableReady = null;
+  const statusTable = () => statusTableReady || (statusTableReady = db.prepare(
+    'CREATE TABLE IF NOT EXISTS live_status (id INTEGER PRIMARY KEY, json TEXT NOT NULL, updated_at INTEGER NOT NULL)'
+  ).run().catch(error => { statusTableReady = null; throw error; }));
   return {
     lastSize:() => size,
     async hit(bucket, expires){
@@ -182,6 +190,18 @@ export function d1Store(db){
     async usageRows(limit){
       const results = await rows(db.prepare('SELECT day, type, key, count FROM usage WHERE count > 0 ORDER BY day LIMIT ?1').bind(limit));
       return results.map(row => ({day:row.day, type:row.type, key:row.key, count:Number(row.count)}));
+    },
+    // The live status: one row, replaced on each publish.
+    async getStatus(){
+      await statusTable();
+      const [row] = await rows(db.prepare('SELECT json, updated_at FROM live_status WHERE id = 1'));
+      return row ? {json:row.json, updatedAt:Number(row.updated_at)} : null;
+    },
+    async putStatus(json, updatedAt){
+      await statusTable();
+      track(await db.prepare(
+        'INSERT INTO live_status (id, json, updated_at) VALUES (1, ?1, ?2) ON CONFLICT(id) DO UPDATE SET json = excluded.json, updated_at = excluded.updated_at'
+      ).bind(json, updatedAt).run());
     }
   };
 }
@@ -232,6 +252,12 @@ export function createApp({store, env = {}, now = () => Date.now()}){
     return count <= max;
   }
 
+  function requireSyncKey(request){
+    const header = request.headers.get('Authorization') || '';
+    if(!env.SYNC_KEY || String(env.SYNC_KEY).length < 24) throw new HttpError(503, 'SYNC_KEY is not set on the Worker (at least 24 characters).');
+    if(!safeEqual(header, `Bearer ${env.SYNC_KEY}`)) throw new HttpError(401, 'Wrong sync key.');
+  }
+
   const number = (value, fallback) => Number(value) > 0 ? Number(value) : fallback;
   const caps = {
     maxDbBytes:number(env.MAX_DB_MB, LIMITS.maxDbMb) * 1024 * 1024,
@@ -258,6 +284,27 @@ export function createApp({store, env = {}, now = () => Date.now()}){
 
   const routes = {
     'GET /api/health':async () => ({ok:true, app:'campusway', cloud:true}),
+
+    // The app reads the live status from here, so a change in the admin
+    // screen is live in seconds, without a commit.
+    'GET /api/status':async () => {
+      const stored = await store.getStatus();
+      if(!stored) return {status:null, updatedAt:null};
+      let status = null;
+      try{ status = JSON.parse(stored.json); }catch(error){ status = null; }
+      return {status, updatedAt:stored.updatedAt};
+    },
+
+    'PUT /api/status':async request => {
+      requireSyncKey(request);
+      const body = await readJson(request, LIMITS.maxStatusBytes);
+      const status = body && body.status;
+      if(!status || typeof status !== 'object' || Array.isArray(status)) throw new HttpError(422, 'Send {status:{…}}.');
+      const {_help, ...clean} = status;
+      const time = now();
+      await store.putStatus(JSON.stringify(clean), time);
+      return {ok:true, updatedAt:time};
+    },
 
     'POST /api/reports':async request => {
       checkOrigin(request);
@@ -293,9 +340,7 @@ export function createApp({store, env = {}, now = () => Date.now()}){
     },
 
     'POST /api/sync':async request => {
-      const header = request.headers.get('Authorization') || '';
-      if(!env.SYNC_KEY || String(env.SYNC_KEY).length < 24) throw new HttpError(503, 'SYNC_KEY is not set on the Worker (at least 24 characters).');
-      if(!safeEqual(header, `Bearer ${env.SYNC_KEY}`)) throw new HttpError(401, 'Wrong sync key.');
+      requireSyncKey(request);
       const body = await readJson(request, 512 * 1024);
       const time = now();
       const ackReports = (Array.isArray(body.ackReports) ? body.ackReports : []).map(String).filter(id => /^[a-z0-9]{6,40}$/i.test(id)).slice(0, 1000);

@@ -12,8 +12,9 @@ flowchart LR
   admin["Admin screen<br/>admin.html"] -- "sign in, edit" --> server
   server["server/campusway-server.js<br/>(Node.js, no packages)"] --> db[("server/db/*.json<br/>reports, users, usage, audit log")]
   server --> status["app/data/campus-status.json"]
-  status -- "git push" --> pages["GitHub Pages site"]
-  pages -- "reads status" --> everyone["All users"]
+  server -- "publish on save" --> inbox["Cloud inbox"]
+  inbox -- "live status" --> everyone["All users (GitHub Pages site)"]
+  status -. "git push (offline copy)" .-> pages["GitHub Pages site"]
 ```
 
 - The server is one Node.js file that uses only built-in modules. It serves the app (replacing `http-server`) and a small API.
@@ -97,7 +98,13 @@ The files are plain JSON: you can open them, back them up by copying the folder,
 
 ## 6. Publishing to the live site
 
-The GitHub Pages site reads `app/data/campus-status.json` from the repository. After saving in the admin screen:
+**With the cloud inbox set up, publishing is automatic.** Every **Save to live status** also publishes the status to the cloud inbox, and the public app reads it from there. Announcements, emergency mode, outages, closures, names and hours appear on phones the next time CampusWay is opened, within seconds and without a commit.
+
+- If the inbox cannot be reached (no internet), the save still works on the PC; the server retries with every cloud fetch (every 5 minutes) and the Overview page shows **Publish now**.
+- The app uses `app/data/campus-status.json` from the repository when it cannot reach the inbox (offline, or before the inbox has anything). Committing the file now and then keeps that offline copy current, but it is no longer needed for changes to go live.
+- Devices that open CampusWay from the PC read the PC's file directly.
+
+**Without the cloud inbox**, the GitHub Pages site only shows the file in the repository. After saving, commit and push it:
 
 ```powershell
 git add app/data/campus-status.json
@@ -105,7 +112,7 @@ git commit -m "Update campus status"
 git push
 ```
 
-The Overview page reminds you when the file has unpublished changes. Devices that open CampusWay from the PC see changes immediately.
+The Overview page reminds you when changes are not live yet.
 
 ## 7. Privacy and security
 

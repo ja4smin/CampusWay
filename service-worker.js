@@ -1,4 +1,4 @@
-const CACHE_NAME = 'campusway-v65-admin-screen';
+const CACHE_NAME = 'campusway-v66-live-status';
 
 const APP_FILES = [
 './',
