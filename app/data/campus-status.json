@@ -1,24 +1,38 @@
 {
   "_help": [
-    "Live campus status for CampusWay. Edit this file to announce problems; the app reads it every time it opens (and keeps the last copy for offline use).",
+    "Live campus status for CampusWay. Edit it from the admin screen (admin.html, run server/campusway-server.js) or by hand; the app reads it every time it opens and keeps the last copy for offline use.",
     "elevators: {\"building\": \"rabin\", \"elevator\": \"2\", \"status\": \"out-of-service\", \"from\": \"2026-10-04\", \"until\": \"2026-10-12\", \"note\": \"Maintenance\"}. building is main, rabin, student, madriga, education or multi-purpose; use \"campus\" with \"elevator\": \"main-600-outdoor\" for the outdoor elevator next to Main Building floor 600. Routes avoid elevators listed here.",
     "closures: indoor {\"building\": \"main\", \"nodeIds\": [\"floor600_n12\"], \"reason\": \"Construction\", \"until\": \"2026-11-01\"} or an outdoor no-go zone {\"area\": [[32.7621, 35.0201], [32.7622, 35.0203], [32.7620, 35.0204]], \"reason\": \"Construction\", \"until\": \"2026-11-01\"}. Routes go around them.",
-    "openingHours: keyed by the place name: the English name in app/prototype/data.js (for example \"Cafe Aguda\", \"University Clinic\", \"Minimarket\") or the indoor label (for example \"Library\" in Main Building). Value: {\"sun\": \"07:30-18:00\", \"mon\": \"07:30-18:00\", \"tue\": \"07:30-18:00\", \"wed\": \"07:30-18:00\", \"thu\": \"07:30-18:00\", \"fri\": \"07:30-12:00\", \"sat\": \"closed\"}. Several ranges: \"08:00-12:00,13:00-16:00\". Places without hours here show no hours in the app.",
-    "reportEmail: address that receives problem reports by email, for example the facilities office. Leave empty to hide the email button."
+    "noiseAreas: outdoor path points that the Rest-space (mental) profile avoids while noisy or crowded: {\"id\": \"garden-cafe\", \"label\": \"Garden Café\", \"outdoorNodeIds\": [\"campus_main_garden_path\"], \"noisy\": true, \"crowded\": true, \"until\": \"2026-10-20T23:59:59+03:00\"}.",
+    "announcements: banners on the campus map and indoor pages: {\"id\": \"a1\", \"severity\": \"info\" | \"warning\" | \"critical\", \"text\": {\"en\": \"...\", \"he\": \"...\", \"ar\": \"...\", \"ru\": \"...\"}, \"from\": \"2026-10-04\", \"until\": \"2026-10-12\"}. English is shown when a language is missing.",
+    "emergency: {\"active\": true, \"message\": {\"en\": \"...\"}} shows a red banner with a Nearest shelter button on every page. Set active to false when it is over.",
+    "openingHours: keyed by the place name: the English name in app/prototype/data.js (for example \"Cafe Aguda\", \"University Clinic\", \"Minimarket\") or the indoor label (for example \"Library\" in Main Building). Value: {\"sun\": \"07:30-18:00\", ..., \"sat\": \"closed\"}. Several ranges: \"08:00-12:00,13:00-16:00\".",
+    "names: name corrections keyed by the English name of a building or place: {\"Cafe Aguda\": {\"he\": \"...\", \"ar\": \"...\", \"ru\": \"...\"}}. They replace the built-in names in that language.",
+    "reportEmail: address that receives problem reports by email, for example the facilities office. Leave empty to hide the email button.",
+    "reportEndpoint: address of the CampusWay cloud inbox (cloud/README.md), for example \"https://campusway-inbox.example.workers.dev/\". The public site sends problem reports and anonymous usage counts there; the admin PC fetches them. Leave empty to keep reports on the device."
   ],
-  "updated": "2026-10-04",
+  "updated": "2026-10-09",
   "elevators": [],
-  "noiseAreas": [
-  {
-    "id": "garden-cafe",
-    "label": "Garden Café",
-    "outdoorNodeIds": ["campus_main_garden_path"],
-    "noisy": true,
-    "crowded": true,
-    "until": "2026-10-20T23:59:59+03:00"
-  }
-],
   "closures": [],
+  "noiseAreas": [
+    {
+      "id": "garden-cafe",
+      "label": "Garden Café",
+      "outdoorNodeIds": [
+        "campus_main_garden_path"
+      ],
+      "noisy": true,
+      "crowded": true,
+      "until": "2026-10-20T23:59:59+03:00"
+    }
+  ],
+  "announcements": [],
+  "emergency": {
+    "active": false,
+    "message": {}
+  },
   "openingHours": {},
-  "reportEmail": ""
+  "names": {},
+  "reportEmail": "",
+  "reportEndpoint": "https://campusway-inbox.campusway.workers.dev/"
 }

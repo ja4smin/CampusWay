@@ -24,6 +24,7 @@ Start with **[01 · Project overview](01-project-overview.md)** if you are new t
 | 14 | [Limitations and future work](14-limitations-and-future-work.md) | Known limitations of the current version and ideas for further development |
 | 15 | [Glossary](15-glossary.md) | Terms used in the code and in these documents |
 | 16 | [Team and credits](16-team-and-credits.md) | Contributors and third-party software and data |
+| 17 | [Admin screen and local server](17-admin-screen.md) | Managing reports, live status, announcements and content from one PC; where the data is kept; roles and privacy |
 
 ## Supporting folders
 

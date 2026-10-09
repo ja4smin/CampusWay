@@ -2,6 +2,24 @@
 
 The development history of CampusWay, grouped by milestone and summarised from the Git commit history. CampusWay is deployed continuously from `main`; the service-worker cache name (`campusway-vNN`) changes with each release (currently `campusway-v41`).
 
+## 2026-10-09 · Admin screen and local server
+
+**Added**
+- `admin.html`: reports inbox, live status editor (elevator outages, indoor closures on the floor plan, outdoor zones, noisy areas) with route-impact previews, announcements and emergency mode, place names and opening hours, map data-health checks, usage insights, admin accounts with roles, activity log and status-file history.
+- `server/campusway-server.js`: a local server with no dependencies that serves the app and saves reports, admin accounts, usage counts and the audit log as JSON files in `server/db/` (git-ignored). `start-admin.bat` starts it on Windows.
+- The app sends problem reports and anonymous usage counts to the local server when it is opened from it, and shows reporters the status of their reports; nothing changes on GitHub Pages.
+- Announcement and emergency banners on the campus map and indoor pages; name corrections from the status file.
+- 55 new tests: emergency shelter routing, live status in routing, campus reachability, map data integrity, shared links, opening hours and offline caching (320 in total).
+- Admin **Tests** page: runs the automated tests on the PC and shows passes, failures and error details (administrators only).
+- Admin **Storage** page with a 10 GB limit for the PC's data and storage and daily caps for the cloud inbox.
+- Cloud inbox (`cloud/`): a free Cloudflare Worker + D1 that collects reports and usage counts from the public site. The PC server fetches them every 5 minutes and sends report statuses back; the admin screen's **Cloud inbox** page walks through the setup.
+
+**Fixed**
+- Nearest shelter for the Mobility profile: no longer picks an entrance or shelter that has no step-free route (it used to fall back to a straight-line guess, sending wheelchair users towards routes the app then refused to draw); says honestly when no step-free shelter exists.
+- Nearest shelter and journey times now respect live elevator outages and closures, like the indoor page; closed shelters are never offered.
+- Searching for a route that only stairs could reach took over a second each time (a mapping diagnostic compared every pair of path points); the shelter search is about 14× faster.
+- Shared links to a place with several branches (Pilpelet Cafe) opened the wrong branch; such links now name the building (old links still work).
+
 ## 2026-10-04 – 2026-10-06 · Polish, integration and documentation
 
 **Added**

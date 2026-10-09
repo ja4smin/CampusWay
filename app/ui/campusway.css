@@ -281,3 +281,35 @@ body.hc .cw-choice:has(input:checked){background:#FFD400;color:#000;border-color
 body.hc .toast{background:#FFD400;color:#000;border:2px solid #fff;}
 body.hc .toast-close{color:#000;}
 body.hc .status-note{background:#000;color:#FFD400;border-color:#FFD400;}
+
+/* ── Announcements and emergency banner (from the campus status file) ── */
+.cw-announcements{display:flex;flex-direction:column;gap:0;flex:none;}
+.cw-announcements[hidden]{display:none;}
+.cw-banner{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 16px;
+  font-size:.875rem;line-height:1.4;
+  border-bottom:1px solid var(--line);
+  background:var(--primary-soft);color:var(--ink);
+}
+.cw-banner--warning{background:var(--amber-bg);border-color:var(--amber-line);color:var(--amber-ink);}
+.cw-banner--critical{background:#FEF2F2;border-color:#FECACA;color:#991B1B;font-weight:600;}
+.cw-banner--emergency{background:var(--danger);border-color:#B91C1C;color:#fff;font-weight:600;}
+.cw-banner-icon{flex:none;font-size:1rem;}
+.cw-banner-text{margin:0;flex:1;min-width:0;}
+.cw-banner-close{
+  flex:none;width:32px;height:32px;border:0;border-radius:8px;
+  background:transparent;color:inherit;opacity:.75;
+}
+.cw-banner-close:hover{opacity:1;background:rgba(15,23,42,.08);}
+.cw-banner-action{
+  flex:none;min-height:36px;padding:6px 14px;border:0;border-radius:10px;
+  background:#fff;color:#991B1B;font-weight:800;
+}
+.cw-banner-action:hover{background:#FEE2E2;}
+/* Indoor page: the banner sits between the top bar and the map. */
+.app:has(> #cwAnnouncements:not([hidden])){grid-template-rows:auto auto minmax(0,1fr);}
+
+/* Problem report: status from the campus team (local server only). */
+.cw-report-state{color:var(--success-ink);font-weight:600;}
+.cw-report-sent{color:var(--success-ink);font-weight:600;}

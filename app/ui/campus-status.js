@@ -2,12 +2,15 @@
 // zones"), opening hours and problem reports.
 //
 // Official status comes from app/data/campus-status.json (edited by the
-// campus team). Reports made in the app are kept on this device: CampusWay
-// avoids an elevator you reported as out of service for 24 hours. Sharing
-// reports between users needs a server, which this static app does not have.
+// campus team, by hand or from admin.html). Reports made in the app are kept
+// on this device: CampusWay avoids an elevator you reported as out of service
+// for 24 hours. When the app is opened from the CampusWay local server
+// (server/campusway-server.js), reports and anonymous usage counts are also
+// sent to it; on GitHub Pages or a plain static server nothing is sent.
 (function(root){
   const STORAGE_REPORTS = 'campuswayReports';
   const STORAGE_CACHE = 'campuswayStatusCache';
+  const SESSION_DISMISSED = 'campuswayDismissedAnnouncements';
   const REPORT_AVOID_HOURS = 24;
   const REPORT_KEEP_DAYS = 14;
   const LANGUAGE_LOCALES = {
@@ -21,8 +24,8 @@
     return lang === 'he' || lang === 'ar';
   }
 
-  const EMPTY = {elevators:[], closures:[], openingHours:{}, reportEmail:''};
-  let official = readJson(STORAGE_CACHE, null) || EMPTY;
+  const EMPTY = {elevators:[], closures:[], noiseAreas:[], announcements:[], emergency:{active:false, message:{}}, names:{}, openingHours:{}, reportEmail:''};
+  let official = normalizeStatus(readJson(STORAGE_CACHE, null) || EMPTY);
   let readyPromise = null;
   const listeners = new Set();
 
@@ -43,18 +46,137 @@
     }
   }
 
+// Some of these texts reach HTML (map popups, tooltips, search lists), so
+// < and > are removed here, whatever wrote the file.
+function plainText(value){
+  return String(value ?? '').replace(/[<>]/g, '');
+}
+
+function cleanNames(names){
+  const result = {};
+  if(!names || typeof names !== 'object') return result;
+  Object.entries(names).forEach(([key, value]) => {
+    if(!value || typeof value !== 'object') return;
+    const entry = {};
+    Object.entries(value).forEach(([lang, text]) => {
+      if(typeof text === 'string' && text.trim()) entry[lang] = plainText(text).trim();
+    });
+    result[key] = entry;
+  });
+  return result;
+}
+
 function normalizeStatus(data){
+  const emergency = data && data.emergency && typeof data.emergency === 'object' ? data.emergency : {};
   return {
     elevators: Array.isArray(data && data.elevators) ? data.elevators : [],
-    closures: Array.isArray(data && data.closures) ? data.closures : [],
+    closures: Array.isArray(data && data.closures)
+      ? data.closures.map(closure => closure && typeof closure === 'object' ? {...closure, reason:plainText(closure.reason)} : closure)
+      : [],
     noiseAreas: Array.isArray(data && data.noiseAreas) ? data.noiseAreas : [],
+    announcements: Array.isArray(data && data.announcements) ? data.announcements : [],
+    emergency: {
+      active: emergency.active === true,
+      message: emergency.message && typeof emergency.message === 'object' ? emergency.message : {}
+    },
+    names: cleanNames(data && data.names),
     openingHours: data && data.openingHours && typeof data.openingHours === 'object' ? data.openingHours : {},
     reportEmail: data && typeof data.reportEmail === 'string' ? data.reportEmail.trim() : '',
+    reportEndpoint: data && typeof data.reportEndpoint === 'string' ? data.reportEndpoint.trim() : '',
     updated: data && data.updated || ''
   };
 }
 
+  // ── Where reports go (optional) ──
+  // 1. The CampusWay server on the team's PC, when the app was opened from it.
+  //    The site root is two folders above the status file (app/data/…).
+  // 2. Otherwise the cloud inbox named in the status file (reportEndpoint),
+  //    which the team's PC fetches from.
+  // With neither, reports stay on this device.
+  let localBase = null;
+  let endpointPromise = null;
+
+  function probe(base){
+    return fetch(new URL('api/health', base), {cache:'no-store'})
+      .then(response => response.ok ? response.json() : null)
+      .then(data => Boolean(data && data.app === 'campusway'))
+      .catch(() => false);
+  }
+
+  function cloudBase(){
+    const value = official.reportEndpoint || '';
+    return /^https:\/\//i.test(value) || /^http:\/\/(localhost|127\.0\.0\.1)[:/]/i.test(value) ? value : null;
+  }
+
+  function endpoint(){
+    if(endpointPromise) return endpointPromise;
+    const location = root.location;
+    const web = Boolean(location && /^https?:$/.test(location.protocol));
+    const onPages = web && /\.github\.io$/i.test(location.hostname);
+    const local = localBase && web && !onPages ? probe(localBase) : Promise.resolve(false);
+    endpointPromise = local.then(found => {
+      if(found) return localBase;
+      return ready().then(() => {
+        const base = web ? cloudBase() : null;
+        return base ? probe(base).then(ok => ok ? base : null) : null;
+      });
+    });
+    return endpointPromise;
+  }
+
+  function serverAvailable(){
+    return endpoint().then(Boolean);
+  }
+
+  function postJson(base, path, body){
+    return fetch(new URL(path, base), {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(body),
+      keepalive:true
+    }).then(response => response.ok ? response.json() : Promise.reject(new Error(String(response.status))));
+  }
+
+  // Sends reports that were made while no server could be reached.
+  function syncReports(){
+    return endpoint().then(base => {
+      if(!base) return;
+      const pending = reports().filter(report => !report.synced);
+      if(!pending.length) return;
+      return postJson(base, 'api/reports', {reports:pending.map(({synced, ...report}) => ({...report, lang:report.lang || ''}))})
+        .then(result => {
+          const accepted = new Set(result.accepted || []);
+          writeJson(STORAGE_REPORTS, readJson(STORAGE_REPORTS, []).map(report =>
+            accepted.has(report.id) ? {...report, synced:true} : report
+          ));
+        })
+        .catch(() => { /* try again next time the app opens */ });
+    });
+  }
+
+  // Anonymous counts for the admin Insights page: no ids, times or places.
+  function track(type, key){
+    endpoint().then(base => {
+      if(base) postJson(base, 'api/usage', {type, key:String(key ?? '').slice(0, 80)}).catch(() => {});
+    });
+  }
+
+  function reportStatuses(ids){
+    return endpoint().then(base => {
+      if(!base || !ids.length) return {};
+      return fetch(new URL(`api/reports/status?ids=${ids.map(encodeURIComponent).join(',')}`, base), {cache:'no-store'})
+        .then(response => response.ok ? response.json() : {statuses:{}})
+        .then(data => data.statuses || {})
+        .catch(() => ({}));
+    });
+  }
+
   function load(url){
+    try{
+      localBase = new URL('../../', new URL(url, root.location.href)).href;
+    }catch(error){
+      localBase = null;
+    }
     readyPromise = fetch(url, {cache:'no-store'})
       .then(response => {
         if(!response.ok) throw new Error(`Status file ${response.status}`);
@@ -67,6 +189,7 @@ function normalizeStatus(data){
         return official;
       })
       .catch(() => official);
+    syncReports();
     return readyPromise;
   }
 
@@ -283,13 +406,15 @@ function elevatorOutages(building){
     nodeId: report.nodeId || '',
     label: report.label || '',
     problem: report.problem || 'other',
-    note: String(report.note || '').slice(0, 500)
+    note: String(report.note || '').slice(0, 500),
+    lang: report.lang || ''
   };
 
   const list = reports();
   list.unshift(entry);
   writeJson(STORAGE_REPORTS, list.slice(0, 50));
   notify();
+  syncReports();
   return entry;
 }
 
@@ -433,6 +558,13 @@ const TEXT = {
     }
   }
 };
+// Shown only when the app runs from the CampusWay local server.
+const SERVER_TEXT = {
+  en:{sent:'Your report was sent to the campus team.', new:'Sent', acknowledged:'Seen by the campus team', 'in-progress':'Being fixed', resolved:'Fixed', rejected:'Closed'},
+  he:{sent:'הדיווח נשלח לצוות הקמפוס.', new:'נשלח', acknowledged:'התקבל אצל צוות הקמפוס', 'in-progress':'בטיפול', resolved:'תוקן', rejected:'נסגר'},
+  ar:{sent:'تم إرسال بلاغك إلى طاقم الحرم.', new:'تم الإرسال', acknowledged:'اطّلع عليه طاقم الحرم', 'in-progress':'قيد الإصلاح', resolved:'تم الإصلاح', rejected:'مغلق'},
+  ru:{sent:'Ваше сообщение отправлено сотрудникам кампуса.', new:'Отправлено', acknowledged:'Получено сотрудниками кампуса', 'in-progress':'Исправляется', resolved:'Исправлено', rejected:'Закрыто'}
+};
 const PROBLEMS = {
   'elevator-group': ['one-out', 'all-out', 'other'],
   elevator:['out-of-service','other'],
@@ -524,9 +656,17 @@ const PROBLEMS = {
       list.forEach(report => {
         const remove = el('button', {type:'button', class:'btn btn-ghost btn-sm', text:text.fixed});
         remove.addEventListener('click', () => { removeReport(report.id); fillHistory(); options.onChange?.(); });
-        ul.append(el('li', {}, [el('span', {text:`${report.label} — ${text.problems[report.problem] || report.problem}`}), remove]));
+        const state = el('small', {class:'cw-report-state', 'data-report-id':report.id});
+        ul.append(el('li', {}, [el('span', {}, [el('span', {text:`${report.label} — ${text.problems[report.problem] || report.problem}`}), state]), remove]));
       });
       yours.append(ul);
+      reportStatuses(list.filter(report => report.synced).map(report => report.id)).then(statuses => {
+        const words = SERVER_TEXT[lang] || SERVER_TEXT.en;
+        yours.querySelectorAll('[data-report-id]').forEach(node => {
+          const status = statuses[node.getAttribute('data-report-id')];
+          if(status && words[status]) node.textContent = ` · ${words[status]}`;
+        });
+      });
     };
     fillHistory();
 
@@ -544,7 +684,8 @@ const PROBLEMS = {
         nodeId:item.nodeId,
         label:item.label,
         problem,
-        note:note.value
+        note:note.value,
+        lang
       });
       options.onChange?.();
       showThanks(report);
@@ -602,6 +743,10 @@ function showThanks(report){
       text:messages[lang] || messages.en
     }));
   }
+
+  const sentNote = el('p', {class:'cw-report-sent', hidden:true, text:(SERVER_TEXT[lang] || SERVER_TEXT.en).sent});
+  body.append(sentNote);
+  serverAvailable().then(available => { if(available) sentNote.hidden = false; });
 
   const actions = el('div', {
     class:'cw-dialog-actions cw-dialog-actions--stack'
@@ -663,6 +808,99 @@ function showThanks(report){
   );
 }
 
+  // ── Name corrections from the admin screen ──
+  // Keyed by the English name; returns '' when there is no correction.
+  function nameFor(englishName, lang){
+    const entry = official.names && official.names[englishName];
+    return entry && typeof entry[lang] === 'string' ? entry[lang] : '';
+  }
+
+  // ── Announcements and emergency banner ──
+  const BANNER_TEXT = {
+    en:{emergency:'Emergency', shelter:'Nearest shelter', dismiss:'Dismiss', message:'Emergency on campus. Go to the nearest shelter.'},
+    he:{emergency:'חירום', shelter:'מרחב מוגן קרוב', dismiss:'סגירה', message:'מצב חירום בקמפוס. יש להגיע למרחב המוגן הקרוב.'},
+    ar:{emergency:'طوارئ', shelter:'أقرب ملجأ', dismiss:'إغلاق', message:'حالة طوارئ في الحرم الجامعي. توجّه إلى أقرب ملجأ.'},
+    ru:{emergency:'Тревога', shelter:'Ближайшее укрытие', dismiss:'Закрыть', message:'Чрезвычайная ситуация в кампусе. Пройдите в ближайшее укрытие.'}
+  };
+  let bannerOptions = null;
+
+  function localized(textByLanguage, lang){
+    if(!textByLanguage) return '';
+    if(typeof textByLanguage === 'string') return textByLanguage;
+    return textByLanguage[lang] || textByLanguage.en || '';
+  }
+
+  function activeAnnouncements(now = Date.now()){
+    return official.announcements.filter(item => item && isActive(item, now) && localized(item.text, 'en'));
+  }
+
+  function dismissedAnnouncements(){
+    try{ return JSON.parse(root.sessionStorage.getItem(SESSION_DISMISSED) || '[]'); }catch(error){ return []; }
+  }
+
+  function renderAnnouncements(){
+    if(!bannerOptions || typeof document === 'undefined') return;
+    const box = document.getElementById(bannerOptions.containerId || 'cwAnnouncements');
+    if(!box) return;
+    const lang = BANNER_TEXT[bannerOptions.lang] ? bannerOptions.lang : 'en';
+    const words = BANNER_TEXT[lang];
+    box.innerHTML = '';
+    box.setAttribute('lang', lang);
+    box.setAttribute('dir', isRtlLanguage(lang) ? 'rtl' : 'ltr');
+
+    if(official.emergency.active){
+      const shelter = el('button', {type:'button', class:'cw-banner-action', text:words.shelter});
+      shelter.addEventListener('click', () => {
+        const button = bannerOptions.shelterButtonId && document.getElementById(bannerOptions.shelterButtonId);
+        if(button) button.click();
+      });
+      box.append(el('div', {class:'cw-banner cw-banner--emergency', role:'alert'}, [
+        el('span', {class:'cw-banner-icon', 'aria-hidden':'true', text:'⚠'}),
+        el('p', {class:'cw-banner-text'}, [
+          el('strong', {text:`${words.emergency}: `}),
+          el('span', {text:localized(official.emergency.message, lang) || words.message})
+        ]),
+        shelter
+      ]));
+    }
+
+    const dismissed = new Set(dismissedAnnouncements());
+    activeAnnouncements().forEach(item => {
+      const severity = ['info', 'warning', 'critical'].includes(item.severity) ? item.severity : 'info';
+      if(severity !== 'critical' && dismissed.has(item.id)) return;
+      const children = [
+        el('span', {class:'cw-banner-icon', 'aria-hidden':'true', text:severity === 'info' ? 'ℹ' : '⚠'}),
+        el('p', {class:'cw-banner-text', text:localized(item.text, lang)})
+      ];
+      if(severity !== 'critical'){
+        const close = el('button', {type:'button', class:'cw-banner-close', 'aria-label':words.dismiss, text:'✕'});
+        close.addEventListener('click', () => {
+          dismissed.add(item.id);
+          try{ root.sessionStorage.setItem(SESSION_DISMISSED, JSON.stringify([...dismissed])); }catch(error){ /* ignore */ }
+          renderAnnouncements();
+        });
+        children.push(close);
+      }
+      box.append(el('div', {class:`cw-banner cw-banner--${severity}`, role:severity === 'critical' ? 'alert' : 'status'}, children));
+    });
+
+    box.hidden = box.children.length === 0;
+  }
+
+  // options: {lang, containerId = 'cwAnnouncements', shelterButtonId}
+  function mountAnnouncements(options = {}){
+    const first = !bannerOptions;
+    bannerOptions = {...options};
+    if(first) listeners.add(renderAnnouncements);
+    renderAnnouncements();
+  }
+
+  function setAnnouncementLanguage(lang){
+    if(!bannerOptions) return;
+    bannerOptions.lang = lang;
+    renderAnnouncements();
+  }
+
   root.CampusStatus = {
     load, ready, onChange,
     elevatorOutages, isElevatorOut, elevatorName, elevatorNumber,
@@ -670,5 +908,10 @@ function showThanks(report){
     hours, hoursText,
     reports, addReport, removeReport, openReportDialog,
     restSpaceUnavailable,
-    get noiseAreas(){ return official.noiseAreas || []; },    get reportEmail(){ return official.reportEmail; }  };
+    nameFor, activeAnnouncements, mountAnnouncements, setAnnouncementLanguage,
+    track, serverAvailable,
+    get emergencyActive(){ return official.emergency.active; },
+    get noiseAreas(){ return official.noiseAreas || []; },
+    get reportEmail(){ return official.reportEmail; }
+  };
 })(typeof self !== 'undefined' ? self : this);

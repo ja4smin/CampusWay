@@ -10,7 +10,19 @@ function between(source,start,end){
 function harness(testPage=false,permission){
   const elements=new Map(),listeners=new Map(),timers=new Map(),frames=new Map();let clock=0,serial=0;
   const element=id=>{if(!elements.has(id))elements.set(id,{value:'',textContent:'',style:{},disabled:false,hidden:false,className:'',attributes:{},setAttribute(name,value){this.attributes[name]=String(value);}});return elements.get(id);};
-  const document={getElementById:element,addEventListener(name,fn){listeners.set(name,fn);},hidden:false};
+  const bodyClasses = new Set();
+const document = {
+  body: {
+    classList: {
+      add(...names){ names.forEach(name => bodyClasses.add(name)); },
+      remove(...names){ names.forEach(name => bodyClasses.delete(name)); },
+      contains(name){ return bodyClasses.has(name); }
+    }
+  },
+  getElementById:element,
+  addEventListener(name,fn){ listeners.set(name,fn); },
+  hidden:false
+};
   const window={screen:{orientation:{angle:0}},addEventListener(name,fn){listeners.set(name,fn);}};
   const storage = new Map();
 
@@ -67,6 +79,8 @@ window.clearTimeout = clearTimeoutMock;
     run(`let BUILDING='main'; let GRAPH={floors:{}};
       function localizedInstruction(en){return en;} function it(key){return key;}
       function drawBaseMap(){} function floorButtons(){} function followNode(){}
+      function syncMobileIndoorGuide(){}
+      function setMobileIndoorGuideOpen(){}
       function currentHeading(){return 0;} function describeRoute(){}
       let testProfile='general'; function selectedRoutingProfile(){return testProfile;}
       function resolveSelection(value){return value;} function selectionLabel(value){return value;}
@@ -280,7 +294,7 @@ test('Phone Sensors exit confirmation on the origin leg hands the journey back o
 test('endpoint pause and automatic recalibration facing start allows backtracking',async()=>{
   const h=harness();h.setRoute([{id:'a',label:'A',floor:'floor500',x:0,y:1},{id:'b',label:'B',floor:'floor500',x:0,y:1-0.65/101.2}]);await startSensor(h);
   h.stable(450,850,0);h.injectSteps(850,[800]);h.drain();near(travelled(h),0.65);
-  h.document.hidden=true;h.listeners.get('visibilitychange')();assert.match(h.element('status').textContent,/toward the starting location/);
+  h.document.hidden=true;h.listeners.get('visibilitychange')();assert.match(h.element('status').textContent,/Face back along the route, then press Start\./);
   h.document.hidden = false;
 await startSensor(h, 210, 1500);
   h.stable(2000,2400,210);h.injectSteps(2400,[2350]);h.drain();near(travelled(h),0);
@@ -289,7 +303,7 @@ await startSensor(h, 210, 1500);
 test('mid-route reverse interruption keeps the return prompt and direction',async()=>{
   const h=harness();h.setRoute([{id:'a',label:'A',floor:'floor500',x:0,y:1},{id:'b',label:'B',floor:'floor500',x:0,y:0}]);await startSensor(h);
   h.run('progressIndex=0;progressT=0.5;lastTravelDirection=-1');h.listeners.get('orientationchange')();
-  assert.match(h.element('directionStatus').textContent,/toward the starting location/);
+  assert.match(h.element('directionStatus').textContent,/Face back along the route, then press Start\./);
   const restarting=h.element('calibrateBtn').onclick();h.stable(1000,1400,180);await restarting;
   assert.equal(h.run('navigationActive'),true);assert.equal(h.run('lastTravelDirection'),-1);
   const classification=h.run("headingTracker.classify(performance.now(),CampusRouteProgress.candidates(routeNodes,{index:progressIndex,t:progressT}))");

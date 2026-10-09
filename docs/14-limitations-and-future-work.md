@@ -31,8 +31,8 @@
 
 | Limitation | Details |
 |---|---|
-| No server | Problem reports stay on the reporter's device; there is no shared, real-time status |
-| Manual status file | Outages, closures and opening hours must be edited by hand in `campus-status.json` |
+| Reports from the public site need the cloud inbox | With the optional free cloud inbox set up, reports from the GitHub Pages site reach the admin screen when the PC fetches them; without it they stay on the reporter's device ([17 · Admin screen](17-admin-screen.md)) |
+| Status changes are published with git | The admin screen writes `campus-status.json` on the PC; it reaches the GitHub Pages site after a commit and push |
 | Map tiles need internet | Offline, the map shows overlays without streets |
 | Large offline package | About 100 MB on the first install, mostly floor plans |
 | Session-only preferences | Language and profile are kept per browser session; high contrast and the audio guide are not restored after a reload |
@@ -60,7 +60,8 @@
 - [ ] **Step-length calibration:** walk a known distance once and store the user's step length.
 - [ ] **Off-route detection** in sensor mode (e.g. heading persistently differs from every route candidate).
 - [ ] **Live outdoor guidance:** follow GPS along the outdoor route and announce turns.
-- [ ] **Backend for reports and status** (e.g. a small serverless API), so reports reach the facilities team and all users.
+- [x] **Reports and status on one PC:** the CampusWay local server and admin screen ([17](17-admin-screen.md)).
+- [x] **Cloud inbox** (a free Cloudflare Worker, [`cloud/`](../cloud/README.md)), so reports from the public site also reach the facilities team.
 - [ ] **Accessibility audit** with screen readers (TalkBack, VoiceOver) and with users from each profile group.
 - [ ] Move the journey logic (`routeTo`) and the indoor-page logic out of the HTML files into tested modules.
 - [ ] Continuous integration (GitHub Actions) to run the tests on every pull request.
@@ -71,4 +72,4 @@
 - [ ] Map the remaining buildings (Eshkol Tower, Arts, Bloom, Welfare and Health).
 - [ ] Crowd and noise information for rest spaces.
 - [ ] Timetable integration ("navigate to my next class").
-- [ ] An admin page for editing the campus status without touching JSON.
+- [x] An admin page for editing the campus status without touching JSON (`admin.html`).

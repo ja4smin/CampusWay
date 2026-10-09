@@ -1,4 +1,4 @@
-const CACHE_NAME = 'campusway-v64-compact-route-directions';
+const CACHE_NAME = 'campusway-v65-admin-screen';
 
 const APP_FILES = [
 './',
@@ -106,6 +106,15 @@ self.addEventListener('fetch', event => {
 
   // External map tiles are handled directly by the browser.
   if(requestUrl.origin !== self.location.origin){
+    return;
+  }
+
+  // The CampusWay local server's API and the admin screen are never cached.
+  if(
+    requestUrl.pathname.includes('/api/') ||
+    requestUrl.pathname.endsWith('/admin.html') ||
+    requestUrl.pathname.includes('/app/admin/')
+  ){
     return;
   }
 

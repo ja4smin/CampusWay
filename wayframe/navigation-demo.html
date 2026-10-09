@@ -64,6 +64,9 @@
 </div>
   </header>
 
+  <!-- Announcements and emergency banner from app/data/campus-status.json -->
+  <div id="cwAnnouncements" class="cw-announcements" hidden></div>
+
   <div class="shell">
     <aside class="controlPanel" aria-label="Indoor route">
 
@@ -4656,8 +4659,11 @@ async function startNavigation(){
   }
   stopNavigationMotion(false);
   navigationActive=true;
-document.body.classList.add('indoor-navigation-active');
-syncMobileIndoorGuide();
+  
+  if(typeof CampusStatus!=='undefined') CampusStatus.track('indoor-mode', navMode);
+  document.body.classList.add('indoor-navigation-active');
+  syncMobileIndoorGuide();
+
   updateDirectionControls();
   $('startBtn').disabled=true;
   if(navMode === 'auto'){
@@ -5723,6 +5729,7 @@ currentCard.addEventListener('keydown',event=>{
       if(routeNodes.length && !navigationActive) route();
     });
     CampusStatus.load('../app/data/campus-status.json');
+    CampusStatus.mountAnnouncements({lang:indoorLang, shelterButtonId:'indoorEmergencyBtn'});
   }
 }
 

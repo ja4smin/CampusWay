@@ -18,10 +18,13 @@ node --test tests/step-integration.test.cjs
 
 Requirements: Node.js 18 or newer. No `npm install` is needed; the tests use only Node's built-in modules.
 
+Administrators can also run them from the admin screen: **Tests → Run tests** shows the totals, each file's result and the error of every failure ([17 · Admin screen](17-admin-screen.md)).
+
 ## 2. Latest result
 
 | Date | Node.js | Tests | Passed | Failed | Duration |
 |---|---|---|---|---|---|
+| 2026-10-09 (admin screen branch) | 24.20.0 | 320 | 320 | 0 | about 7.5 s |
 | 2026-10-07 (commit `521863b`) | 22.22.0 | 171 | 171 | 0 | about 1.7 s |
 
 ## 3. How the tests work
@@ -31,6 +34,8 @@ Requirements: Node.js 18 or newer. No `npm install` is needed; the tests use onl
 
 > ⚠️ Because of this, the marker strings used by the tests must stay in the HTML when the code is changed. Examples are `let routePath=[];`, `const svg=$('mapSvg')`, `function buildGraph(){` and `function route()` in `navigation-demo.html`, and `const PROFILE_IDS` and `const ICONS =` in `index.html`. If a test fails on an assertion that names one of these strings after a refactor, the marker was moved or renamed.
 
+- **The campus harness** (`tests/helpers/campus-harness.cjs`) loads the real campus data, all six indoor graphs, the outdoor path network and the live-status module together with the needed parts of `index.html`, so emergency, sharing, hours and live-status tests run the app's own code on the data it ships.
+- **Known gaps are written down.** Reachability tests list today's known map gaps (for example the Terrace floor 0 step-free gap and one disconnected Multi-Purpose entrance). Anything new that becomes unreachable fails the test; fixing a gap means removing it from the list.
 - **Real data** is used where it matters. For example, the tests check that the real Terrace graph has no step-free route to floor −1, and that the Student House graph is fully connected.
 
 ## 4. Test files
@@ -50,7 +55,16 @@ Requirements: Node.js 18 or newer. No `npm install` is needed; the tests use onl
 | `step-integration.test.cjs` | 37 | End-to-end indoor navigation: calibration gating, step animation queue, stairs confirmation, mode switching, permissions, background and rotation, wheelchair checkpoints, Spatial elevator guidance, shared-elevator ride restore, reject and exit, Auto mode floor skipping |
 | `student-graph-source.test.cjs` | 8 | Both pages and the service worker use the same graph files; no stale suggestions; Main floor 600 updates; Rabin–Terrace transfer nodes; Student House graph connectivity and room search |
 | `wheelchair-navigation.test.cjs` | 6 | Checkpoint simplification, turns and elevator boundaries, multi-floor rides, noise tolerance, going back, distance excluding vertical travel |
-| **Total** | **171** | |
+| `emergency-shelter.test.cjs` | 10 | Nearest shelter from both gates and every building; Mobility routes step-free outdoors and indoors (or an honest "no shelter" message); staying inside a building with a shelter; closed shelters and broken elevators avoided; the shelter button; `?emergency=1`; working without the path network |
+| `live-status-routing.test.cjs` | 13 | Outage and closure dates; elevator number matching; the user's own reports (24 h) and rest-space reports (2 h); the indoor page, the campus planner and the outdoor router obeying outages, closures, no-go zones and the outdoor elevator |
+| `campus-reachability.test.cjs` | 5 | Every building from both gates (General and Mobility); every entrance on the path network; indoor destinations reachable from an entrance; dead-end routes answered quickly |
+| `map-data-integrity.test.cjs` | 7 | Graph building keys, node types and positions; unique ids and same-floor connections; campus entrances and places linked to real nodes; everything on campus; a floor plan for every mapped floor |
+| `shared-links.test.cjs` | 8 | Every building, room and place round-trips through its share code; places with several branches; broken codes; opening room, building, food, shop and missing links |
+| `opening-hours.test.cjs` | 7 | Open/closed now, next opening day, split hours, 24/7, closed all week, malformed ranges, all four languages |
+| `offline-cache.test.cjs` | 5 | Every precached file exists; every file the pages load is precached; maps and floor plans offline; nothing private cached; API and admin requests never answered from the cache |
+| `admin-server.test.cjs`, `admin-status-tools.test.cjs`, `campus-status-admin.test.cjs`, `cloud-inbox.test.cjs` | 43 | The admin server (accounts, roles, reports, status saving, storage limit, security, tests runner), status validation and data health, app-to-server and cloud reporting, and the cloud inbox |
+| Other files (accessibility, localisation, preferences, reminders, sharing location, services) | — | See each file |
+| **Total** | **320** | |
 
 ## 5. Not covered by automated tests
 
@@ -59,9 +73,8 @@ Requirements: Node.js 18 or newer. No `npm install` is needed; the tests use onl
 | Visual layout, RTL and high contrast | Manual browser testing (desktop and device emulation) |
 | Real sensor behaviour on phones | `wayframe/sensor-test.html` and walking tests (checklist below) |
 | Speech synthesis and recognition | `wayframe/audio-test.html`, `wayframe/mic-test.html` and manual use |
-| `campus-status.js`, `qr-code.js`, `share.js`, `campus-ui.js` | Manual testing |
-| Integrity of `data.js` and `campus-osm.json` | Manual route checks, the routing debug view (`showOutdoorDebugGraph()`) |
-| Service worker and offline mode | DevTools → Application → Service Workers / Offline |
+| `qr-code.js`, `share.js` dialogs, `campus-ui.js` | Manual testing (the share codes themselves are tested) |
+| Real offline behaviour in a browser | DevTools → Application → Service Workers / Offline (the precache list and fetch rules are tested) |
 
 ## 6. Manual test checklist (real phones)
 

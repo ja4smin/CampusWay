@@ -242,6 +242,12 @@ The data is © OpenStreetMap contributors, available under the Open Database Lic
 | `closures` | Indoor: `building` + `nodeIds`. Outdoor no-go zone: `area` polygon. |
 | `openingHours` | Keyed by the English place name or the indoor label. Several ranges are separated by commas; `"24/7"` is allowed. |
 | `reportEmail` | Shows an e-mail button after a problem report. Leave it empty to hide the button. |
+| `noiseAreas` | Outdoor path points the Rest-space profile avoids while `noisy` or `crowded`, until `until`. |
+| `announcements` | Banners: `{id, severity: "info" \| "warning" \| "critical", text: {en, he, ar, ru}, from, until}`. English is shown when a language is missing. |
+| `emergency` | `{active, message: {en, he, ar, ru}}`. When active, every page shows a red banner with a *Nearest shelter* button. |
+| `names` | Name corrections keyed by the English name: `{"Cafe Aguda": {"ar": "…"}}`. They replace the built-in name in that language. |
+
+The admin screen ([17 · Admin screen](17-admin-screen.md)) edits this file and checks it with `app/admin/status-schema.js` before saving.
 
 The live file currently lists no outages, closures or hours.
 
