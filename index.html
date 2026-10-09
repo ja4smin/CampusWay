@@ -8808,6 +8808,7 @@ async function nearestShelterPlan(start){
           noRoute = !outdoor;
         }catch(error){
           outdoor = null;
+          noRoute = true;
         }
         if(noRoute && accessible) continue;
         const meters = outdoor?.distance > 0
