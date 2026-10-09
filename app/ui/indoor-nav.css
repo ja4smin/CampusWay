@@ -720,6 +720,36 @@ body.indoor-navigation-active .shell:has(.mobile-route-guide.is-open) .recenterB
     display:none;
   }
 
+  .mobile-route-progress-track{
+  position:absolute;
+  inset-inline:14px;
+  bottom:0;
+  height:3px;
+  overflow:hidden;
+  border-radius:3px;
+  background:var(--line);
+  pointer-events:none;
+}
+
+#mobileIndoorProgressFill{
+  width:100%;
+  height:100%;
+  background:var(--primary);
+  transform:scaleX(0);
+  transform-origin:left center;
+  transition:transform .2s linear;
+}
+
+[dir="rtl"] #mobileIndoorProgressFill{
+  transform-origin:right center;
+}
+
+@media (prefers-reduced-motion:reduce){
+  #mobileIndoorProgressFill{
+    transition:none;
+  }
+}
+
   .mobile-route-toggle{
     position:static;
     display:grid;

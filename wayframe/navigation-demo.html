@@ -222,6 +222,9 @@
             </div>
             <div class="eta" id="mobileIndoorEta">—</div>
             <button class="mobile-route-toggle" id="mobileIndoorGuideToggle" type="button" aria-expanded="false" aria-controls="mobileIndoorGuidePanel" aria-label="Show directions" title="Show directions"><span aria-hidden="true">⌄</span></button>
+            <div class="mobile-route-progress-track" aria-hidden="true">
+            <div id="mobileIndoorProgressFill"></div>
+          </div>
           </div>
           <div class="mobile-route-panel" id="mobileIndoorGuidePanel" hidden>
             <div class="mobile-route-panel-head">
@@ -380,6 +383,54 @@ const dyMeters = (b.y - a.y) * 101.2;
     dxMeters,
     dyMeters
   );
+}
+
+let indoorProgressRoute=null;
+let indoorProgressDistances=[];
+let indoorProgressTotal=0;
+
+function updateMobileIndoorProgress(){
+  const fill=$('mobileIndoorProgressFill');
+  if(!fill) return;
+
+  if(indoorProgressRoute!==routeNodes){
+    indoorProgressRoute=routeNodes;
+    indoorProgressDistances=[0];
+    indoorProgressTotal=0;
+
+    for(let i=1;i<routeNodes.length;i++){
+      const a=routeNodes[i-1];
+      const b=routeNodes[i];
+
+      // Coordinates on different floor images cannot measure travel distance.
+      const meters=a.floor===b.floor ? indoorDistanceMeters(a,b) : 0;
+
+      indoorProgressTotal+=Number.isFinite(meters) ? meters : 0;
+      indoorProgressDistances.push(indoorProgressTotal);
+    }
+  }
+
+  let fraction=0;
+
+  if(routeNodes.length>=2){
+    const last=routeNodes.length-1;
+    const index=Math.max(0,Math.min(last,progressIndex));
+    const t=Math.max(0,Math.min(1,progressT));
+
+    if(index===last){
+      fraction=1;
+    }else if(indoorProgressTotal>0){
+      const covered=indoorProgressDistances[index];
+      const segment=indoorProgressDistances[index+1]-covered;
+      fraction=(covered+segment*t)/indoorProgressTotal;
+    }
+  }
+
+  fraction=Number.isFinite(fraction)
+    ? Math.max(0,Math.min(1,fraction))
+    : 0;
+
+  fill.style.transform=`scaleX(${fraction})`;
 }
 
 const svg=$('mapSvg');
@@ -3205,6 +3256,7 @@ function upcomingRouteLabel(){
 }
 
 function updateProgressUI(){
+  updateMobileIndoorProgress();
   if(!routeNodes.length){$('livePos').textContent=it('notStarted');$('progressBar').style.width='0%';return}
   syncIndoorStepListPosition();
   const total=Math.max(1,routeNodes.length-1);
