@@ -66,7 +66,7 @@ body{overflow:hidden;}
   padding:16px 20px;
   border-radius:var(--radius-lg);
   border:2px solid var(--line);
-  background:var(--surface-2);
+  background:#CBD5E1;
   color:var(--ink);
   font-size:1.0625rem;
   font-weight:700;
@@ -144,6 +144,45 @@ body{overflow:hidden;}
   color:var(--ink);
   box-shadow:0 24px 70px rgba(0,0,0,.32);
 }
+#settingsDialog > .settings-card{
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+
+#settingsDialog .settings-head{
+  flex-shrink:0;
+}
+
+#settingsDialog .settings-body{
+  flex:1;
+  min-height:0;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  padding:4px 6px 18px;
+  scrollbar-width:thin;
+  scrollbar-color:var(--line-strong) transparent;
+}
+
+#settingsDialog .settings-footer{
+  flex-shrink:0;
+  padding-top:12px;
+  border-top:1px solid var(--line);
+}
+
+#settingsDoneBtn{
+  width:100%;
+  min-height:48px;
+}
+
+.settings-schedule-chevron{
+  font-size:1.5rem;
+  line-height:1;
+}
+
+[dir="rtl"] .settings-schedule-chevron{
+  transform:rotate(180deg);
+}
 .settings-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:8px;}
 .settings-head h2{margin:0;font-size:1.5rem;}
 .settings-close{
@@ -157,6 +196,147 @@ body{overflow:hidden;}
 .settings-section + .settings-section{margin-top:18px;border-top:1px solid var(--line);}
 .settings-section h3{margin:0 0 8px;font-size:1rem;}
 .settings-section p{margin:0 0 10px;color:var(--mid);font-size:.8125rem;}
+.settings-picker{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  width:100%;
+  min-height:48px;
+  padding:10px 14px;
+  border:2px solid var(--line);
+  border-radius:14px;
+  background:var(--surface);
+  color:var(--ink);
+  font:inherit;
+  font-weight:700;
+  text-align:start;
+  cursor:pointer;
+}
+
+.settings-picker:hover,
+.settings-picker[aria-expanded="true"]{
+  border-color:var(--primary);
+  background:var(--primary-soft);
+}
+
+.settings-picker-arrow{
+  display:block;
+  flex-shrink:0;
+  align-self:center;
+  color:var(--primary);
+}
+
+.settings-picker[aria-expanded="true"] .settings-picker-arrow{
+  transform:rotate(180deg);
+}
+
+.settings-profile-summary{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  min-width:0;
+}
+
+.settings-profile-summary strong{
+  font-size:.875rem;
+}
+
+.settings-profile-summary small{
+  color:var(--mid);
+  font-size:.75rem;
+  font-weight:400;
+  line-height:1.4;
+}
+
+#settingsProfileToggle{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+}
+
+#settingsProfileToggle .settings-profile-summary{
+  text-align:start;
+}
+
+#settingsProfileList{
+  margin-top:8px;
+}
+
+#settingsProfileList[hidden]{
+  display:none;
+}
+
+body.hc .settings-profile-summary small{
+  color:#FFD400;
+}
+
+.settings-language-menu{
+  display:grid;
+  gap:6px;
+  margin-top:8px;
+  padding:8px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:var(--surface);
+}
+
+.settings-language-menu[hidden]{
+  display:none;
+}
+
+.settings-language-menu button{
+  width:100%;
+  min-height:44px;
+  padding:10px 12px;
+  border:2px solid transparent;
+  border-radius:10px;
+  background:var(--surface);
+  color:var(--ink);
+  font:inherit;
+  font-weight:600;
+  text-align:start;
+  cursor:pointer;
+}
+
+.settings-language-menu button:hover{
+  background:var(--primary-soft);
+  border-color:var(--primary);
+  color:var(--primary);
+}
+
+body.hc .settings-language-menu button:hover{
+  background:#FFD400;
+  color:#000;
+}
+
+.settings-language-menu button.selected{
+  border-color:transparent;
+  background:var(--primary-soft);
+  color:var(--primary);
+}
+
+.settings-picker:focus-visible,
+.settings-language-menu button:focus-visible{
+  outline:2px solid var(--primary);
+  outline-offset:2px;
+}
+
+body.hc .settings-picker,
+body.hc .settings-language-menu,
+body.hc .settings-language-menu button{
+  background:#000;
+  color:#fff;
+  border-color:#FFD400;
+}
+
+body.hc .settings-picker-arrow{
+  color:#FFD400;
+}
+
+body.hc .settings-language-menu button.selected{
+  background:#FFD400;
+  color:#000;
+}
 .settings-language-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
 .settings-language-options button{
   display:flex;align-items:center;justify-content:space-between;gap:8px;
@@ -204,7 +384,7 @@ body{overflow:hidden;}
   flex-shrink:0;
   border:1px solid var(--line-strong);
   border-radius:999px;
-  background:var(--surface-2);
+  background:#CBD5E1;
   transition:background-color .15s,border-color .15s;
 }
 .settings-switch-track span{
@@ -214,7 +394,7 @@ body{overflow:hidden;}
   width:18px;
   height:18px;
   border-radius:50%;
-  background:var(--mid);
+  background:#fff;
   transition:inset-inline-start .15s,background-color .15s;
 }
 .settings-toggle[aria-checked="true"] .settings-switch-track{border-color:var(--primary);background:var(--primary);}
@@ -251,22 +431,25 @@ body{overflow:hidden;}
 .settings-text-size-options button:hover{border-color:var(--primary);background:var(--primary-soft);}
 .settings-text-size-options button.selected{border-color:var(--primary);background:var(--primary);color:#fff;}
 .settings-manage-schedule{
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  width:100%;min-height:46px;margin-top:10px;padding:9px 12px;
-  border:2px solid var(--primary);border-radius:12px;
-  background:var(--primary-soft);color:var(--primary);font-weight:800;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  width:100%;
+  min-height:48px;
+  margin-top:10px;
+  padding:10px 12px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:var(--surface);
+  color:var(--ink);
+  font-weight:700;
+  text-align:start;
 }
-.settings-manage-schedule:hover{background:var(--primary);color:#fff;}
-.schedule-card{width:min(680px,100%);}
-.schedule-intro{margin:0 0 16px;color:var(--mid);font-size:.875rem;line-height:1.45;}
-.schedule-form{
-  display:grid;
-  grid-template-columns:minmax(0,1fr) minmax(0,1fr) 46px;
-  grid-template-areas:
-    "class destination destination"
-    "day time add";
-  gap:10px;
-  align-items:end;
+
+.settings-manage-schedule:hover{
+  background:var(--surface-2);
+  border-color:var(--primary);
 }
 .schedule-form label:first-child{grid-area:class;}
 .schedule-form label:nth-child(2){grid-area:day;}
@@ -1098,3 +1281,4 @@ body.hc .outdoor-start-core{
 body.hc .outdoor-dest-pin{
   fill: #FF3B3B;
 }
+

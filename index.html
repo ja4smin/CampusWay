@@ -340,15 +340,35 @@
       <button class="settings-close" id="settingsCloseBtn" type="button" onclick="closeSettings()" aria-label="Close settings">✕</button>
     </div>
 
-    <section class="settings-section" aria-labelledby="settingsLanguageTitle">
-      <h3 id="settingsLanguageTitle">Language</h3>
-      <div class="settings-language-options" id="settingsLanguageOptions" role="radiogroup" aria-labelledby="settingsLanguageTitle">
-        <button type="button" role="radio" data-lang="en" data-dir="ltr" onclick="changeSettingsLanguage('en','ltr')" lang="en">English <span aria-hidden="true">EN</span></button>
-        <button type="button" role="radio" data-lang="he" data-dir="rtl" onclick="changeSettingsLanguage('he','rtl')" lang="he">עברית <span aria-hidden="true">HE</span></button>
-        <button type="button" role="radio" data-lang="ar" data-dir="rtl" onclick="changeSettingsLanguage('ar','rtl')" lang="ar">العربية <span aria-hidden="true">AR</span></button>
-        <button type="button" role="radio" data-lang="ru" data-dir="ltr" onclick="changeSettingsLanguage('ru','ltr')" lang="ru">Русский <span aria-hidden="true">RU</span></button>
-      </div>
-    </section>
+    <div class="settings-body">
+  <section class="settings-section" aria-labelledby="settingsLanguageTitle">
+  <h3 id="settingsLanguageTitle">Language</h3>
+
+  <button id="settingsLanguageToggle" class="settings-picker"
+    type="button" aria-expanded="false"
+    aria-controls="settingsLanguageOptions"
+    aria-labelledby="settingsLanguageTitle settingsLanguageCurrent"
+    onclick="toggleSettingsLanguagePicker()">
+    <span id="settingsLanguageCurrent">English</span>
+    <svg class="settings-picker-arrow" width="18" height="18"
+  viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+  aria-hidden="true">
+  <path d="m6 9 6 6 6-6"/>
+</svg>
+  </button>
+
+  <div id="settingsLanguageOptions" class="settings-language-menu" hidden>
+    <button type="button" data-lang="en" lang="en"
+      onclick="chooseSettingsLanguage('en','ltr')">English</button>
+    <button type="button" data-lang="he" lang="he"
+      onclick="chooseSettingsLanguage('he','rtl')">עברית</button>
+    <button type="button" data-lang="ar" lang="ar"
+      onclick="chooseSettingsLanguage('ar','rtl')">العربية</button>
+    <button type="button" data-lang="ru" lang="ru"
+      onclick="chooseSettingsLanguage('ru','ltr')">Русский</button>
+  </div>
+</section>
 
     <section class="settings-section" aria-labelledby="settingsDisplayTitle">
       <h3 id="settingsDisplayTitle">Display &amp; Audio</h3>
@@ -388,12 +408,47 @@
         </div>
       </div>
     </section>
-
+<!-- Old Navigation profile section
     <section class="settings-section" aria-labelledby="settingsProfileTitle">
       <h3 id="settingsProfileTitle">Navigation profile</h3>
       <p id="settingsProfileHint">Your profile changes how routes are calculated.</p>
       <div class="profile-choice-list profile-choice-list--settings" id="settingsProfileList" role="radiogroup" aria-labelledby="settingsProfileTitle"></div>
     </section>
+    -->
+
+    <!-- New Navigation profile section -->
+    <section class="settings-section" aria-labelledby="settingsProfileTitle">
+  <h3 id="settingsProfileTitle">Navigation profile</h3>
+
+  <button id="settingsProfileToggle"
+    class="settings-picker"
+    type="button"
+    aria-expanded="false"
+    aria-controls="settingsProfileList"
+    aria-labelledby="settingsProfileTitle settingsProfileCurrent"
+    onclick="toggleSettingsProfilePicker()">
+
+    <span id="settingsProfileIcon" class="profile-icon" aria-hidden="true"></span>
+    <span class="settings-profile-summary">
+      <strong id="settingsProfileCurrent"></strong>
+      <small id="settingsProfileDescription"></small>
+    </span>
+
+    <svg class="settings-picker-arrow"
+      width="18" height="18" viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round"
+      aria-hidden="true">
+      <path d="m6 9 6 6 6-6"/>
+    </svg>
+  </button>
+
+  <div class="profile-choice-list profile-choice-list--settings"
+    id="settingsProfileList"
+    role="radiogroup"
+    aria-labelledby="settingsProfileTitle"
+    hidden></div>
+</section>
 
     <section class="settings-section" aria-labelledby="settingsScheduleTitle">
       <h3 id="settingsScheduleTitle">Schedule reminders</h3>
@@ -407,9 +462,16 @@
         <span class="settings-switch-track" aria-hidden="true"><span></span></span>
       </button>
       <button class="settings-manage-schedule" id="manageScheduleBtn" type="button" onclick="openScheduleManager()" hidden>
-        <span aria-hidden="true">✎</span> <span id="settingsManageSchedule">Manage my schedule</span>
+        <span id="settingsManageSchedule">Manage my schedule</span>
+        <span class="settings-schedule-chevron" aria-hidden="true">›</span>
       </button>
     </section>
+    </div>
+
+    <div class="settings-footer">
+      <button class="btn btn-primary" id="settingsDoneBtn"
+        type="button" onclick="closeSettings()">Done</button>
+    </div>
   </div>
 </div>
 
@@ -1295,11 +1357,44 @@ function completeOnboarding(){
 }
 
 function renderSettingsLanguageChoices(){
-  document.querySelectorAll('#settingsLanguageOptions [data-lang]').forEach(button => {
-    const selected = button.dataset.lang === lang;
-    button.classList.toggle('selected', selected);
-    button.setAttribute('aria-checked', String(selected));
-  });
+  const names={
+    en:'English',
+    he:'עברית',
+    ar:'العربية',
+    ru:'Русский'
+  };
+
+  const current=document.getElementById('settingsLanguageCurrent');
+  if(current){
+    current.textContent=names[lang] || names.en;
+    current.lang=lang;
+  }
+
+  document.querySelectorAll('#settingsLanguageOptions [data-lang]')
+    .forEach(button=>{
+      const selected=button.dataset.lang===lang;
+      button.classList.toggle('selected',selected);
+      button.setAttribute('aria-pressed',String(selected));
+    });
+}
+
+function toggleSettingsLanguagePicker(){
+  const menu=document.getElementById('settingsLanguageOptions');
+  const toggle=document.getElementById('settingsLanguageToggle');
+
+  menu.hidden=!menu.hidden;
+  toggle.setAttribute('aria-expanded',String(!menu.hidden));
+}
+
+function chooseSettingsLanguage(language,direction){
+  changeSettingsLanguage(language,direction);
+  renderSettingsLanguageChoices();
+
+  document.getElementById('settingsLanguageOptions').hidden=true;
+
+  const toggle=document.getElementById('settingsLanguageToggle');
+  toggle.setAttribute('aria-expanded','false');
+  toggle.focus();
 }
 
 function renderDisplayPreferences(){
@@ -1375,7 +1470,7 @@ function openSettings(){
   renderSettingsLanguageChoices();
   renderDisplayPreferences();
   dialog.hidden = false;
-  dialog.querySelector('.settings-card').scrollTop = 0;
+  dialog.querySelector('.settings-body').scrollTop = 0;
   document.body.classList.add('modal-open');
   document.getElementById('settingsCloseBtn').focus();
 }
@@ -1658,25 +1753,94 @@ async function startReminderRoute(){
 }
 
 function setupPreferenceUI(){
-  const dialog = document.getElementById('settingsDialog');
-  dialog.addEventListener('click', event => {
-    if(event.target === dialog) closeSettings();
+  const dialog=document.getElementById('settingsDialog');
+  const languageToggle=document.getElementById('settingsLanguageToggle');
+  const languageMenu=document.getElementById('settingsLanguageOptions');
+
+  function closeLanguagePicker(returnFocus=false){
+    languageMenu.hidden=true;
+    languageToggle.setAttribute('aria-expanded','false');
+    if(returnFocus) languageToggle.focus();
+  }
+
+  function insideLanguagePicker(element){
+    return element &&
+      (languageToggle.contains(element) || languageMenu.contains(element));
+  }
+
+  dialog.addEventListener('click',event=>{
+    if(!insideLanguagePicker(event.target)){
+      closeLanguagePicker();
+    }
+    if(event.target===dialog) closeSettings();
   });
-  dialog.addEventListener('keydown', event => {
-    if(event.key === 'Escape'){
+
+  dialog.addEventListener('focusin',event=>{
+    if(!insideLanguagePicker(event.target)){
+      closeLanguagePicker();
+    }
+  });
+
+  dialog.addEventListener('keydown',event=>{
+    if(event.key==='Escape'){
       event.preventDefault();
-      closeSettings();
+      event.stopPropagation();
+
+      if(!languageMenu.hidden){
+        closeLanguagePicker(true);
+      }else{
+        closeSettings();
+      }
       return;
     }
-    if(event.key !== 'Tab') return;
-    const focusable = [...dialog.querySelectorAll('button:not([disabled])')];
+
+    const navigationKeys=['ArrowDown','ArrowUp','Home','End'];
+
+    if(insideLanguagePicker(event.target) &&
+       navigationKeys.includes(event.key)){
+      event.preventDefault();
+
+      languageMenu.hidden=false;
+      languageToggle.setAttribute('aria-expanded','true');
+
+      const options=[...languageMenu.querySelectorAll('button')];
+      if(!options.length) return;
+
+      const index=options.indexOf(document.activeElement);
+      let next;
+
+      if(event.key==='Home'){
+        next=0;
+      }else if(event.key==='End'){
+        next=options.length-1;
+      }else if(index<0){
+        next=event.key==='ArrowUp' ? options.length-1 : 0;
+      }else{
+        const direction=event.key==='ArrowDown' ? 1 : -1;
+        next=(index+direction+options.length)%options.length;
+      }
+
+      options[next].focus();
+      return;
+    }
+
+    if(event.key!=='Tab') return;
+
+    const focusable=[...dialog.querySelectorAll(
+      'button:not([disabled]), select:not([disabled])'
+    )].filter(element=>
+      element.tabIndex>=0 && element.getClientRects().length>0
+    );
+
     if(!focusable.length) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if(event.shiftKey && document.activeElement === first){
+
+    const first=focusable[0];
+    const last=focusable[focusable.length-1];
+
+    if(event.shiftKey && document.activeElement===first){
       event.preventDefault();
       last.focus();
-    }else if(!event.shiftKey && document.activeElement === last){
+    }else if(!event.shiftKey && document.activeElement===last){
       event.preventDefault();
       first.focus();
     }
@@ -2091,6 +2255,15 @@ if(voiceArea){
     settingsButton.title = t.settings;
     settingsButton.setAttribute('aria-label', t.settings);
   }
+  const settingsDoneButton=document.getElementById('settingsDoneBtn');
+if(settingsDoneButton){
+  settingsDoneButton.textContent={
+    en:'Done',
+    he:'סיום',
+    ar:'تم',
+    ru:'Готово'
+  }[lang] || 'Done';
+}
   const settingsCloseButton = document.getElementById('settingsCloseBtn');
   if(settingsCloseButton){
     settingsCloseButton.title = t.closeSettings;
@@ -2241,6 +2414,28 @@ const ICONS = {
 };
 const ICON_KEYS = ['user','wheelchair','eye','route','brain'];
 
+function renderSettingsProfileSummary(){
+  const index = t.profiles.findIndex(item => item.id === currentProfile);
+  const profile = t.profiles[index];
+
+  document.getElementById('settingsProfileIcon').innerHTML =
+    index >= 0 ? ICONS[ICON_KEYS[index]] : '';
+
+  document.getElementById('settingsProfileCurrent').textContent =
+    profile?.label || '';
+
+  document.getElementById('settingsProfileDescription').textContent =
+    profile?.sub || '';
+}
+
+function toggleSettingsProfilePicker(){
+  const list = document.getElementById('settingsProfileList');
+  const toggle = document.getElementById('settingsProfileToggle');
+
+  list.hidden = !list.hidden;
+  toggle.setAttribute('aria-expanded', String(!list.hidden));
+}
+
 function buildProfiles(){
   renderProfileChoices(
     'onboardingProfileList',
@@ -2254,7 +2449,8 @@ function buildProfiles(){
     profileId => setAccessibilityProfile(profileId)
   );
 
-  updateRestSpaceServiceButton();
+    renderSettingsProfileSummary();
+    updateRestSpaceServiceButton();  
 }
 
 function renderProfileChoices(containerId, selectedProfile, onSelect){
@@ -2263,6 +2459,8 @@ function renderProfileChoices(containerId, selectedProfile, onSelect){
 
   container.innerHTML = '';
   t.profiles.forEach((profile, index) => {
+        if(containerId === 'settingsProfileList' &&
+       profile.id === selectedProfile) return;
     const btn = document.createElement('button');
     const selected = profile.id === selectedProfile;
     btn.type = 'button';
@@ -2278,6 +2476,27 @@ function renderProfileChoices(containerId, selectedProfile, onSelect){
       <span class="profile-text"><strong>${profile.label}</strong><small>${profile.sub}</small></span>
       <span class="profile-choice-check" aria-hidden="true">✓</span>`;
     btn.onclick = () => {
+      if(containerId === 'settingsProfileList'){
+        container.querySelectorAll('button').forEach(button => {
+          const selected = button === btn;
+          button.classList.toggle('selected', selected);
+          button.setAttribute('aria-checked', String(selected));
+          button.disabled = true;
+        });
+
+        // Briefly show the tick before applying and closing.
+        setTimeout(() => {
+          onSelect(profile.id);
+
+          container.hidden = true;
+          const toggle = document.getElementById('settingsProfileToggle');
+          toggle.setAttribute('aria-expanded', 'false');
+          toggle.focus();
+        }, 250);
+
+        return;
+      }
+
       onSelect(profile.id);
       setTimeout(() => {
         container.querySelector(`[data-id="${profile.id}"]`)?.focus();
@@ -2298,6 +2517,9 @@ function renderProfileChoices(containerId, selectedProfile, onSelect){
     });
     container.appendChild(btn);
   });
+    if(containerId === 'settingsProfileList'){
+    container.querySelector('button').tabIndex = 0;
+  }
 }
 
 function setAccessibilityProfile(
