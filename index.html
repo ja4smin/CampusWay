@@ -9632,7 +9632,9 @@ gpsMarker = L.circleMarker(
   ).addTo(map);
 
   gpsMarker.bindPopup(`🚩 ${customStart.label}`).openPopup();
-  map.flyTo([visualStartLat, visualStartLng], 17, {duration: 0.6});
+  map.stop();
+  map.invalidateSize({pan:false, animate:false});
+  map.setView([visualStartLat, visualStartLng], 17, {animate:false});
 
   if(currentOutdoorDestination){
     const destination = currentOutdoorDestination;
@@ -11813,10 +11815,17 @@ if(transitionScreen){
   transitionScreen.style.display = 'flex';
 }
 
+const demoMode =
+  new URLSearchParams(window.location.search).get('demo') === '1';
+
+sessionStorage.setItem(
+  'campusway.outdoorDemo',
+  String(demoMode)
+);
+
 window.location.href =
-  `wayframe/navigation-demo.html?building=${
-    encodeURIComponent(building)
-  }`;
+  `wayframe/navigation-demo.html?building=${encodeURIComponent(buildingKey)}` +
+  (demoMode ? '&demo=1' : '');
 }
 
 // "Indoor navigation" entry point: the user is already inside a building.
