@@ -485,14 +485,21 @@
     <form class="schedule-form" id="scheduleForm">
       <label><span id="scheduleClassLabel">Class name</span><input id="scheduleClassName" maxlength="70" required autocomplete="off"></label>
       <label><span id="scheduleDayLabel">Day</span><select id="scheduleDay" required></select></label>
-      <label class="schedule-time-field"><span id="scheduleTimeLabel">Time</span><input id="scheduleTime" type="time" required aria-describedby="scheduleTimeHint"><small class="schedule-time-hint" id="scheduleTimeHint">Use 24-hour time, for example 09:30</small></label>
+     <label class="schedule-time-field">
+  <span id="scheduleTimeLabel">Time</span>
+  <input id="scheduleTime" type="time" required>
+</label>
       <label class="schedule-destination-field"><span id="scheduleDestinationLabel">Room or building</span>
         <span class="schedule-destination-picker">
           <input id="scheduleDestination" type="text" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="scheduleDestinationSuggestions" required>
           <span class="schedule-destination-suggestions" id="scheduleDestinationSuggestions" role="listbox" hidden></span>
         </span>
       </label>
-      <button class="schedule-add" id="scheduleAddBtn" type="submit" aria-label="Add class" title="Add class"><span aria-hidden="true">＋</span></button>
+     <button class="schedule-add" id="scheduleAddBtn"
+  type="submit" aria-label="Add class" title="Add class">
+  <span aria-hidden="true">＋</span>
+  <span id="scheduleAddText">Add class</span>
+</button>
     </form>
     <div class="schedule-list" id="scheduleList" aria-live="polite"></div>
   </div>
@@ -2198,8 +2205,22 @@ if(voiceArea){
   setText('scheduleClassLabel', t.scheduleClass);
   setText('scheduleDayLabel', t.scheduleDay);
   setText('scheduleTimeLabel', t.scheduleTime);
-  setText('scheduleTimeHint', t.scheduleTimeHint);
   setText('scheduleDestinationLabel', t.scheduleDestination);
+    setText('scheduleAddText', t.scheduleAdd);
+
+  document.getElementById('scheduleClassName').placeholder = {
+    en:'e.g. Data Structures',
+    he:'למשל, מבני נתונים',
+    ar:'مثلاً، هياكل البيانات',
+    ru:'Например, структуры данных'
+  }[lang] || 'e.g. Data Structures';
+
+  document.getElementById('scheduleDestination').placeholder = {
+    en:'Search a room or building',
+    he:'חיפוש חדר או בניין',
+    ar:'ابحث عن غرفة أو مبنى',
+    ru:'Поиск аудитории или здания'
+  }[lang] || 'Search a room or building';
   const scheduleAddButton = document.getElementById('scheduleAddBtn');
   if(scheduleAddButton){
     scheduleAddButton.title = t.scheduleAdd;
