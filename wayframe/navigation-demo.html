@@ -3301,11 +3301,27 @@ function updateProgressUI(){
 // The complete indoor guide stays in the sidebar. Highlight the next relevant
 // step there instead of repeating the same instruction in a second map banner.
 function syncIndoorStepListPosition(){
-  if(typeof document === 'undefined' || typeof document.querySelectorAll !== 'function') return;
+  if(typeof document==='undefined' ||
+     typeof document.querySelectorAll!=='function') return;
+
   const items=[...document.querySelectorAll('#steps [data-step-node]')];
   if(!items.length) return;
-  const current=items.find(item=>Number(item.dataset.stepNode)>=progressIndex) || items.at(-1);
-  items.forEach(item=>item.classList.toggle('current-step',item===current));
+
+  let current=items[0];
+
+  items.forEach(item=>{
+    if(Number(item.dataset.stepNode)<=progressIndex){
+      current=item;
+    }
+  });
+
+  items.forEach(item=>{
+    item.classList.remove('current-step');
+    item.classList.toggle(
+      'current',
+      item===current && (navigationActive || progressIndex>0)
+    );
+  });
 }
 
 
@@ -5500,11 +5516,7 @@ function setMobileIndoorGuideOpen(open){
 
 // ── Steps: highlight where you are, tap a step to hear it ──
 function highlightIndoorStep(){
-  const items=[...document.querySelectorAll('#steps .stepList li')];
-  if(!items.length) return;
-  let current=0;
-  items.forEach((item,index)=>{ if(Number(item.dataset.stepNode)<=progressIndex) current=index; });
-  items.forEach((item,index)=>item.classList.toggle('current',index===current && (navigationActive || progressIndex>0)));
+  syncIndoorStepListPosition();
   syncMobileIndoorGuide();
 }
 
