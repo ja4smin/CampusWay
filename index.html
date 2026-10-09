@@ -11824,9 +11824,8 @@ sessionStorage.setItem(
 );
 
 window.location.href =
-  `wayframe/navigation-demo.html?building=${encodeURIComponent(buildingKey)}` +
+  `wayframe/navigation-demo.html?building=${encodeURIComponent(building)}` +
   (demoMode ? '&demo=1' : '');
-}
 
 // "Indoor navigation" entry point: the user is already inside a building.
 // Starts a fresh indoor session (no outdoor journey to resume afterwards).
