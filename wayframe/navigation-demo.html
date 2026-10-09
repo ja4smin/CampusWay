@@ -45,10 +45,23 @@
   <span id="lbl-show-floor-plan">Show floor plan</span>
 </label>
 
-    <button id="indoorEmergencyBtn" class="emergency-btn" type="button">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M12 2 3 6v6c0 5 3.8 9.3 9 10 5.2-.7 9-5 9-10V6z"/><path d="M12 8v5M12 16.5v.5"/></svg>
-      <span id="lbl-indoor-emergency">Nearest shelter</span>
-    </button>
+    <div class="indoor-header-actions">
+  <button id="indoorEmergencyBtn" class="emergency-btn" type="button">
+    <svg width="18" height="18" viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" stroke-width="2.4"
+      aria-hidden="true">
+      <path d="M12 2 3 6v6c0 5 3.8 9.3 9 10 5.2-.7 9-5 9-10V6z"/>
+      <path d="M12 8v5M12 16.5v.5"/>
+    </svg>
+    <span id="lbl-indoor-emergency">Nearest shelter</span>
+  </button>
+
+  <button id="indoorInfoBtn" class="toolBtn" type="button"
+    aria-label="How indoor navigation works"
+    aria-haspopup="dialog">
+    <span aria-hidden="true">ⓘ</span>
+  </button>
+</div>
   </header>
 
   <!-- Announcements and emergency banner from app/data/campus-status.json -->
@@ -115,7 +128,7 @@
       </section>
 
       <!-- 2. Route summary, how to move, start, progress -->
-      <section class="card" aria-labelledby="navTitle">
+      <section class="card" id="indoorNavigationPanel" aria-labelledby="navTitle">
         <h2 class="card-title" id="navTitle">Navigation</h2>
         <section class="journey-plan" id="indoorJourneyPlan" hidden aria-label="Journey plan"></section>
 
@@ -140,18 +153,6 @@
           </button>
         </div>
 
-        <button id="startBtn" class="secondary" type="button" disabled>▶ Start navigation</button>
-        <span id="status" class="statusline" role="status" aria-live="polite">Choose a route.</span>
-
-        <div class="toolRow">
-          <button id="voiceGuideBtn" class="toolBtn" type="button" aria-pressed="false">
-            <span aria-hidden="true">🔊</span> <span id="lbl-voice-guide">Voice guidance</span>
-          </button>
-          <button id="indoorReportBtn" class="toolBtn" type="button">
-            <span aria-hidden="true">⚠</span> <span id="lbl-indoor-report">Report a problem</span>
-          </button>
-        </div>
-
         <div id="directionCard" hidden>
           <strong id="directionTitle"></strong>
           <p class="muted" id="directionHelp"></p>
@@ -170,6 +171,8 @@
           <div class="progress" role="presentation"><div id="progressBar"></div></div>
         </div>
 
+        <button id="startBtn" class="secondary" type="button" disabled>▶ Start navigation</button>
+        <span id="status" class="statusline" role="status" aria-live="polite">Choose a route.</span>
         <div id="steps"></div>
       </section>
     </aside>
@@ -191,24 +194,6 @@
 
         <button id="recenterBtn" class="recenterBtn" type="button">◎ Recenter</button>
 
-        <section class="mobile-route-guide" id="mobileIndoorGuide" hidden aria-label="Current direction">
-          <div class="mobile-route-current" role="status" aria-live="polite">
-            <span class="mobile-route-icon" aria-hidden="true">↑</span>
-            <div>
-              <strong id="mobileIndoorInstruction">Your next direction will appear here.</strong>
-              <span id="mobileIndoorProgress"></span>
-            </div>
-            <button class="mobile-route-toggle" id="mobileIndoorGuideToggle" type="button" aria-expanded="false" aria-controls="mobileIndoorGuidePanel" aria-label="Show directions" title="Show directions"><span aria-hidden="true">›</span></button>
-          </div>
-          <div class="mobile-route-panel" id="mobileIndoorGuidePanel" hidden>
-            <div class="mobile-route-panel-head">
-              <strong>Directions</strong>
-              <button class="mobile-route-close" id="mobileIndoorGuideClose" type="button" aria-label="Close directions">✕</button>
-            </div>
-            <ol id="mobileIndoorSteps"></ol>
-          </div>
-        </section>
-
         <div class="navStack">
           <div class="navBanner">
           <div class="turnIcon" id="turnIcon" aria-hidden="true">↑</div>
@@ -227,6 +212,25 @@
           </div>
         </div>
       </div>
+      
+        <section class="mobile-route-guide" id="mobileIndoorGuide" hidden aria-label="Current direction">
+          <div class="mobile-route-current" role="status" aria-live="polite">
+            <span class="turnIcon" id="mobileIndoorTurnIcon" aria-hidden="true">↑</span>
+            <div>
+              <strong id="mobileIndoorInstruction">Your next direction will appear here.</strong>
+              <span id="mobileIndoorProgress" hidden></span>
+            </div>
+            <div class="eta" id="mobileIndoorEta">—</div>
+            <button class="mobile-route-toggle" id="mobileIndoorGuideToggle" type="button" aria-expanded="false" aria-controls="mobileIndoorGuidePanel" aria-label="Show directions" title="Show directions"><span aria-hidden="true">⌄</span></button>
+          </div>
+          <div class="mobile-route-panel" id="mobileIndoorGuidePanel" hidden>
+            <div class="mobile-route-panel-head">
+              <strong>Directions</strong>
+              <button class="mobile-route-close" id="mobileIndoorGuideClose" type="button" aria-label="Close directions">✕</button>
+            </div>
+            <ol id="mobileIndoorSteps"></ol>
+          </div>
+        </section>
     </main>
   </div>
 </div>
@@ -2256,8 +2260,15 @@ function floorButtons(){
     i=end-1;
   }
   const arrow=(indoorLang==='ar'||indoorLang==='he') ? '←' : '→';
-  $('routeCard').innerHTML=`<strong>${esc(aLabel)} ${arrow} ${esc(bLabel)}</strong><div class="muted">${floors.map(f=>localizedFloor(f)).join(` ${arrow} `)}</div>`;
-
+$('routeCard').innerHTML=`
+  <div class="preview-summary">
+    <strong>${esc(aLabel)} ${arrow} ${esc(bLabel)}</strong>
+    <span class="eta" id="indoorPreviewEta"></span>
+  </div>
+  <div class="muted preview-floors">
+    ${floors.map(f=>localizedFloor(f)).join(` ${arrow} `)}
+  </div>
+`;
   // Detailed steps: turns with a nearby room or place, one step per
   // elevator ride (named by the floor where you get off) and the arrival.
   const stepItems=indoorRouteStepItems(aLabel);
@@ -2348,7 +2359,8 @@ routeEtaText = localizedInstruction(
   `${walkingMinutes} דק׳`,
   `${walkingMinutes} мин`
 );
-$('eta').textContent = routeEtaText;
+const previewEta=$('indoorPreviewEta');
+if(previewEta) previewEta.textContent=routeEtaText;
 }
 
 // ── Detailed indoor steps ──
@@ -4339,9 +4351,19 @@ function requireDirectionCalibration(){
   const atStart=progressIndex===0 && progressT===0;
   const atEnd=progressIndex===routeNodes.length-1 && progressT===0;
   const returning=(atEnd ? -1 : atStart ? 1 : intendedDirection)<0;
-  const message=returning
-    ? localizedInstruction('Point the phone back along the route toward the starting location, then press Start navigation.','وجّه الهاتف راجعًا على المسار نحو نقطة البداية، ثم اضغط ابدأ الملاحة.','כוון את הטלפון חזרה לאורך המסלול לנקודת ההתחלה ולחץ התחל ניווט.','Направьте телефон назад вдоль маршрута к начальной точке, затем нажмите «Начать навигацию».')
-    : localizedInstruction('Point the phone along the next part of the route toward your destination, then press Start navigation.','وجّه الهاتف مع الجزء التالي من المسار نحو الوجهة، ثم اضغط ابدأ الملاحة.','כוון את הטלפון לאורך החלק הבא במסלול לכיוון היעד ולחץ התחל ניווט.','Направьте телефон вдоль следующего участка маршрута к пункту назначения, затем нажмите «Начать навигацию».');
+ const message=returning
+  ? localizedInstruction(
+      'Face back along the route, then press Start.',
+      'وجّه الهاتف نحو بداية المسار، ثم اضغط ابدأ.',
+      'כוון את הטלפון לכיוון תחילת המסלול ולחץ התחל.',
+      'Направьте телефон к началу маршрута и нажмите «Старт».'
+    )
+  : localizedInstruction(
+      'Point your phone along the route, then press Start.',
+      'وجّه الهاتف مع المسار، ثم اضغط ابدأ.',
+      'כוון את הטלפון לאורך המסלול ולחץ התחל.',
+      'Направьте телефон вдоль маршрута и нажмите «Старт».'
+    );
   $('directionStatus').textContent=message;
   $('status').textContent=message;
   updateDirectionControls();
@@ -4582,6 +4604,9 @@ async function calibrateHeadingAutomatically(token){
 function stopNavigationMotion(resetHeading = true){
   navigationStartToken++;
   navigationActive=false;
+  document.body.classList.remove('indoor-navigation-active');
+  setMobileIndoorGuideOpen(false);
+  syncMobileIndoorGuide();
   if(autoTimer !== null) clearInterval(autoTimer);
   autoTimer=null;
   autoFloorPauseUntil=0;
@@ -4634,7 +4659,11 @@ async function startNavigation(){
   }
   stopNavigationMotion(false);
   navigationActive=true;
+  
   if(typeof CampusStatus!=='undefined') CampusStatus.track('indoor-mode', navMode);
+  document.body.classList.add('indoor-navigation-active');
+  syncMobileIndoorGuide();
+
   updateDirectionControls();
   $('startBtn').disabled=true;
   if(navMode === 'auto'){
@@ -4901,19 +4930,49 @@ $('startBtn').onclick=startNavigation;
 const mapViewport=$('mapViewport');
 
 function handleWheelZoom(e){
-  const rect=mapViewport.getBoundingClientRect();
-  const inside=e.clientX>=rect.left && e.clientX<=rect.right &&
-               e.clientY>=rect.top && e.clientY<=rect.bottom;
-  if(!inside) return;
+  if(e.target.closest('button, select, .navStack')) return;
+  if(e.deltaY===0) return;
+
+  const matrix=svg.getScreenCTM();
+  if(!matrix) return;
 
   e.preventDefault();
   e.stopPropagation();
 
-  camera.scale=Math.max(1.25,Math.min(4.5,
-    camera.scale + (e.deltaY<0 ? 0.22 : -0.22)
-  ));
+  const point=svg.createSVGPoint();
+  point.x=e.clientX;
+  point.y=e.clientY;
 
-  $('zoomReset').textContent=Math.round(camera.scale/2.5*100)+'%';
+  const anchor=point.matrixTransform(matrix.inverse());
+
+  const pixels=e.deltaY * (
+    e.deltaMode===1 ? 16 :
+    e.deltaMode===2 ? mapViewport.clientHeight :
+    1
+  );
+
+  const oldScale=camera.scale;
+  const nextScale=Math.max(
+    1.25,
+    Math.min(
+     15,
+      oldScale*Math.exp(-Math.max(-100,Math.min(100,pixels))*0.002)
+    )
+  );
+
+  if(nextScale===oldScale) return;
+
+  followCamera=false;
+  $('recenterBtn').style.display='block';
+
+  const ratio=oldScale/nextScale;
+  camera.x=anchor.x+(camera.x-anchor.x)*ratio;
+  camera.y=anchor.y+(camera.y-anchor.y)*ratio;
+  camera.scale=nextScale;
+
+  $('zoomReset').textContent=
+    Math.round(camera.scale/2.5*100)+'%';
+
   drawBaseMap();
 }
 
@@ -4937,19 +4996,23 @@ mapViewport.addEventListener('pointerdown',e=>{
   mapViewport.style.cursor='grabbing';
   $('recenterBtn').style.display='block';
 });
-
 mapViewport.addEventListener('pointermove',e=>{
   if(!isPanning) return;
 
-  const rect=mapViewport.getBoundingClientRect();
-  const worldPerPixelX=(CAMERA_W/camera.scale)/rect.width;
-  const worldPerPixelY=(CAMERA_H/camera.scale)/rect.height;
+  const units=mapUnitsPerPixel();
+  const dx=(e.clientX-panStart.x)*units;
+  const dy=(e.clientY-panStart.y)*units;
 
-  const dx=e.clientX-panStart.x;
-  const dy=e.clientY-panStart.y;
+  const angle=headingDeg*Math.PI/180;
+  const cos=Math.cos(angle);
+  const sin=Math.sin(angle);
 
-  camera.x=panStart.cameraX-dx*worldPerPixelX;
-  camera.y=panStart.cameraY-dy*worldPerPixelY;
+  camera.x-=dx*cos + dy*sin;
+  camera.y-=-dx*sin + dy*cos;
+
+  panStart.x=e.clientX;
+  panStart.y=e.clientY;
+
   drawBaseMap();
 });
 
@@ -4971,12 +5034,12 @@ $('recenterBtn').onclick=()=>{
 };
 
 $('zoomIn').onclick=()=>{
-  camera.scale=Math.min(4.5,camera.scale+0.35);
+  camera.scale=Math.min(15,camera.scale*1.15);
   $('zoomReset').textContent=Math.round(camera.scale/2.5*100)+'%';
   drawBaseMap();
 };
 $('zoomOut').onclick=()=>{
-  camera.scale=Math.max(1.25,camera.scale-0.35);
+  camera.scale=Math.max(1.25,camera.scale/1.15);
   $('zoomReset').textContent=Math.round(camera.scale/2.5*100)+'%';
   drawBaseMap();
 };
@@ -5310,8 +5373,6 @@ function speakIndoor(text, force=false){
 
 function setIndoorVoice(on, announce=true){
   indoorVoiceOn=on;
-  $('voiceGuideBtn').setAttribute('aria-pressed',String(on));
-  $('voiceGuideBtn').classList.toggle('active',on);
   try{
     localStorage.setItem(INDOOR_VOICE_KEY,on?'on':'off');
     localStorage.setItem(SHARED_AUDIO_KEY,String(on));
@@ -5348,10 +5409,19 @@ function syncMobileIndoorGuide(){
   const list=$('mobileIndoorSteps');
   if(!guide || !current || !progress || !list) return;
   const steps=[...document.querySelectorAll('#steps .stepList li')];
-  if(!routeNodes.length || !steps.length){ guide.hidden=true; list.innerHTML=''; return; }
+  if(!navigationActive || !routeNodes.length || !steps.length){
+  guide.hidden=true;
+  list.innerHTML='';
+  return;
+}
   let active=0;
   steps.forEach((item,index)=>{ if(Number(item.dataset.stepNode)<=progressIndex) active=index; });
   guide.hidden=false;
+  $('mobileIndoorTurnIcon').textContent =
+  $('turnIcon').textContent;
+
+$('mobileIndoorEta').textContent =
+  $('eta').textContent;
   current.textContent=$('instruction').textContent.trim() || steps[active].textContent;
   progress.textContent=`${mobileIndoorGuideCopy('step')} ${active+1} / ${steps.length}`;
   list.innerHTML=steps.map((item,index)=>`<li class="${index===active?'current':''}" data-indoor-step="${index}">${item.innerHTML}</li>`).join('');
@@ -5502,14 +5572,92 @@ async function routeToIndoorShelter(){
   speakIndoor(currentGuidanceText(),true);
 }
 
+function openIndoorNavigationInfo(){
+  document.getElementById('indoorInfoDialog')?.remove();
+
+  const text = (en, he, ar, ru) =>
+    ({en, he, ar, ru}[indoorLang] || en);
+
+  const dialog = document.createElement('dialog');
+  dialog.id = 'indoorInfoDialog';
+  dialog.className = 'cw-dialog';
+  dialog.lang = indoorLang;
+  dialog.dir = ['he', 'ar'].includes(indoorLang) ? 'rtl' : 'ltr';
+  dialog.setAttribute('aria-labelledby', 'indoorInfoTitle');
+
+  const body = document.createElement('div');
+  body.className = 'cw-dialog-body';
+
+  const title = document.createElement('h2');
+  title.id = 'indoorInfoTitle';
+  title.textContent = text(
+    'Indoor navigation',
+    'ניווט בתוך המבנה',
+    'الملاحة داخل المبنى',
+    'Навигация внутри здания'
+  );
+
+  const paragraph = content => {
+    const p = document.createElement('p');
+    p.textContent = content;
+    return p;
+  };
+
+  const done = document.createElement('button');
+  done.type = 'button';
+  done.className = 'btn btn-primary';
+  done.textContent = text('Got it', 'הבנתי', 'فهمت', 'Понятно');
+
+  const opener = document.getElementById('indoorInfoBtn');
+
+  dialog.addEventListener('close', () => {
+    dialog.remove();
+    opener?.focus();
+  });
+
+  done.onclick = () => dialog.close();
+
+  body.append(
+    title,
+    paragraph(text(
+      'Press Start with the top of your phone pointing along the route. Keep it facing your walking direction.',
+      'לחץ על התחל כשהחלק העליון של הטלפון מכוון לאורך המסלול. שמור אותו בכיוון ההליכה.',
+      'اضغط ابدأ ووجّه أعلى الهاتف باتجاه المسار. أبقه باتجاه مشيك.',
+      'Нажмите «Начать», направив верхнюю часть телефона вдоль маршрута. Держите его по направлению движения.'
+    )),
+    paragraph(text(
+      'Unclear sensor readings pause position updates. Updates resume when readings become usable. Confirm floor changes and arrival only when you reach them.',
+      'קריאות חיישנים לא ברורות משהות את עדכון המיקום. העדכון מתחדש כשהקריאות תקינות. אשר מעבר קומה והגעה רק לאחר שהגעת בפועל.',
+      'تتوقف تحديثات الموقع مؤقتًا عندما تكون قراءات الحساسات غير واضحة، وتستأنف عندما تصبح مناسبة. أكّد تغيير الطابق والوصول فقط بعد الوصول فعليًا.',
+      'При нечётких показаниях датчиков обновление позиции приостанавливается и возобновляется при подходящих показаниях. Подтверждайте смену этажа и прибытие только после фактического достижения.'
+    )),
+    paragraph(text(
+      'For mobility assistance, confirm each checkpoint after reaching it. Demonstration mode simulates movement.',
+      'במצב סיוע בניידות, אשר כל נקודת ביקורת לאחר שהגעת אליה. מצב הדגמה מדמה תנועה.',
+      'في وضع المساعدة على التنقّل، أكّد كل نقطة تحقق بعد الوصول إليها. وضع العرض يحاكي الحركة.',
+      'В режиме помощи при передвижении подтверждайте каждую контрольную точку после её достижения. Демонстрационный режим имитирует движение.'
+    )),
+    paragraph(text(
+      'Position is estimated along the planned route. The app cannot detect if you leave the route.',
+      'המיקום מוערך לאורך המסלול המתוכנן. היישומון אינו יכול לזהות יציאה מהמסלול.',
+      'الموقع تقديري على المسار المخطط. لا يستطيع التطبيق اكتشاف خروجك عن المسار.',
+      'Позиция определяется приблизительно вдоль запланированного маршрута. Приложение не определяет отклонение от него.'
+    )),
+    done
+  );
+
+  dialog.append(body);
+  document.body.append(dialog);
+  dialog.showModal();
+  done.focus();
+}
+
 function setupIndoorExtras(){
   setupLocationSearch('from');
   setupLocationSearch('to');
 
-  $('lbl-voice-guide').textContent=it('voiceGuide');
-  $('lbl-indoor-report').textContent=it('report');
   $('lbl-indoor-emergency').textContent=it('emergency');
-
+$('mapViewport').closest('.mapwrap').append($('mobileIndoorGuide'));
   const sharedVoice=indoorStoredPreference(
     SHARED_AUDIO_KEY,
     value=>value==='true'||value==='false'
@@ -5523,9 +5671,8 @@ function setupIndoorExtras(){
       : selectedRoutingProfile()==='visual';
   setIndoorVoice(initialVoice, false);
 
-  $('voiceGuideBtn').addEventListener('click',()=>setIndoorVoice(!indoorVoiceOn));
-  $('indoorReportBtn').addEventListener('click',openIndoorReport);
   $('indoorEmergencyBtn').addEventListener('click',routeToIndoorShelter);
+  $('indoorInfoBtn').addEventListener('click', openIndoorNavigationInfo);
   $('to').addEventListener('change',()=>document.body.classList.remove('emergency-route'));
   $('steps').addEventListener('click',event=>{
     const item=event.target.closest('li');
@@ -5535,23 +5682,23 @@ function setupIndoorExtras(){
     const item=event.target.closest('li');
     if(item && (event.key==='Enter'||event.key===' ')){ event.preventDefault(); speakIndoor(item.textContent,true); }
   });
-  $('mobileIndoorGuideToggle').addEventListener('click',()=>{
-    if($('mobileIndoorGuideToggle').dataset.dragged==='true'){
-      $('mobileIndoorGuideToggle').dataset.dragged='';
-      return;
-    }
+const currentCard =
+  document.querySelector('#mobileIndoorGuide .mobile-route-current');
+
+currentCard.addEventListener('click',()=>{
+  setMobileIndoorGuideOpen($('mobileIndoorGuidePanel').hidden);
+});
+
+currentCard.tabIndex=0;
+
+currentCard.addEventListener('keydown',event=>{
+  if(event.target!==currentCard) return;
+
+  if(event.key==='Enter' || event.key===' '){
+    event.preventDefault();
     setMobileIndoorGuideOpen($('mobileIndoorGuidePanel').hidden);
-  });
-  let indoorDrawerStartX=null;
-  $('mobileIndoorGuideToggle').addEventListener('pointerdown',event=>{ indoorDrawerStartX=event.clientX; });
-  $('mobileIndoorGuideToggle').addEventListener('pointerup',event=>{
-    if(indoorDrawerStartX===null) return;
-    const delta=event.clientX-indoorDrawerStartX;
-    indoorDrawerStartX=null;
-    if(Math.abs(delta)<18) return;
-    $('mobileIndoorGuideToggle').dataset.dragged='true';
-    setMobileIndoorGuideOpen(delta>0);
-  });
+  }
+});
   $('mobileIndoorGuideClose').addEventListener('click',()=>setMobileIndoorGuideOpen(false));
   $('mobileIndoorSteps').addEventListener('click',event=>{
     const item=event.target.closest('[data-indoor-step]');
