@@ -80,6 +80,11 @@
       h('dt', {text:'Automatic'}), h('dd', {text:cloud.minutes && cloud.autoSync ? `every ${cloud.minutes} min while the server runs` : 'off — use Fetch now'}),
       h('dt', {text:'Public site'}), h('dd', {},
         published ? 'sends reports to this inbox' : h('span', {class:'text-warning', text:'not told about the inbox yet (step 5)'})
+      ),
+      h('dt', {text:'Live status'}), h('dd', {},
+        cloud.liveUpToDate
+          ? `published ${Admin.relative(cloud.lastPublish.at)} — the public site shows the latest announcements, outages and closures`
+          : h('span', {class:'text-warning', text:cloud.lastPublish && cloud.lastPublish.error ? `not published: ${cloud.lastPublish.error}` : 'not published yet'})
       )
     ));
     if(cloud.lastError){

@@ -69,6 +69,13 @@ function memoryStore(limits = {keysPerDay:500, deliveredKeepDays:60, pendingKeep
       return [...reports.values()].filter(row => row.deliveredAt === null)
         .sort((a, b) => a.receivedAt - b.receivedAt).slice(0, limit).map(row => JSON.parse(row.payload));
     },
+    liveStatus:null,
+    async getStatus(){
+      return this.liveStatus ? {...this.liveStatus} : null;
+    },
+    async putStatus(json, updatedAt){
+      this.liveStatus = {json, updatedAt};
+    },
     async usageRows(limit){
       return [...usage.values()].filter(row => row.count > 0).sort((a, b) => a.day.localeCompare(b.day)).slice(0, limit).map(row => ({...row}));
     }

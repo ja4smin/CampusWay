@@ -14,6 +14,8 @@ The development history of CampusWay, grouped by milestone and summarised from t
 - Admin **Storage** page with a 10 GB limit for the PC's data and storage and daily caps for the cloud inbox.
 - Cloud inbox (`cloud/`): a free Cloudflare Worker + D1 that collects reports and usage counts from the public site. The PC server fetches them every 5 minutes and sends report statuses back; the admin screen's **Cloud inbox** page walks through the setup.
 
+- Live status without commits: saving in the admin publishes announcements, emergency mode, outages, closures, names and hours to the cloud inbox, and the app reads them from there (the repository file stays as the offline copy). Failed publishes retry automatically; **Publish now** on the Overview page.
+
 **Fixed**
 - Nearest shelter for the Mobility profile: no longer picks an entrance or shelter that has no step-free route (it used to fall back to a straight-line guess, sending wheelchair users towards routes the app then refused to draw); says honestly when no step-free shelter exists.
 - Nearest shelter and journey times now respect live elevator outages and closures, like the indoor page; closed shelters are never offered.

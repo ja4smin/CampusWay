@@ -446,7 +446,7 @@
       state.draft = clone(state.status);
       updateSaveBar();
       linkReportsToStatus(previous, state.status);
-      toast(`Saved: ${sections.map(section => SECTION_LABELS[section]).join(', ')}. The app shows it the next time it is opened from this PC.${state.overview && state.overview.publish.git ? ' Commit and push to publish it on GitHub Pages.' : ''}`, 'success', 8000);
+      liveToast(`Saved: ${sections.map(section => SECTION_LABELS[section]).join(', ')}.`, result.live);
       if(result.warnings && result.warnings.length) showProblems('Saved, with warnings', [], result.warnings);
       loadOverview().catch(() => {});
       rerender();
@@ -464,6 +464,18 @@
     }
   }
 
+  // Says where a saved change is visible: live on the public site through the
+  // cloud inbox, waiting for the inbox, or only on this PC.
+  function liveToast(prefix, live){
+    if(live && live.state === 'live'){
+      toast(`${prefix} Live on the public site — phones get it the next time they open CampusWay.`, 'success', 8000);
+    }else if(live && live.state === 'failed'){
+      toast(`${prefix} Saved on this PC, but not live yet: ${live.error} CampusWay keeps trying every few minutes.`, 'error', 12000);
+    }else{
+      toast(`${prefix} Set up the cloud inbox to publish changes to the public site automatically.`, 'info', 9000);
+    }
+  }
+
   // Saves one section right away and keeps the other unsaved draft changes.
   async function saveSection(section, value){
     const next = {...clone(state.status), [section]:clone(value)};
@@ -473,6 +485,7 @@
       state.version = result.version;
       state.draft[section] = clone(state.status[section]);
       updateSaveBar();
+      if(result.live && result.live.state !== 'live') liveToast('', result.live);
       loadOverview().catch(() => {});
       rerender();
       return true;
