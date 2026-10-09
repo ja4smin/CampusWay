@@ -172,7 +172,19 @@ body{overflow:hidden;}
 
 #settingsDoneBtn{
   width:100%;
-  min-height:48px;
+  min-height:46px;
+  border-radius:12px;
+  font-size:1rem;
+  font-weight:700;
+  background:#e3f2f6;      
+  color:#0e7490;           
+  border:1.5px solid #0e7490;
+  box-shadow:none;
+}
+#settingsDoneBtn:hover{ background:#d2eaf0; }
+#settingsDoneBtn:focus-visible{
+  outline:2px solid #0e7490;
+  outline-offset:2px;
 }
 
 .settings-schedule-chevron{
@@ -429,7 +441,11 @@ body.hc .settings-language-menu button.selected{
   font-weight:700;
 }
 .settings-text-size-options button:hover{border-color:var(--primary);background:var(--primary-soft);}
-.settings-text-size-options button.selected{border-color:var(--primary);background:var(--primary);color:#fff;}
+.settings-text-size-options button.selected{
+  border-color:var(--navy);
+  background:var(--navy);
+  color:#fff;
+}
 .settings-manage-schedule{
   display:flex;
   align-items:center;
