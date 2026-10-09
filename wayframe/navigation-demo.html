@@ -125,7 +125,7 @@
       </section>
 
       <!-- 2. Route summary, how to move, start, progress -->
-      <section class="card" aria-labelledby="navTitle">
+      <section class="card" id="indoorNavigationPanel" aria-labelledby="navTitle">
         <h2 class="card-title" id="navTitle">Navigation</h2>
         <section class="journey-plan" id="indoorJourneyPlan" hidden aria-label="Journey plan"></section>
 
@@ -150,9 +150,6 @@
           </button>
         </div>
 
-        
-        <span id="status" class="statusline" role="status" aria-live="polite">Choose a route.</span>
-
         <div id="directionCard" hidden>
           <strong id="directionTitle"></strong>
           <p class="muted" id="directionHelp"></p>
@@ -171,8 +168,9 @@
           <div class="progress" role="presentation"><div id="progressBar"></div></div>
         </div>
 
-        <div id="steps"></div>
         <button id="startBtn" class="secondary" type="button" disabled>▶ Start navigation</button>
+        <span id="status" class="statusline" role="status" aria-live="polite">Choose a route.</span>
+        <div id="steps"></div>
       </section>
     </aside>
 
@@ -2259,8 +2257,15 @@ function floorButtons(){
     i=end-1;
   }
   const arrow=(indoorLang==='ar'||indoorLang==='he') ? '←' : '→';
-  $('routeCard').innerHTML=`<strong>${esc(aLabel)} ${arrow} ${esc(bLabel)}</strong><div class="muted">${floors.map(f=>localizedFloor(f)).join(` ${arrow} `)}</div>`;
-
+$('routeCard').innerHTML=`
+  <div class="preview-summary">
+    <strong>${esc(aLabel)} ${arrow} ${esc(bLabel)}</strong>
+    <span class="eta" id="indoorPreviewEta"></span>
+  </div>
+  <div class="muted preview-floors">
+    ${floors.map(f=>localizedFloor(f)).join(` ${arrow} `)}
+  </div>
+`;
   // Detailed steps: turns with a nearby room or place, one step per
   // elevator ride (named by the floor where you get off) and the arrival.
   const stepItems=indoorRouteStepItems(aLabel);
@@ -2351,7 +2356,8 @@ routeEtaText = localizedInstruction(
   `${walkingMinutes} דק׳`,
   `${walkingMinutes} мин`
 );
-$('eta').textContent = routeEtaText;
+const previewEta=$('indoorPreviewEta');
+if(previewEta) previewEta.textContent=routeEtaText;
 }
 
 // ── Detailed indoor steps ──
@@ -4342,9 +4348,19 @@ function requireDirectionCalibration(){
   const atStart=progressIndex===0 && progressT===0;
   const atEnd=progressIndex===routeNodes.length-1 && progressT===0;
   const returning=(atEnd ? -1 : atStart ? 1 : intendedDirection)<0;
-  const message=returning
-    ? localizedInstruction('Point the phone back along the route toward the starting location, then press Start navigation.','وجّه الهاتف راجعًا على المسار نحو نقطة البداية، ثم اضغط ابدأ الملاحة.','כוון את הטלפון חזרה לאורך המסלול לנקודת ההתחלה ולחץ התחל ניווט.','Направьте телефон назад вдоль маршрута к начальной точке, затем нажмите «Начать навигацию».')
-    : localizedInstruction('Point the phone along the next part of the route toward your destination, then press Start navigation.','وجّه الهاتف مع الجزء التالي من المسار نحو الوجهة، ثم اضغط ابدأ الملاحة.','כוון את הטלפון לאורך החלק הבא במסלול לכיוון היעד ולחץ התחל ניווט.','Направьте телефон вдоль следующего участка маршрута к пункту назначения, затем нажмите «Начать навигацию».');
+ const message=returning
+  ? localizedInstruction(
+      'Face back along the route, then press Start.',
+      'وجّه الهاتف نحو بداية المسار، ثم اضغط ابدأ.',
+      'כוון את הטלפון לכיוון תחילת המסלול ולחץ התחל.',
+      'Направьте телефон к началу маршрута и нажмите «Старт».'
+    )
+  : localizedInstruction(
+      'Point your phone along the route, then press Start.',
+      'وجّه الهاتف مع المسار، ثم اضغط ابدأ.',
+      'כוון את הטלפון לאורך המסלול ולחץ התחל.',
+      'Направьте телефон вдоль маршрута и нажмите «Старт».'
+    );
   $('directionStatus').textContent=message;
   $('status').textContent=message;
   updateDirectionControls();
@@ -4585,6 +4601,9 @@ async function calibrateHeadingAutomatically(token){
 function stopNavigationMotion(resetHeading = true){
   navigationStartToken++;
   navigationActive=false;
+  document.body.classList.remove('indoor-navigation-active');
+  setMobileIndoorGuideOpen(false);
+  syncMobileIndoorGuide();
   if(autoTimer !== null) clearInterval(autoTimer);
   autoTimer=null;
   autoFloorPauseUntil=0;
@@ -4637,6 +4656,8 @@ async function startNavigation(){
   }
   stopNavigationMotion(false);
   navigationActive=true;
+document.body.classList.add('indoor-navigation-active');
+syncMobileIndoorGuide();
   updateDirectionControls();
   $('startBtn').disabled=true;
   if(navMode === 'auto'){
@@ -4903,19 +4924,49 @@ $('startBtn').onclick=startNavigation;
 const mapViewport=$('mapViewport');
 
 function handleWheelZoom(e){
-  const rect=mapViewport.getBoundingClientRect();
-  const inside=e.clientX>=rect.left && e.clientX<=rect.right &&
-               e.clientY>=rect.top && e.clientY<=rect.bottom;
-  if(!inside) return;
+  if(e.target.closest('button, select, .navStack')) return;
+  if(e.deltaY===0) return;
+
+  const matrix=svg.getScreenCTM();
+  if(!matrix) return;
 
   e.preventDefault();
   e.stopPropagation();
 
-  camera.scale=Math.max(1.25,Math.min(4.5,
-    camera.scale + (e.deltaY<0 ? 0.22 : -0.22)
-  ));
+  const point=svg.createSVGPoint();
+  point.x=e.clientX;
+  point.y=e.clientY;
 
-  $('zoomReset').textContent=Math.round(camera.scale/2.5*100)+'%';
+  const anchor=point.matrixTransform(matrix.inverse());
+
+  const pixels=e.deltaY * (
+    e.deltaMode===1 ? 16 :
+    e.deltaMode===2 ? mapViewport.clientHeight :
+    1
+  );
+
+  const oldScale=camera.scale;
+  const nextScale=Math.max(
+    1.25,
+    Math.min(
+     15,
+      oldScale*Math.exp(-Math.max(-100,Math.min(100,pixels))*0.002)
+    )
+  );
+
+  if(nextScale===oldScale) return;
+
+  followCamera=false;
+  $('recenterBtn').style.display='block';
+
+  const ratio=oldScale/nextScale;
+  camera.x=anchor.x+(camera.x-anchor.x)*ratio;
+  camera.y=anchor.y+(camera.y-anchor.y)*ratio;
+  camera.scale=nextScale;
+
+  $('zoomReset').textContent=
+    Math.round(camera.scale/2.5*100)+'%';
+
   drawBaseMap();
 }
 
@@ -4939,19 +4990,23 @@ mapViewport.addEventListener('pointerdown',e=>{
   mapViewport.style.cursor='grabbing';
   $('recenterBtn').style.display='block';
 });
-
 mapViewport.addEventListener('pointermove',e=>{
   if(!isPanning) return;
 
-  const rect=mapViewport.getBoundingClientRect();
-  const worldPerPixelX=(CAMERA_W/camera.scale)/rect.width;
-  const worldPerPixelY=(CAMERA_H/camera.scale)/rect.height;
+  const units=mapUnitsPerPixel();
+  const dx=(e.clientX-panStart.x)*units;
+  const dy=(e.clientY-panStart.y)*units;
 
-  const dx=e.clientX-panStart.x;
-  const dy=e.clientY-panStart.y;
+  const angle=headingDeg*Math.PI/180;
+  const cos=Math.cos(angle);
+  const sin=Math.sin(angle);
 
-  camera.x=panStart.cameraX-dx*worldPerPixelX;
-  camera.y=panStart.cameraY-dy*worldPerPixelY;
+  camera.x-=dx*cos + dy*sin;
+  camera.y-=-dx*sin + dy*cos;
+
+  panStart.x=e.clientX;
+  panStart.y=e.clientY;
+
   drawBaseMap();
 });
 
@@ -4973,12 +5028,12 @@ $('recenterBtn').onclick=()=>{
 };
 
 $('zoomIn').onclick=()=>{
-  camera.scale=Math.min(4.5,camera.scale+0.35);
+  camera.scale=Math.min(15,camera.scale*1.15);
   $('zoomReset').textContent=Math.round(camera.scale/2.5*100)+'%';
   drawBaseMap();
 };
 $('zoomOut').onclick=()=>{
-  camera.scale=Math.max(1.25,camera.scale-0.35);
+  camera.scale=Math.max(1.25,camera.scale/1.15);
   $('zoomReset').textContent=Math.round(camera.scale/2.5*100)+'%';
   drawBaseMap();
 };
@@ -5348,7 +5403,11 @@ function syncMobileIndoorGuide(){
   const list=$('mobileIndoorSteps');
   if(!guide || !current || !progress || !list) return;
   const steps=[...document.querySelectorAll('#steps .stepList li')];
-  if(!routeNodes.length || !steps.length){ guide.hidden=true; list.innerHTML=''; return; }
+  if(!navigationActive || !routeNodes.length || !steps.length){
+  guide.hidden=true;
+  list.innerHTML='';
+  return;
+}
   let active=0;
   steps.forEach((item,index)=>{ if(Number(item.dataset.stepNode)<=progressIndex) active=index; });
   guide.hidden=false;

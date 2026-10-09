@@ -437,7 +437,7 @@ select:disabled{background-color:var(--surface-2);color:#94A3B8;cursor:not-allow
 .recenterBtn{
   position:absolute;
   inset-inline-end:14px;
-  bottom:120px;
+  bottom:10px;
   z-index:2;
   display:none;
   min-height:42px;
@@ -558,7 +558,14 @@ select:disabled{background-color:var(--surface-2);color:#94A3B8;cursor:not-allow
   display:none;
 }
 
+#indoorPreviewEta{
+  display:none;
+}
+
 @media (max-width:900px){
+  .navStack > .navBanner{
+  display:none;
+}
   .mapwrap{
     height:auto;
     min-height:360px;
@@ -567,25 +574,115 @@ select:disabled{background-color:var(--surface-2);color:#94A3B8;cursor:not-allow
   #mapViewport{
     height:62vh;
     min-height:360px;
+    touch-action:none;
+    user-select:none;
+    cursor:grab;
   }
 
   #steps{
     display:none;
   }
 
-  .mobile-route-guide{
-    display:block;
-    position:relative;
-    z-index:4;
-    margin-top:-80px;
-    padding:0 12px 12px;
-    box-sizing:border-box;
-    pointer-events:none;
-  }
+.mobile-route-guide{
+  display:block;
+  position:absolute;
+  inset-inline:12px;
+  bottom:calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index:4;
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  pointer-events:none;
+}
 
   .mobile-route-guide[hidden]{
     display:none;
   }
+
+  /* Phone preview */
+#indoorNavigationPanel > #navTitle,
+#indoorNavigationPanel > #indoorJourneyPlan{
+  display:none;
+}
+
+#indoorNavigationPanel{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+#indoorNavigationPanel > #startBtn{
+  width:100%;
+  min-height:48px;
+  margin:0;
+}
+
+#indoorNavigationPanel > #status{
+  display:block;
+  margin:0;
+}
+
+#indoorPreviewEta{
+  display:block;
+  flex-shrink:0;
+}
+
+/* Phone navigation: retain status messages below the map */
+body.indoor-navigation-active #indoorNavigationPanel > #routeCard,
+body.indoor-navigation-active #indoorNavigationPanel > #startBtn,
+body.indoor-navigation-active #indoorNavigationPanel > #wheelchairCard{
+  display:none;
+}
+
+/* Active phone navigation fills the screen below the header. */
+body.indoor-navigation-active .app{
+  height:100dvh;
+  min-height:0;
+}
+
+body.indoor-navigation-active .topbar{
+  flex-shrink:0;
+}
+
+body.indoor-navigation-active .shell{
+  flex:1;
+  min-height:0;
+  position:relative;
+}
+
+body.indoor-navigation-active .mapwrap{
+  flex:1;
+  height:auto;
+  min-height:0;
+}
+
+body.indoor-navigation-active #mapViewport{
+  position:absolute;
+  inset:0;
+  height:100%;
+  min-height:0;
+}
+
+body.indoor-navigation-active .controlPanel{
+  flex-shrink:0;
+  padding:8px 12px;
+  border:0;
+}
+
+body.indoor-navigation-active #indoorNavigationPanel{
+  padding:0;
+  border:0;
+  background:transparent;
+  box-shadow:none;
+}
+
+body.indoor-navigation-active .recenterBtn{
+  bottom:calc(100px + env(safe-area-inset-bottom, 0px));
+}
+
+body.indoor-navigation-active .shell:has(.mobile-route-guide.is-open) .recenterBtn{
+  visibility:hidden;
+}
 
   .mobile-route-current,
   .mobile-route-panel{
@@ -641,25 +738,27 @@ select:disabled{background-color:var(--surface-2);color:#94A3B8;cursor:not-allow
     cursor:pointer;
   }
 
-  .mobile-route-toggle span{
-    display:block;
-    transition:transform .18s ease;
-  }
+.mobile-route-toggle span{
+  display:block;
+  transform:rotate(180deg);
+  transition:transform .18s ease;
+}
 
-  .mobile-route-guide.is-open .mobile-route-toggle span{
-    transform:rotate(180deg);
-  }
-
-  .mobile-route-panel{
-    position:relative;
-    width:100%;
-    max-height:45vh;
-    margin:8px 0 0;
-    padding:14px;
-    border-radius:16px;
-    overflow:auto;
-    overscroll-behavior:contain;
-  }
+.mobile-route-guide.is-open .mobile-route-toggle span{
+  transform:rotate(0deg);
+}
+.mobile-route-panel{
+  position:absolute;
+  inset-inline:0;
+  bottom:calc(100% + 8px);
+  width:100%;
+  max-height:min(45dvh, 360px);
+  margin:0;
+  padding:14px;
+  border-radius:16px;
+  overflow:auto;
+  overscroll-behavior:contain;
+}
 
   .mobile-route-panel[hidden]{
     display:none;
@@ -734,6 +833,22 @@ select:disabled{background-color:var(--surface-2);color:#94A3B8;cursor:not-allow
   .navStack{
     bottom:88px;
   }
+
+  .preview-summary{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.preview-summary strong{
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+
+.preview-floors{
+  display:none;
+}
 }
 /* ── ARRIVAL MESSAGE ── */
 .arrivalDialog{
@@ -1172,7 +1287,6 @@ body.hc.emergency-route .route-flow{stroke:#FFF;}
 .livePanel{
   display:none;
 }
-
-.navBanner{
-  display:none;
+#zoomReset {
+  display: none;
 }
