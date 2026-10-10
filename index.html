@@ -174,15 +174,17 @@
           <div class="route-eta" id="routeEta">4 min</div>
           <button class="route-close" type="button" onclick="closeRoute()" aria-label="Clear route" title="Clear route">✕</button>
         </div>
-        <div class="route-info">
+               <div class="route-info">
           <strong id="routeTitle">Route</strong>
+
+          <button id="continueIndoorBtn" class="btn btn-primary" type="button" style="display:none;" onclick="startIndoorTransition()">
+            <span id="lbl-continue-indoor">Continue indoors →</span>
+          </button>
+
           <span id="routeSub"></span>
         </div>
         <section class="journey-plan" id="outdoorJourneyPlan" hidden aria-label="Journey plan"></section>
         <div class="status-note" id="routeStatusNote" hidden></div>
-        <button id="continueIndoorBtn" class="btn btn-primary" type="button" style="display:none;" onclick="startIndoorTransition()">
-          <span id="lbl-continue-indoor">Continue indoors →</span>
-        </button>
         <div class="route-steps-wrap" id="routeStepsWrap" hidden>
           <div class="route-steps-head">
             <span class="route-steps-title" id="lbl-directions">Directions</span>
@@ -7791,10 +7793,56 @@ function syncMobileOutdoorGuide(){
   const progress=document.getElementById('mobileOutdoorProgress');
   const list=document.getElementById('mobileOutdoorSteps');
   if(!guide || !current || !progress || !list) return;
-  if(!routeStepTexts.length){ guide.hidden=true; list.innerHTML=''; return; }
+  const guideToggle = document.getElementById('mobileOutdoorGuideToggle');
+
+  if(!routeStepTexts.length){
+  guide.hidden = true;
+  progress.textContent = '';
+  list.innerHTML = '';
+  setMobileOutdoorGuideOpen(false);
+  return;
+}
+
+if(guideToggle) guideToggle.disabled = false;
   const index=Math.max(0,Math.min(activeRouteStepIndex,routeStepTexts.length-1));
   guide.hidden=false;
-  current.textContent=routeStepShortTexts[index] || routeStepTexts[index];
+const step = outdoorGuidance?.steps?.[index]
+  || lastRouteStepsInput?.steps?.[index];
+
+const tracking = outdoorGuidance && !outdoorGuidance.finished;
+
+const remaining = tracking && Number.isFinite(step?.at)
+  ? Math.max(0, step.at - outdoorGuidance.distance)
+  : Math.max(0, step?.meters || 0);
+
+// Round up to 5 m to avoid a constantly flickering number.
+const meters = Math.ceil(remaining / 5) * 5;
+
+const shortText = routeStepShortTexts[index] || routeStepTexts[index];
+
+const distanceText = {
+  en: `${meters} m`,
+  he: `${meters} מ׳`,
+  ar: `${meters} متر`,
+  ru: `${meters} м`
+}[lang] || `${meters} m`;
+
+if(step?.kind === 'turn'){
+  const turnText = CampusRouteInstructions.formatCompactStep(step, lang);
+
+  current.textContent = remaining > 5
+    ? ({
+        en: `${turnText} in ${distanceText}`,
+        he: `${turnText} בעוד ${distanceText}`,
+        ar: `${turnText} بعد ${distanceText}`,
+        ru: `${turnText} через ${distanceText}`
+      }[lang] || `${turnText} in ${distanceText}`)
+    : turnText;
+}else if(step && step.kind !== 'start'){
+  current.textContent = `${shortText} · ${distanceText}`;
+}else{
+  current.textContent = shortText;
+}
   progress.textContent=`${mobileRouteGuideCopy('step')} ${index+1} / ${routeStepTexts.length}`;
   list.innerHTML=routeStepTexts.map((text,stepIndex)=>`<li class="${stepIndex===index?'current':''}" data-route-step="${stepIndex}">${text}</li>`).join('');
   const toggle=document.getElementById('mobileOutdoorGuideToggle');
@@ -8201,7 +8249,7 @@ if(!state.marker){
       speakRouteSteps(index);
     }
   }
-
+syncMobileOutdoorGuide();
 const arrived = state.demo
   ? state.distance >= state.total
   : state.distance >= state.total - 12 &&
@@ -8210,6 +8258,26 @@ const arrived = state.demo
 if(!arrived) return;
 
 state.finished = true;
+try{
+  const plan = JSON.parse(
+    sessionStorage.getItem(JOURNEY_PLAN_STORAGE_KEY) || 'null'
+  );
+
+  const legIndex = plan?.currentLeg;
+
+  if(plan?.legs?.[legIndex]?.kind === 'outdoor'){
+    plan.legs[legIndex].completed = true;
+
+    sessionStorage.setItem(
+      JOURNEY_PLAN_STORAGE_KEY,
+      JSON.stringify(plan)
+    );
+
+    renderJourneyPlan();
+  }
+}catch(error){
+  console.warn('Could not mark the outdoor leg complete:', error);
+}
 revealContinueIndoor();
 
 document.getElementById('indoorArrivalHint')?.remove();
@@ -8236,8 +8304,12 @@ if(state.watchdog){
 
   // Keep this separate from the instruction describing
   // the final walking segment.
-  state.currentIndex = routeStepTexts.length;
-  routeStepTexts.push(message);
+state.currentIndex = routeStepTexts.length;
+routeStepTexts.push(message);
+routeStepShortTexts.push(message);
+
+highlightRouteStep(state.currentIndex);
+syncMobileOutdoorGuide();
 
 if(
   (audioOn || state.readAloudEnabled) &&
@@ -8584,11 +8656,33 @@ function renderRouteSteps(result, options = {}){
 
 function refreshRouteSteps(){
   const previous = lastRouteStepsInput;
-  const wasTracking = Boolean(outdoorGuidance);
+  const previousState = outdoorGuidance;
+  const wasFinished = previousState?.finished === true;
+  const wasTracking = Boolean(previousState) && !wasFinished;
 
   if(previous){
     renderRouteSteps(previous.result, previous.options);
-    if(wasTracking) startOutdoorGuidance();
+
+    if(wasFinished){
+      // Preserve arrival instead of restarting the outdoor route.
+      const message = previousState.options.indoorNext ||
+        outdoorGuidanceText(
+          'You have reached the end of the outdoor route.',
+          'הגעת לסוף המסלול החיצוני.',
+          'وصلت إلى نهاية المسار الخارجي.',
+          'Вы достигли конца внешнего маршрута.'
+        );
+
+      previousState.currentIndex = routeStepTexts.length;
+      routeStepTexts.push(message);
+      routeStepShortTexts.push(message);
+
+      outdoorGuidance = previousState;
+      outdoorGuidanceStatus(message);
+      highlightRouteStep(previousState.currentIndex);
+    }else if(wasTracking){
+      startOutdoorGuidance();
+    }
   }
 
   updateReadStepsButton();
@@ -12003,6 +12097,24 @@ async function resumeOutdoorJourneyAfterOrigin(){
     }
   );
 
+  // The origin indoor leg is complete; resume the outdoor leg.
+  try{
+    const plan = JSON.parse(
+      sessionStorage.getItem(JOURNEY_PLAN_STORAGE_KEY) || 'null'
+    );
+
+    const outdoorIndex = plan?.legs?.findIndex(
+      leg => leg.kind === 'outdoor'
+    );
+
+    if(Number.isInteger(outdoorIndex) && outdoorIndex >= 0){
+      setJourneyPlanLeg(outdoorIndex);
+      renderJourneyPlan();
+    }
+  }catch(error){
+    console.warn('Could not update the resumed journey:', error);
+  }
+
   return {
     restored: true,
     hasIndoorDestination:
@@ -12070,7 +12182,20 @@ function renderJourneyPlan(){
   if(!plan?.legs || plan.legs.length<2){container.hidden=true;return;}
   const title={en:'Your journey',he:'המסלול שלך',ar:'رحلتك',ru:'Ваш маршрут'}[lang] || 'Your journey';
   container.hidden=false;
-  container.innerHTML=`<strong>${title}</strong><ol>${plan.legs.map((leg,index)=>`<li class="${index<plan.currentLeg?'done':index===plan.currentLeg?'current':''}"><span>${index<plan.currentLeg?'✓':index+1}</span>${journeyLegLabel(leg)}</li>`).join('')}</ol>`;
+  container.innerHTML = `
+  <strong>${title}</strong>
+  <ol>
+    ${plan.legs.map((leg, index) => {
+      const done = leg.completed === true || index < plan.currentLeg;
+      const current = !done && index === plan.currentLeg;
+
+      return `<li class="${done ? 'done' : current ? 'current' : ''}">
+        <span>${done ? '✓' : index + 1}</span>
+        ${journeyLegLabel(leg)}
+      </li>`;
+    }).join('')}
+  </ol>
+`;
 }
 function startIndoorTransition(){
   const indoorBtn = document.getElementById('continueIndoorBtn');

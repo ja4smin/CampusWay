@@ -2182,9 +2182,35 @@ function drawBaseMap(){
 
     let delta = ((targetHeading - headingDeg + 540) % 360) - 180;
     headingDeg += delta * 0.22;
-  }else{
-    headingDeg = 0;
+}else if(navMode === 'auto' && navigationActive){ 
+  const current = currentInterpolated();
+
+  if(current){
+    const position = mapPoint(current);
+
+    for(let i = progressIndex + 1; i < routeNodes.length; i++){
+      const next = routeNodes[i];
+      if(next.floor !== current.floor) break;
+
+      const target = mapPoint(next);
+      const dx = target.x - position.x;
+      const dy = target.y - position.y;
+
+      if(Math.hypot(dx, dy) > 0.5){
+        const targetHeading =
+          -(Math.atan2(dy, dx) * 180 / Math.PI + 90);
+
+        const delta =
+          ((targetHeading - headingDeg + 540) % 360) - 180;
+
+        headingDeg += delta * 0.22;
+        break;
+      }
+    }
   }
+}else{
+  headingDeg = 0;
+}
   world.setAttribute('transform',`rotate(${headingDeg} ${camera.x} ${camera.y})`);
 
   const unitsPerPx=mapUnitsPerPixel();
@@ -2272,6 +2298,9 @@ function drawUserMarker(){
       }
     }
   }
+  if(navMode === 'auto' && navigationActive){
+  coneRotation += headingDeg; //keep?
+}
   mapLayers.userCone.setAttribute('transform', `rotate(${coneRotation.toFixed(1)})`);
 }
 
@@ -2847,6 +2876,11 @@ function updateTurnInstruction(){
     updateSpatialInstruction();
     return;
   }
+
+  // Clear subtitles left over from the previous floor change.
+if(navMode === 'auto'){
+  $('subInstruction').textContent = '';
+}
 
   const a = routeNodes[progressIndex];
   const b = routeNodes[progressIndex + 1];
@@ -3752,9 +3786,17 @@ function advanceJourneyPlanLeg(){
 // What the arrival message's main button does next (null = journey finished).
 // Arrival never navigates away on its own; the user decides.
 var arrivalNextStep=null;
-
 function announceArrival(){
-  if(typeof showArrivalDialog==='function') showArrivalDialog(arrivalNextStep);
+  const message = currentGuidanceText();
+
+  if(indoorVoiceOn && message){
+    lastSpokenGuidance = message;
+    speakIndoor(message);
+  }
+
+  if(typeof showArrivalDialog === 'function'){
+    showArrivalDialog(arrivalNextStep);
+  }
 }
 
 function completeNavigation(){
@@ -4566,7 +4608,7 @@ async function enableSensors(requestToken){
 let autoTimer = null;
 let autoFloorPauseUntil = 0;
 function startAutoDemo(){
-  if(autoTimer) clearInterval(autoTimer);
+  if(autoTimer !== null) clearInterval(autoTimer);
 
   autoTimer = setInterval(() => {
     if(!navigationActive || navMode !== 'auto'){
@@ -4575,11 +4617,14 @@ function startAutoDemo(){
       return;
     }
 
-    if(Date.now() < autoFloorPauseUntil){
-      return;
-    }
+    if(Date.now() < autoFloorPauseUntil) return;
 
-    advanceAlongRoute(1.0);
+    advanceAlongRoute(0.6);
+
+if(navigationActive && followCamera){
+  followNode(currentInterpolated());
+  drawBaseMap();
+}
   }, 200);
 }
 
@@ -4735,7 +4780,7 @@ async function startNavigation(){
   updateDirectionControls();
   $('startBtn').disabled=true;
   if(navMode === 'auto'){
-    followCamera=false;
+    followCamera=true;
     $('status').textContent=localizedInstruction(
       'Auto navigation running.',
       'الملاحة التلقائية تعمل.',
@@ -5154,7 +5199,9 @@ function returnToCampusMap(){
   }catch(error){
     console.warn('Could not clear the completed journey:',error);
   }
-  window.location.replace('../index.html');
+  window.location.replace(
+  '../index.html' + (indoorDemoMode ? '?demo=1' : '')
+);
 }
 
 function setRouteFromArrival(){
@@ -5180,7 +5227,10 @@ function setRouteFromArrival(){
     console.warn('Could not save the next-route starting point:',error);
   }
 
-  window.location.replace('../index.html?newRouteFromHere=1');
+  window.location.replace(
+  '../index.html?newRouteFromHere=1' +
+  (indoorDemoMode ? '&demo=1' : '')
+);
 }
 function showArrivalDialog(next){
   const dialog=$('arrivalDialog');
@@ -5425,17 +5475,39 @@ let indoorVoiceOn=false;
 let lastSpokenGuidance='';
 const INDOOR_VOICE_KEY='campuswayIndoorVoice';
 const SHARED_AUDIO_KEY='campusway.audioEnabled';
-
 function speakIndoor(text, force=false){
   if((!indoorVoiceOn && !force) || !text || !('speechSynthesis' in window)) return;
-  const synth=window.speechSynthesis;
+
+  const synth = window.speechSynthesis;
+  const voices = synth.getVoices();
+  const locale = indoorLang === 'he' ? 'he-IL'
+    : indoorLang === 'ar' ? 'ar'
+    : indoorLang === 'ru' ? 'ru-RU'
+    : 'en-US';
+
+  const prefix = locale.split('-')[0];
+
+  // Use the same voice preference as outdoor guidance.
+  const voice =
+    voices.find(v => v.lang.startsWith(prefix + '-') && /google|natural/i.test(v.name))
+    || voices.find(v => v.lang.startsWith(prefix))
+    || voices.find(v => /en-US/i.test(v.lang))
+    || voices.find(v => /^en/i.test(v.lang))
+    || null;
+
   synth.cancel();
-  const utterance=new SpeechSynthesisUtterance(text);
-  const prefix=indoorLang==='he'?'he':indoorLang==='ar'?'ar':indoorLang==='ru'?'ru':'en';
-  const voice=synth.getVoices().find(item=>item.lang && item.lang.toLowerCase().startsWith(prefix));
-  if(voice){ utterance.voice=voice; utterance.lang=voice.lang; }
-  else utterance.lang=indoorLang==='he'?'he-IL':indoorLang==='ar'?'ar':indoorLang==='ru'?'ru-RU':'en-US';
-  utterance.rate=.95;
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 0.97;
+  utterance.pitch = 1;
+
+  if(voice){
+    utterance.voice = voice;
+    utterance.lang = voice.lang;
+  }else{
+    utterance.lang = locale;
+  }
+
   synth.speak(utterance);
 }
 
@@ -5454,9 +5526,16 @@ function setIndoorVoice(on, announce=true){
 }
 
 function currentGuidanceText(){
-  const main=$('instruction').textContent.trim();
-  const sub=$('subInstruction').textContent.trim();
-  return sub ? `${main}. ${sub}` : main;
+  const main = $('instruction').textContent.trim();
+  const sub = $('subInstruction').textContent.trim();
+
+  // Keep the destination visible, but omit it from repeated speech.
+  const destinationSubtitle =
+  /^(?:Destination\s*:|الوجهة\s*:|יעד\s*:|Пункт назначения\s*:|Estimated position|موقع تقديري|מיקום משוער|Приблизительная позиция)/i.test(sub);
+
+  return sub && !destinationSubtitle
+    ? `${main}. ${sub}`
+    : main;
 }
 
 function mobileIndoorGuideCopy(key){
@@ -5770,19 +5849,33 @@ currentCard.addEventListener('keydown',event=>{
   });
   new MutationObserver(syncMobileIndoorGuide).observe($('steps'),{childList:true,subtree:true,characterData:true});
 
-  // Speak each new instruction while a route is shown.
-  let speakTimer=null;
-  new MutationObserver(()=>{
-    clearTimeout(speakTimer);
-    speakTimer=setTimeout(()=>{
-      if(!indoorVoiceOn || !routeNodes.length) return;
-      const text=currentGuidanceText();
-      if(text && text!==lastSpokenGuidance){
-        lastSpokenGuidance=text;
-        speakIndoor(text);
-      }
-    },150);
-  }).observe($('instruction'),{childList:true,characterData:true,subtree:true});
+// Speak instruction changes only during active navigation.
+let speakTimer = null;
+
+new MutationObserver(() => {
+  clearTimeout(speakTimer);
+
+  if(!indoorVoiceOn || !navigationActive || !routeNodes.length){
+    return;
+  }
+
+  speakTimer = setTimeout(() => {
+    if(!indoorVoiceOn || !navigationActive || !routeNodes.length){
+      return;
+    }
+
+    const text = currentGuidanceText();
+
+    if(text && text !== lastSpokenGuidance){
+      lastSpokenGuidance = text;
+      speakIndoor(text);
+    }
+  }, 150);
+}).observe($('instruction'), {
+  childList: true,
+  characterData: true,
+  subtree: true
+});
 
   new MutationObserver(syncMobileIndoorGuide).observe($('instruction'),{childList:true,characterData:true,subtree:true});
 

@@ -852,8 +852,18 @@ html[lang="he"] .panel-title,html[lang="ar"] .panel-title{letter-spacing:0;text-
 }
 .route-close:hover{background:var(--bg);color:var(--ink);}
 .route-info strong{display:block;font-size:1rem;line-height:1.35;color:var(--ink);}
-.route-info span{display:block;margin-top:2px;font-size:.8125rem;color:var(--mid);}
-#continueIndoorBtn{width:100%;}
+.route-info > span{
+  display:block;
+  margin-top:2px;
+  font-size:.8125rem;
+  color:var(--mid);
+}
+
+#continueIndoorBtn{
+  width:100%;
+  margin-top:10px;
+  margin-bottom:8px;
+}
 
 /* ── Written / spoken directions ── */
 .route-steps-wrap{border-top:1px solid var(--line);padding-top:10px;}
@@ -1332,3 +1342,6 @@ body.hc .outdoor-dest-pin{
   fill: #FF3B3B;
 }
 
+#mobileOutdoorGuide[hidden]{
+  display:none;
+}

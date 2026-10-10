@@ -57,7 +57,9 @@
     if(!toggle || !legend) return;
 
     const saved = readPref('campusway.legendOpen');
-    const startOpen = saved === null ? window.innerWidth > 768 : saved === 'true';
+    const startOpen = window.innerWidth <= 768
+  ? false
+  : saved === null ? true : saved === 'true';
 
     const apply = openLegend => {
       legend.hidden = !openLegend;
