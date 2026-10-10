@@ -7430,6 +7430,42 @@ const profile = t.profiles.find(p=>p.id===currentProfile);
 let distanceMeters = 0;
 let seconds = 0;
 let etaNum = 0;
+if(sameBuilding){
+  try{
+    const startContext = JSON.parse(
+      sessionStorage.getItem('indoorStartContext') || 'null'
+    );
+    const destinationContext = JSON.parse(
+      sessionStorage.getItem('indoorContext') || 'null'
+    );
+
+    const startNodeId =
+      customStart?.nodeId ||
+      startContext?.startNodeId ||
+      destinationContext?.startNodeId;
+
+    const endNodeId = destinationContext?.destinationNodeId;
+
+    if(startNodeId && endNodeId){
+      const indoorSeconds = await getIndoorLegEtaSeconds(
+        startingBuildingKey,
+        startNodeId,
+        endNodeId,
+        currentProfile === 'mobility',
+        currentProfile === 'spatial'
+      );
+
+      if(Number.isFinite(indoorSeconds)){
+        seconds = indoorSeconds;
+        etaNum = seconds < 3600
+          ? Math.max(1, Math.ceil(seconds / 60))
+          : Math.round(seconds / 3600 * 10) / 10;
+      }
+    }
+  }catch(error){
+    console.warn('Could not calculate same-building ETA:', error);
+  }
+}
 if(!sameBuilding){
   try{
     const fullJourneySeconds =
@@ -7589,13 +7625,10 @@ const routeArrow = typeof routeDirectionArrow === 'function'
   showRouteStatusNote([startingBuildingKey, entranceKey]);
 const routeEta = document.getElementById('routeEta');
 
-if(sameBuilding){
-  routeEta.style.display = 'none';
-}else{
-  routeEta.style.display = '';
-  routeEta.textContent =
-    etaNum + (seconds < 3600 ? ' ' + t.minWalk : ' ' + t.hour);
-}
+routeEta.style.display = '';
+routeEta.textContent = etaNum > 0
+  ? etaNum + (seconds < 3600 ? ' ' + t.minWalk : ' ' + t.hour)
+  : '—';
   const indoorBtn = document.getElementById('continueIndoorBtn');
 
   const INDOOR_BUILDINGS = {
@@ -7709,12 +7742,14 @@ if(hasOriginIndoorJourney){
   document.getElementById('routeCard').classList.add('show');
   renderJourneyPlan();
   map.closePopup();
-if(currentProfile === 'visual' && visualVoiceActive){
+if(options.announceRoute === false){
+  // Restoring an existing journey: skip the planning summary.
+}else if(currentProfile === 'visual' && visualVoiceActive){
   // The guided flow announces the result after routing finishes.
 }else if(destinationIsStartBuilding){
   speak(document.getElementById('routeTitle').textContent);
 }else{
-  speak(`${t.routeFrom}${lang === 'he' ? '' : ' '}${startLabel} ${t.routeTo} ${displayDestination}.${sameBuilding ? '' : ` ${etaNum} ${seconds < 3600 ? t.minWalk : t.hours}.`}`);
+  speak(`${t.routeFrom}${lang === 'he' ? '' : ' '}${startLabel} ${t.routeTo} ${displayDestination}.${etaNum <= 0 ? '' : ` ${etaNum} ${seconds < 3600 ? t.minWalk : t.hours}.`}`);
 
 }
 
@@ -7804,7 +7839,13 @@ function syncMobileOutdoorGuide(){
 }
 
 if(guideToggle) guideToggle.disabled = false;
-  const index=Math.max(0,Math.min(activeRouteStepIndex,routeStepTexts.length-1));
+  // The card shows the upcoming walking instruction.
+// Keep the starting compass direction in the full list.
+const firstWalkingStep = routeStepTexts.length > 1 ? 1 : 0;
+const index = Math.max(
+  firstWalkingStep,
+  Math.min(activeRouteStepIndex, routeStepTexts.length - 1)
+);
   guide.hidden=false;
 const step = outdoorGuidance?.steps?.[index]
   || lastRouteStepsInput?.steps?.[index];
@@ -12093,7 +12134,8 @@ async function resumeOutdoorJourneyAfterOrigin(){
     Number(destination.lng),
     {
       keepIndoorContext: destination.keepIndoorContext === true,
-      emergency: destination.emergency === true
+      emergency: destination.emergency === true,
+      announceRoute: false
     }
   );
 

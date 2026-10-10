@@ -3787,7 +3787,14 @@ function advanceJourneyPlanLeg(){
 // Arrival never navigates away on its own; the user decides.
 var arrivalNextStep=null;
 function announceArrival(){
-  const message = currentGuidanceText();
+  const message = arrivalNextStep?.kind === 'outdoor'
+  ? localizedInstruction(
+      'You reached the exit. Continue outdoors.',
+      'وصلت إلى المخرج. تابع خارج المبنى.',
+      'הגעת ליציאה. המשך מחוץ לבניין.',
+      'Вы достигли выхода. Продолжайте снаружи.'
+    )
+  : currentGuidanceText();
 
   if(indoorVoiceOn && message){
     lastSpokenGuidance = message;
@@ -3819,6 +3826,15 @@ function completeNavigation(){
   $('progressBar').style.width='100%';
   $('startBtn').disabled=true;
   $('status').textContent=localizedInstruction('Arrived.','وصلت.','הגעת.','Прибытие.');
+  // A shelter route ends here, independently of the original journey.
+if(
+  document.body.classList.contains('emergency-route') &&
+  dest.type === 'shelter'
+){
+  arrivalNextStep = null;
+  announceArrival();
+  return;
+}
   const journeyStage=sessionStorage.getItem('journeyStage');
   arrivalNextStep=null;
 
@@ -3877,11 +3893,6 @@ function completeNavigation(){
       'true'
     );
 
-    sessionStorage.setItem(
-      'journeyStage',
-      'destination'
-    );
-
     $('instruction').textContent = localizedInstruction(
       'Continue outdoors',
       'تابع خارج المبنى',
@@ -3912,7 +3923,13 @@ function completeNavigation(){
 
 setJourneyPlanLegByKind('outdoor');
 if(typeof renderIndoorJourneyPlan === 'function') renderIndoorJourneyPlan();
-arrivalNextStep={kind:'outdoor',run:returnToOutdoorJourney};
+arrivalNextStep = {
+  kind: 'outdoor',
+  run(){
+    sessionStorage.setItem('journeyStage', 'destination');
+    returnToOutdoorJourney();
+  }
+};
 announceArrival();
 return;
   }
@@ -4619,7 +4636,7 @@ function startAutoDemo(){
 
     if(Date.now() < autoFloorPauseUntil) return;
 
-    advanceAlongRoute(0.6);
+    advanceAlongRoute(0.5);
 
 if(navigationActive && followCamera){
   followNode(currentInterpolated());
@@ -5473,13 +5490,20 @@ function setupLocationSearch(side){
 // ── Voice guidance ──
 let indoorVoiceOn=false;
 let lastSpokenGuidance='';
-const INDOOR_VOICE_KEY='campuswayIndoorVoice';
-const SHARED_AUDIO_KEY='campusway.audioEnabled';
-function speakIndoor(text, force=false){
-  if((!indoorVoiceOn && !force) || !text || !('speechSynthesis' in window)) return;
+const INDOOR_VOICE_KEY = 'campuswayIndoorVoice';
+const SHARED_AUDIO_KEY = 'campusway.audioEnabled';
+let indoorSpeechRequest = 0;
+const indoorSelectedVoices = new Map();
 
+async function speakIndoor(text, force = false){
+  if(
+    (!indoorVoiceOn && !force) ||
+    !text ||
+    !('speechSynthesis' in window)
+  ) return;
+
+  const request = ++indoorSpeechRequest;
   const synth = window.speechSynthesis;
-  const voices = synth.getVoices();
   const locale = indoorLang === 'he' ? 'he-IL'
     : indoorLang === 'ar' ? 'ar'
     : indoorLang === 'ru' ? 'ru-RU'
@@ -5487,26 +5511,54 @@ function speakIndoor(text, force=false){
 
   const prefix = locale.split('-')[0];
 
-  // Use the same voice preference as outdoor guidance.
-  const voice =
-    voices.find(v => v.lang.startsWith(prefix + '-') && /google|natural/i.test(v.name))
-    || voices.find(v => v.lang.startsWith(prefix))
-    || voices.find(v => /en-US/i.test(v.lang))
-    || voices.find(v => /^en/i.test(v.lang))
-    || null;
-
   synth.cancel();
 
+  let voices = synth.getVoices();
+
+  // Wait for voices, without affecting navigation movement.
+  for(let attempt = 0; !voices.length && attempt < 20; attempt++){
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    if(request !== indoorSpeechRequest) return;
+    voices = synth.getVoices();
+  }
+
+  if(
+    request !== indoorSpeechRequest ||
+    (!indoorVoiceOn && !force)
+  ) return;
+
+  let voice = indoorSelectedVoices.get(locale);
+
+  if(!voice){
+    voice =
+      voices.find(v =>
+        v.lang.startsWith(prefix + '-') &&
+        /google|natural/i.test(v.name)
+      )
+      || voices.find(v => v.lang.startsWith(prefix))
+      || voices.find(v => /en-US/i.test(v.lang))
+      || voices.find(v => /^en/i.test(v.lang));
+
+    if(voice) indoorSelectedVoices.set(locale, voice);
+  }
+
+  if(!voice){
+    console.warn('[Indoor speech] Voice list unavailable.');
+    return;
+  }
+
   const utterance = new SpeechSynthesisUtterance(text);
+  utterance.voice = voice;
+  utterance.lang = voice.lang;
   utterance.rate = 0.97;
   utterance.pitch = 1;
 
-  if(voice){
-    utterance.voice = voice;
-    utterance.lang = voice.lang;
-  }else{
-    utterance.lang = locale;
-  }
+  console.log('[Indoor speech]', {
+    text,
+    voice: voice.name,
+    language: voice.lang
+  });
 
   synth.speak(utterance);
 }
@@ -5711,8 +5763,16 @@ async function routeToIndoorShelter(){
   selectLocation('to',shelter.floor,shelter.id);
   shelter._displayLabel=it('emergencyRoute');
   document.body.classList.add('emergency-route');
-  route();
-  speakIndoor(currentGuidanceText(),true);
+route();
+speakIndoor(
+  localizedInstruction(
+    'Shelter route ready. Press Start to begin.',
+    'مسار الملجأ جاهز. اضغط ابدأ للبدء.',
+    'המסלול למרחב המוגן מוכן. לחץ על התחל כדי להתחיל.',
+    'Маршрут к укрытию готов. Нажмите «Начать».'
+  ),
+  true
+);
 }
 
 function openIndoorNavigationInfo(){
