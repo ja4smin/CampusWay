@@ -3479,6 +3479,7 @@ function syncIndoorStepListPosition(){
   });
 }
 
+let autoDemoRide = null;
 
 function advanceAutoAlongRoute(distanceMeters){
   if(!navigationActive || routeNodes.length<2) return;
@@ -3489,34 +3490,50 @@ function advanceAutoAlongRoute(distanceMeters){
     const a=routeNodes[progressIndex];
     const b=routeNodes[progressIndex+1];
 
-if(a.floor!==b.floor){
+if(a.floor !== b.floor){
+  const end = rideEndIndex(progressIndex);
+  const target = routeNodes[end];
+  const elevator = a.type === 'elevator' || b.type === 'elevator';
 
-  // Ride straight to the last floor: the floors the elevator only passes
-  // are not shown or announced.
-  const end=rideEndIndex(progressIndex);
-  const target=routeNodes[end];
-  const ride=rideInstruction(a,b,target);
-  $('instruction').textContent=ride.text;
-  $('subInstruction').textContent=ride.sub;
+  if(
+    !autoDemoRide ||
+    autoDemoRide.route !== routeNodes ||
+    autoDemoRide.start !== progressIndex
+  ){
+    const ride = rideInstruction(a, b, target);
+    $('instruction').textContent = ride.text;
+    $('subInstruction').textContent = ride.sub;
 
-    progressIndex=end;
-    progressT=0;
+    const floors = Math.max(
+      1,
+      Math.abs(
+        ORDER.indexOf(target.floor) - ORDER.indexOf(a.floor)
+      )
+    );
 
-    if(progressIndex >= routeNodes.length - 1){
-      completeNavigation();
-      return;
-    }
+    autoDemoRide = {
+      route: routeNodes,
+      start: progressIndex,
+      finishesAt: Date.now() +
+        (elevator ? 3000 + floors * 1000 : floors * 4000)
+    };
+  }
 
-    activeFloor=target.floor;
+  if(Date.now() < autoDemoRide.finishesAt) return;
+
+  autoDemoRide = null;
+  progressIndex = end;
+  progressT = 0;
+  activeFloor = target.floor;
+
+  if(progressIndex >= routeNodes.length - 1){
+    completeNavigation();
+    return;
+  }
 
   floorButtons();
   drawBaseMap();
   updateProgressUI();
-
-    if(navMode === 'auto'){
-    autoFloorPauseUntil = Date.now() + 2000;
-  }
-
   return;
 }
     const segLenMeters =
@@ -4785,7 +4802,14 @@ function startAutoDemo(){
 
     if(Date.now() < autoFloorPauseUntil) return;
 
-    advanceAlongRoute(0.5);
+    const a = routeNodes[progressIndex];
+const b = routeNodes[progressIndex + 1];
+
+const slowSegment = [a, b].some(node =>
+  node && ['stairs', 'elevator'].includes(node.type)
+);
+
+advanceAlongRoute(slowSegment ? 0.25 : 0.5);
 
 if(navigationActive && followCamera){
   followNode(currentInterpolated());
@@ -4889,6 +4913,7 @@ function stopNavigationMotion(resetHeading = true){
   if(autoTimer !== null) clearInterval(autoTimer);
   autoTimer=null;
   autoFloorPauseUntil=0;
+  autoDemoRide = null;
   if(movementAnimationFrame !== null) cancelAnimationFrame(movementAnimationFrame);
   movementAnimationFrame=null;
   stepMovementQueue=[];

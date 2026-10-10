@@ -196,6 +196,17 @@
         </div>
       </section>
 
+      <script>
+          {
+            const planner = document.querySelector('.sidebar > .planner');
+            const card = document.getElementById('routeCard');
+
+            if(planner && card){
+              planner.before(card);
+            }
+          }
+      </script>
+
       <!-- Already inside a building: go straight to indoor navigation -->
       <!-- Hidden for now: routes are planned through the main search. -->
       <section class="panel indoor-entry" style="display:none">
@@ -3363,7 +3374,16 @@ function buildLegend(){
     <div class="legend-row">${dot('#F59E0B','50%','','🛍️')} ${t.legendShop}</div>
     <div class="legend-row">${dot('#8B5CF6','4px','▲','▲')} ${t.legendElevator}</div>
     <div class="legend-row">${dot('#64748B','4px','≡','≡')} ${t.legendStairs}</div>
-    <div class="legend-row">${dot('#EF4444','50%','+','+')} ${t.legendClinic}</div>`;
+   <div class="legend-row">${dot('#EF4444','50%','+','+')} ${t.legendClinic}</div>
+<div class="legend-row">${dot('var(--danger)','50%','🛡️','🛡️')} ${outdoorShelterName()}</div>
+<div class="legend-row">${dot('#475569','50%','🚬','🚬')} ${
+  {
+    en: 'Smoking area',
+    he: 'אזור עישון',
+    ar: 'منطقة تدخين',
+    ru: 'Место для курения'
+  }[lang] || 'Smoking area'
+}</div>`;
 }
 // Auto-fit map to show all buildings
 const allLatLngs = CAMPUS_DATA.buildings.map(b=>[b.lat,b.lng]);
@@ -8191,6 +8211,15 @@ function revealContinueIndoor(manual = false){
 function updateOutdoorGuidance(state, distance, point){
   if(outdoorGuidance !== state || state.finished) return;
 
+  const cameraTime = performance.now();
+
+if(
+  state.followMap &&
+  cameraTime - state.lastCameraUpdate >= 500
+){
+  state.lastCameraUpdate = cameraTime;
+  map.panTo(point, {animate:false});
+}
   state.distance = Math.max(
     state.distance,
     Math.min(state.total, distance)
@@ -8415,6 +8444,12 @@ function projectOutdoorPosition(state, coordinate, accuracy){
   return best;
 }
 
+map.on('dragstart', () => {
+  if(outdoorGuidance){
+    outdoorGuidance.followMap = false;
+  }
+});
+
 function startOutdoorGuidance(){
   if(outdoorGuidance || !lastRouteStepsInput) return;
 
@@ -8462,6 +8497,17 @@ function startOutdoorGuidance(){
 }
   outdoorGuidance = state;
 
+  state.followMap = true;
+state.lastCameraUpdate = 0;
+
+map.stop();
+map.invalidateSize({pan:false});
+map.setView(
+  points[0],
+  Math.min(16, map.getMaxZoom()), // demo mode zoom in - might need changing
+  {animate:false}
+);
+
   if(state.demo){
     outdoorGuidanceStatus(outdoorGuidanceText(
       'Auto mode · simulated movement',
@@ -8470,24 +8516,12 @@ function startOutdoorGuidance(){
       'Автоматический режим · имитация движения'
     ));
 
-    let previousTime = null;
+let previousTime = null;
+
 const animate = timestamp => {
   if(outdoorGuidance !== state || state.finished) return;
 
-  const speechBusy =
-    audioOn &&
-    window.speechSynthesis &&
-    (
-      window.speechSynthesis.speaking ||
-      window.speechSynthesis.pending ||
-      readingSteps
-    );
-
-  if(!state.introFinished && !speechBusy){
-  state.introFinished = true;
-}
-
-if(document.hidden || (!state.introFinished && speechBusy)){
+  if(document.hidden){
     previousTime = null;
   }else{
     const elapsed = previousTime === null
@@ -8495,12 +8529,27 @@ if(document.hidden || (!state.introFinished && speechBusy)){
       : Math.min(0.25, (timestamp - previousTime) / 1000);
 
     previousTime = timestamp;
+// Find the segment the walking dot is currently on.
+let segmentIndex = 0;
 
-    // Auto demonstration: 3× normal walking speed.
-    const distance = Math.min(
-      state.total,
-      state.distance + elapsed * 5
-    );
+while(
+  segmentIndex < state.points.length - 2 &&
+  state.distance >= state.cumulative[segmentIndex + 1]
+){
+  segmentIndex++;
+}
+
+// Graph edge k corresponds to coordinate segment k + 1.
+const edge = result.edges?.[segmentIndex - 1];
+const onStairs = edge?.type === 'steps';
+
+const speed = onStairs ? 1 : 5;
+
+const distance = Math.min(
+  state.total,
+  state.distance + elapsed * speed,
+  state.cumulative[segmentIndex + 1]
+);
 
     updateOutdoorGuidance(
       state,
@@ -8508,7 +8557,6 @@ if(document.hidden || (!state.introFinished && speechBusy)){
       outdoorPointAt(state, distance)
     );
   }
-
   if(!state.finished){
     state.frame = requestAnimationFrame(animate);
   }
@@ -9132,6 +9180,87 @@ async function openSharedLink(){
 // offline once the app has been opened. Compares real walking times.
 var emergencyRouteActive = false;
 
+const OUTDOOR_SHELTER = {
+  lat: 32.759398,
+  lng: 35.022214
+};
+
+function outdoorShelterName(){
+  return {
+    en: 'Outdoor shelter',
+    he: 'מקלט חיצוני',
+    ar: 'ملجأ خارجي',
+    ru: 'Наружное укрытие'
+  }[lang] || 'Outdoor shelter';
+}
+
+async function routeToOutdoorShelter(){
+  [
+    'indoorContext',
+    'indoorBuilding',
+    'sharedIndoorTransfer',
+    'intermediateIndoorTransfer',
+    'sharedNavigationResume',
+    'journeyStage'
+  ].forEach(key => sessionStorage.removeItem(key));
+
+  const name = outdoorShelterName();
+
+  selectedSearchDestination = null;
+  document.getElementById('searchInput').value = name;
+
+  await routeTo(
+    name,
+    OUTDOOR_SHELTER.lat,
+    OUTDOOR_SHELTER.lng,
+    {keepIndoorContext:false, emergency:true}
+  );
+}
+
+const outdoorShelterMarker = L.marker(
+  [OUTDOOR_SHELTER.lat, OUTDOOR_SHELTER.lng],
+  {
+    title: 'Outdoor shelter',
+    icon: L.divIcon({
+      className: 'outdoor-shelter-marker',
+      html: '<span aria-hidden="true">🛡️</span>',
+      iconSize: [25, 25],
+      iconAnchor: [12, 12]
+    })
+  }
+).addTo(map);
+
+
+outdoorShelterMarker.bindPopup(() => {
+  const content = document.createElement('div');
+
+  const title = document.createElement('strong');
+  title.textContent = outdoorShelterName();
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'building-popup-btn';
+  button.style.marginTop = '10px';
+  button.textContent = {
+    en: 'Navigate here',
+    he: 'נווט לכאן',
+    ar: 'انتقل إلى هنا',
+    ru: 'Проложить маршрут'
+  }[lang] || 'Navigate here';
+
+  button.addEventListener('click', () => {
+    outdoorShelterMarker.closePopup();
+
+    void routeToOutdoorShelter().catch(error => {
+      console.error('Could not route to outdoor shelter:', error);
+      notify(t.emergencyNoShelter);
+    });
+  });
+
+  content.append(title, document.createElement('br'), button);
+  return content;
+});
+
 function shelterBuildings(){
   return Object.entries(REPORT_BUILDING_NAMES).map(([key, name]) => {
     const graph = graphForBuilding(key);
@@ -9210,6 +9339,31 @@ async function nearestShelterPlan(start){
       }
     }
   }
+
+  try{
+  const outdoor = await CampusOutdoorRouting.route(
+    start.lat,
+    start.lng,
+    OUTDOOR_SHELTER.lat,
+    OUTDOOR_SHELTER.lng,
+    {
+      avoidSteps: accessible,
+      avoidNoise: false
+    }
+  );
+
+  if(outdoor && Number.isFinite(outdoor.distance)){
+    plans.push({
+      outdoorOnly: true,
+      indoorGuided: true,
+      seconds: outdoor.distance / speed,
+      meters: outdoor.distance
+    });
+  }
+}catch(error){
+  console.warn('Could not check outdoor shelter route:', error);
+}
+
   plans.sort((a, b) => a.seconds - b.seconds);
   // Prefer a shelter we can guide you to indoors unless another is much closer.
   const best = plans[0] || null;
@@ -9233,6 +9387,10 @@ async function startEmergencyShelterRoute(){
       notify(t.emergencyNoShelter);
       return;
     }
+    if(plan.outdoorOnly){
+  await routeToOutdoorShelter();
+  return;
+}
     sessionStorage.setItem('indoorContext', JSON.stringify({
       entranceId: plan.entrance?.nodeId || null,
       startNodeId: null,
