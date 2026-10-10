@@ -627,7 +627,15 @@ function renderIndoorJourneyPlan(){
   let plan=null;
   try{plan=JSON.parse(sessionStorage.getItem('journeyPlan') || 'null');}catch(error){plan=null;}
   if(!plan?.legs || plan.legs.length<2){container.hidden=true;return;}
-  const buildingName=key=>indoorBuildingName(key);
+const buildingName = key =>
+  key === 'madriga'
+    ? localizedInstruction(
+        'Terrace',
+        'المدرّج',
+        'המדרגה',
+        'Терраса'
+      )
+    : indoorBuildingName(key);
   const label=leg=>{
     if(leg.kind==='indoor') return `${localizedInstruction('Inside','داخل','בתוך','Внутри')} ${buildingName(leg.building)}`;
     if(leg.kind==='outdoor') return localizedInstruction('Walk outdoors','المشي خارج المباني','הליכה בחוץ','Маршрут снаружи');
@@ -2455,7 +2463,9 @@ const isSharedOrigin =
   sharedTransfer &&
   sharedTransfer.originBuilding === currentBuilding;
 
-if(isSharedOrigin){
+if(isSharedOrigin && stepItems.at(-1)?.sharedTransfer){
+  // The final elevator instruction already includes the transfer.
+}else if(isSharedOrigin){
   const destinationName = indoorBuildingName(
     sharedTransfer.destinationBuilding
   );
@@ -2629,6 +2639,35 @@ function indoorRouteStepItems(startLabel){
       : '';
     if(event.kind==='ride'){
       const node=routeNodes[event.index],target=routeNodes[event.after];
+      if(
+  event.method === 'elevator' &&
+  event.after === routeNodes.length - 1 &&
+  isSharedElevatorTransferEnd()
+){
+  const transfer = JSON.parse(
+    sessionStorage.getItem('sharedIndoorTransfer') || 'null'
+  );
+
+  if(transfer?.destinationBuilding){
+    const name = indoorBuildingName(transfer.destinationBuilding);
+    const floor = transfer.destinationBuilding === 'rabin' ? '5' : '4';
+
+    const instruction = localizedInstruction(
+      `take the elevator directly to ${name}, Floor ${floor}`,
+      `استقل المصعد مباشرة إلى ${name}، الطابق ${floor}`,
+      `סע במעלית ישירות אל ${name}, קומה ${floor}`,
+      `езжайте на лифте прямо в ${name}, этаж ${floor}`
+    );
+
+    items.push({
+      index: event.index,
+      after: event.after,
+      sharedTransfer: true,
+      text: before ? before + instruction : capital(instruction)
+    });
+    continue;
+  }
+}
       const up=typeof ORDER!=='undefined' && ORDER.indexOf(target.floor)>ORDER.indexOf(node.floor);
       const verb=localizedInstruction(
         `take the ${event.method}${typeof ORDER!=='undefined' ? (up?' up':' down') : ''} to Floor ${floorLabel(target.floor)}`,
@@ -3889,6 +3928,9 @@ function announceArrival(){
 }
 
 function completeNavigation(){
+  if(isSharedElevatorTransferEnd() && beginSharedElevatorRide()){
+  return;
+}
   stopNavigationMotion();
   progressIndex=routeNodes.length-1;
   progressT=0;
@@ -4088,7 +4130,7 @@ function screenOrientationAngle(){
 
 function sharedElevatorDeparture(){
   if(
-    !['sensor', 'wheelchair'].includes(navMode) ||
+    !['auto', 'sensor', 'wheelchair'].includes(navMode) ||
     !isSharedElevatorTransferEnd()
   ){
     return null;
@@ -4221,11 +4263,36 @@ function beginSharedElevatorRide(){
     'Открывается следующее здание. После прибытия потребуется подтвердить этаж выхода.'
   );
 
-  window.location.replace(
-    `./navigation-demo.html?building=${
-      encodeURIComponent(departure.destinationBuilding)
-    }`
+// Switch buildings within this document, retaining the speech session.
+if(mode === 'auto'){
+  clearPendingSharedElevatorRide();
+
+  sessionStorage.setItem('sharedNavigationResume', JSON.stringify({
+    building: departure.destinationBuilding,
+    mode: 'auto'
+  }));
+}
+
+setJourneyPlanLegByKind('transfer');
+advanceJourneyPlanLeg();
+lastSpokenGuidance = '';
+
+$('building').value = departure.destinationBuilding;
+
+const nextUrl = new URL(location.href);
+nextUrl.searchParams.set('building', departure.destinationBuilding);
+history.replaceState(null, '', nextUrl);
+
+void loadGraph().catch(error => {
+  console.error('Could not continue shared elevator navigation:', error);
+
+  $('status').textContent = localizedInstruction(
+    'Could not continue the elevator route. Please reload.',
+    'تعذّر متابعة مسار المصعد. أعد تحميل الصفحة.',
+    'לא ניתן להמשיך במסלול המעלית. טען מחדש את הדף.',
+    'Не удалось продолжить маршрут лифта. Перезагрузите страницу.'
   );
+});
 
   return true;
 }

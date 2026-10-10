@@ -4996,24 +4996,7 @@ function sharedIndoorTransfer(
       `${originBuilding}:${destinationBuilding}`
     ];
 
-  if(!connection) return null;
-
-  const mobilitySelected =
-    currentProfile === 'mobility';
-
-  if(mobilitySelected){
-    return connection.mobility;
-  }
-
-  if(method === 'elevator'){
-    return connection.mobility;
-  }
-
-  if(method === 'stairs'){
-    return connection.standard;
-  }
-
-  return connection.standard;
+  return connection?.mobility || null;
 }
 
 async function chooseSharedIndoorTransfer(
@@ -5021,88 +5004,10 @@ async function chooseSharedIndoorTransfer(
   destinationBuilding,
   endpoints = null
 ){
-  const connection =
-    SHARED_INDOOR_TRANSFERS[`${originBuilding}:${destinationBuilding}`];
-
-  if(!connection) return null;
-
-  if(currentProfile === 'mobility'){
-    return connection.mobility;
-  }
-
-  let context = {};
-
-  try{
-    context = JSON.parse(
-      sessionStorage.getItem('indoorContext') || '{}'
-    );
-  }catch(error){}
-
-  const startId = endpoints
-    ? endpoints.startNodeId
-    : customStart?.nodeId;
-
-  const destinationIds = endpoints
-    ? [endpoints.destinationNodeId].filter(Boolean)
-    : context.destinationNodeId
-      ? [context.destinationNodeId]
-      : (context.destinationNodeIds || []);
-
-  // Keep existing building-only behavior when exact endpoints are unavailable.
-  if(!startId || !destinationIds.length){
-    return sharedIndoorTransfer(originBuilding, destinationBuilding);
-  }
-
-  const results = [];
-
-  for(const transfer of [connection.standard, connection.mobility]){
-    try{
-      const originSeconds = await getIndoorLegEtaSeconds(
-        originBuilding,
-        startId,
-        transfer.originNodeId,
-        false
-      );
-
-      if(originSeconds === null) continue;
-
-      let destinationSeconds = Infinity;
-
-      for(const destinationId of destinationIds){
-        const seconds = await getIndoorLegEtaSeconds(
-          destinationBuilding,
-          transfer.destinationNodeId,
-          destinationId,
-          false
-        );
-
-        if(seconds !== null){
-          destinationSeconds = Math.min(destinationSeconds, seconds);
-        }
-      }
-
-      if(!Number.isFinite(destinationSeconds)) continue;
-
-      results.push({
-        transfer,
-        seconds: originSeconds +
-          (transfer.method === 'elevator' ? 40 : 30) +
-          destinationSeconds
-      });
-    }catch(error){
-      console.warn('Could not compare shared transfer:', error);
-    }
-  }
-
-  results.sort((a, b) => a.seconds - b.seconds);
-
-  console.table(results.map(result => ({
-    method: result.transfer.method,
-    estimatedSeconds: Math.round(result.seconds)
-  })));
-
-  return results[0]?.transfer ||
-    sharedIndoorTransfer(originBuilding, destinationBuilding);
+  return sharedIndoorTransfer(
+    originBuilding,
+    destinationBuilding
+  );
 }
 
 async function loadIndoorGraphForEta(buildingKey){
@@ -12122,13 +12027,24 @@ function buildJourneyPlan({includeOutdoor=true}={}){
   if(start?.startNodeId && start?.exitEntranceId && start.startNodeId !== start.exitEntranceId){
     legs.push({kind:'indoor', building:start.buildingKey, from:start.startNodeId, to:start.exitEntranceId});
   }
-  if(transfer?.originBuilding && transfer?.destinationBuilding){
+  if(
+  transfer?.originBuilding &&
+  transfer?.destinationBuilding &&
+  intermediate
+){
     legs.push({kind:'transfer', fromBuilding:transfer.originBuilding, toBuilding:transfer.destinationBuilding, method:transfer.method || 'connection'});
   }
   if(intermediate?.building && intermediate?.startNodeId && intermediate?.destinationNodeId){
     legs.push({kind:'indoor', building:intermediate.building, from:intermediate.startNodeId, to:intermediate.destinationNodeId});
   }
-  if(includeOutdoor){ legs.push({kind:'outdoor'}); }
+  const directIndoorTransfer =
+  transfer?.originBuilding &&
+  transfer?.destinationBuilding &&
+  !intermediate;
+
+if(includeOutdoor && !directIndoorTransfer){
+  legs.push({kind:'outdoor'});
+}
   if(destination?.buildingKey && destination?.startNodeId && destination?.destinationNodeId && destination.startNodeId !== destination.destinationNodeId){
     legs.push({kind:'indoor', building:destination.buildingKey, from:destination.startNodeId, to:destination.destinationNodeId});
   }
