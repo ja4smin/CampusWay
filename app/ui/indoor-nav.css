@@ -1320,3 +1320,60 @@ body.hc.emergency-route .route-flow{stroke:#FFF;}
 #zoomReset {
   display: none;
 }
+
+@media (max-width:900px){
+  #indoorNavigationPanel > #routeCard{
+    margin:0;
+    padding:12px;
+    min-height:68px;
+    box-sizing:border-box;
+    border:1px solid var(--line);
+    border-radius:18px;
+    background:var(--surface);
+    box-shadow:var(--shadow-lg);
+  }
+
+  #routeCard .preview-summary{
+    display:grid;
+    grid-template-columns:auto minmax(0,1fr) auto;
+    align-items:center;
+    gap:8px;
+  }
+
+  #routeCard .preview-route-text{
+    min-width:0;
+  }
+
+  #routeCard .preview-summary strong{
+    display:block;
+    font-size:.9375rem;
+    line-height:1.3;
+    overflow-wrap:anywhere;
+  }
+
+  #routeCard .preview-floors{
+    display:block;
+    margin-top:3px;
+    font-size:.8125rem;
+    line-height:1.35;
+  }
+
+  #routeCard .preview-route-icon{
+    flex-shrink:0;
+  }
+
+  #routeCard #indoorPreviewEta{
+    display:block;
+    white-space:nowrap;
+  }
+
+  body.indoor-navigation-active #indoorNavigationPanel > #routeCard{
+    display:none;
+  }
+}
+
+@media (min-width:901px){
+  #routeCard .preview-route-icon{
+    display:none;
+  }
+}

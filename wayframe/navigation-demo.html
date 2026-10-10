@@ -2326,10 +2326,53 @@ function floorButtons(){
   });
 }
 
+function indoorEndpointLabel(node, side){
+  if(!node) return '';
+
+  const raw = String(node._displayLabel || node.label || '').trim();
+
+  if(node.type === 'room' && /^\d+[A-Za-z]?$/.test(raw)){
+    return localizedInstruction(
+      `Room ${raw}`,
+      `غرفة ${raw}`,
+      `חדר ${raw}`,
+      `Комната ${raw}`
+    );
+  }
+
+  if(node.type === 'entrance'){
+    const stage = sessionStorage.getItem('journeyStage');
+
+    const connectingBuildings =
+      sessionStorage.getItem('sharedIndoorTransfer') ||
+      sessionStorage.getItem('intermediateIndoorTransfer');
+
+    if(side === 'end' && stage === 'origin' && !connectingBuildings){
+      return localizedInstruction(
+        'Building exit',
+        'مخرج المبنى',
+        'יציאה מהבניין',
+        'Выход из здания'
+      );
+    }
+
+    if(side === 'start'){
+      return localizedInstruction(
+        'Building entrance',
+        'مدخل المبنى',
+        'כניסה לבניין',
+        'Вход в здание'
+      );
+    }
+  }
+
+  return localizedNodeLabel(friendlyNodeName(node));
+}
+
   function describeRoute(routeMeters, verticalSeconds){
   const a=routeNodes[0],b=routeNodes.at(-1);
-  const aLabel=a._displayLabel||a.label;
-  const bLabel=b._displayLabel||b.label;
+  const aLabel = indoorEndpointLabel(a, 'start');
+  const bLabel = indoorEndpointLabel(b, 'end');
   // Floors where you walk: an elevator's pass-through floors are left out.
   const floors=[a.floor];
   for(let i=0;i<routeNodes.length-1;i++){
@@ -2340,13 +2383,52 @@ function floorButtons(){
     i=end-1;
   }
   const arrow=(indoorLang==='ar'||indoorLang==='he') ? '←' : '→';
-$('routeCard').innerHTML=`
+  const floorChanges = routeNodes.slice(0, -1).map((node, index) => ({
+  from: node,
+  to: routeNodes[index + 1]
+})).filter(pair => pair.from.floor !== pair.to.floor);
+
+const usesElevator = floorChanges.some(({from, to}) =>
+  from.type === 'elevator' || to.type === 'elevator'
+);
+
+const usesStairs = floorChanges.some(({from, to}) =>
+  from.type === 'stairs' || to.type === 'stairs'
+);
+
+const transportText = usesElevator && usesStairs
+  ? localizedInstruction(
+      'via elevator and stairs',
+      'عبر المصعد والدرج',
+      'דרך מעלית ומדרגות',
+      'на лифте и по лестнице'
+    )
+  : usesElevator
+    ? localizedInstruction(
+        'via elevator', 'عبر المصعد', 'דרך מעלית', 'на лифте'
+      )
+    : usesStairs
+      ? localizedInstruction(
+          'via stairs', 'عبر الدرج', 'דרך מדרגות', 'по лестнице'
+        )
+      : '';
+$('routeCard').innerHTML = `
   <div class="preview-summary">
-    <strong>${esc(aLabel)} ${arrow} ${esc(bLabel)}</strong>
+    <span class="turnIcon preview-route-icon" aria-hidden="true">
+    <svg width="24" height="24" viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/>
+      <circle cx="12" cy="10" r="2.5"/>
+    </svg>
+</span>
+    <div class="preview-route-text">
+      <strong>${esc(aLabel)} ${arrow} ${esc(bLabel)}</strong>
+      <div class="muted preview-floors">
+        ${floors.map(f => esc(localizedFloor(f))).join(` ${arrow} `)}${transportText ? ` · ${esc(transportText)}` : ''}
+      </div>
+    </div>
     <span class="eta" id="indoorPreviewEta"></span>
-  </div>
-  <div class="muted preview-floors">
-    ${floors.map(f=>localizedFloor(f)).join(` ${arrow} `)}
   </div>
 `;
   // Detailed steps: turns with a nearby room or place, one step per
