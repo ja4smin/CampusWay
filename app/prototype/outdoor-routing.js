@@ -906,6 +906,13 @@ addEdge(
   'footway'
 );
 
+// Terrace-side walkway → Multi-Purpose entrance approach.
+addEdge(
+  'campus_madriga_access_mid',
+  'campus_multi_access_entrance',
+  'footway'
+);
+
 // --------------------------------------------------
 // Floor 6 / Teacher Buffet → stairs
 // --------------------------------------------------

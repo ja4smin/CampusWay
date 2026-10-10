@@ -2315,6 +2315,11 @@ if(settingsDoneButton){
 
 
 function getVoice(){
+  const appleMobile =
+  /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+if(appleMobile) return null;
   const voices = window.speechSynthesis.getVoices();
   const locale = languageSpeechLocale();
   const prefix = locale.split('-')[0].toLowerCase();
@@ -8017,6 +8022,7 @@ function speakRouteSteps(index = 0){
   stopReadingSteps();
 
   const token = ++outdoorSpeechToken;
+  const speechState = outdoorGuidance;
   const utterance = new SpeechSynthesisUtterance(
     routeStepTexts[index]
   );
@@ -8031,6 +8037,7 @@ function speakRouteSteps(index = 0){
   highlightRouteStep(index);
 
   const finish = () => {
+     clearTimeout(speechStartTimer);
     if(token !== outdoorSpeechToken) return;
 
     readingSteps = false;
@@ -8038,22 +8045,88 @@ function speakRouteSteps(index = 0){
     highlightRouteStep(outdoorGuidance?.currentIndex ?? -1);
   };
 
+  let speechStarted = false;
+
+const speechStartTimer = setTimeout(() => {
+  if(
+    !speechStarted &&
+    token === outdoorSpeechToken &&
+    speechState &&
+    outdoorGuidance === speechState &&
+    !speechState.finished &&
+    (audioOn || speechState.readAloudEnabled) &&
+    !speechState.speechMuted
+  ){
+    speechState.speechBlocked = true;
+    outdoorGuidanceStatus(outdoorGuidanceText(
+      'Tap the map or a direction to resume spoken guidance.',
+      'הקש על המפה או על הוראה כדי לחדש הדרכה קולית.',
+      'اضغط على الخريطة أو على تعليمات لاستئناف الإرشاد الصوتي.',
+      'Нажмите на карту или инструкцию, чтобы возобновить голосовые подсказки.'
+    ));
+  }
+}, 1200);
+
+  utterance.onstart = () => {
+    speechStarted = true;
+    clearTimeout(speechStartTimer);
+  if(
+    token === outdoorSpeechToken &&
+    speechState &&
+    outdoorGuidance === speechState
+  ){
+    speechState.speechBlocked = false;
+  }
+};
+
   utterance.onend = finish;
   utterance.onerror = event => {
     finish();
 
     if(event.error === 'not-allowed'){
-      outdoorGuidanceStatus(outdoorGuidanceText(
-        'Tap an instruction to enable spoken guidance.',
-        'הקש על הוראה כדי להפעיל הדרכה קולית.',
-        'اضغط على تعليمات لتفعيل الإرشاد الصوتي.',
-        'Нажмите на инструкцию, чтобы включить голосовые подсказки.'
-      ));
+
+      if(
+  token !== outdoorSpeechToken ||
+  !speechState ||
+  outdoorGuidance !== speechState
+) return;
+
+    speechState.speechBlocked = true;
+    outdoorGuidanceStatus(outdoorGuidanceText(
+      'Tap the map or a direction to resume spoken guidance.',
+      'הקש על המפה או על הוראה כדי לחדש הדרכה קולית.',
+      'اضغط على الخريطة أو على تعليمات لاستئناف الإرشاد الصوتي.',
+      'Нажмите на карту или инструкцию, чтобы возобновить голосовые подсказки.'
+    ));
     }
   };
 
   window.speechSynthesis.speak(utterance);
 }
+
+document.addEventListener('click', event => {
+  const state = outdoorGuidance;
+  const target = event.target;
+
+  if(
+    !state ||
+    !state.speechBlocked ||
+    state.finished ||
+    !(audioOn || state.readAloudEnabled) ||
+    state.speechMuted ||
+    document.hidden ||
+    !Number.isInteger(state.currentIndex) ||
+    state.currentIndex < 0 ||
+    !(target instanceof Element)
+  ) return;
+
+  // These controls already have their own actions or speech.
+  if(target.closest(
+    '#routeSteps, [data-route-step], button, a, input, select, textarea, [role="button"]'
+  )) return;
+
+  speakRouteSteps(state.currentIndex);
+});
 
 function stopReadingSteps(){
   outdoorSpeechToken++;
@@ -9659,6 +9732,10 @@ const SEARCH_NODE_TYPES = ['room', 'gym', 'library', 'landmark', 'museum', 'park
 
 function indoorNodeMatchesSearch(node, query, kindTypes, building = null){
   const nodeLabel = String(node.label || '').trim();
+  if(
+  node.type === 'landmark' &&
+  /\bterraces?\b/i.test(nodeLabel)
+) return false;
   if(/^node\s*\d+$/i.test(nodeLabel)) return false;
   if(!SEARCH_NODE_TYPES.includes(node.type)) return false;
 
@@ -10573,6 +10650,35 @@ searchInput.addEventListener('keydown', e=>{
     runReadyDestinationSearch(searchInput.value.trim());
   }
 });
+function clearSelectedPlaceOnDelete(input, getSelection){
+  input.addEventListener('beforeinput', event => {
+    const selection = getSelection();
+
+    if(
+      !event.inputType?.startsWith('delete') ||
+      !selection ||
+      input.value.trim() !== selection.displayValue
+    ) return;
+
+    if(!event.cancelable) return;
+
+    event.preventDefault();
+    input.value = '';
+
+    // Run the existing handlers to clear the selected place and context.
+    input.dispatchEvent(new Event('input', {bubbles:true}));
+  });
+}
+
+clearSelectedPlaceOnDelete(
+  startInput,
+  () => selectedStartLocation
+);
+
+clearSelectedPlaceOnDelete(
+  searchInput,
+  () => selectedSearchDestination
+);
 
 function doSearch(q){
   if(!String(q || '').trim()) return;
