@@ -4800,6 +4800,8 @@ function startAutoDemo(){
       return;
     }
 
+    if(document.getElementById('cancelJourneyDialog')?.open) return;
+
     if(Date.now() < autoFloorPauseUntil) return;
 
     const a = routeNodes[progressIndex];
@@ -4809,7 +4811,7 @@ const slowSegment = [a, b].some(node =>
   node && ['stairs', 'elevator'].includes(node.type)
 );
 
-advanceAlongRoute(slowSegment ? 0.25 : 0.5);
+advanceAlongRoute(slowSegment ? 0.25 : 0.5); //indoor demo speed
 
 if(navigationActive && followCamera){
   followNode(currentInterpolated());
@@ -5382,8 +5384,87 @@ function clearCompletedJourneyState(){
 }
 
 function cancelIndoorJourney(){
-  returnToCampusMap();
+  if(document.getElementById('cancelJourneyDialog')) return;
+
+  const copy = {
+    en: {title:'Cancel this journey?', no:'No', yes:'Yes'},
+    he: {title:'לבטל את המסלול?', no:'לא', yes:'כן'},
+    ar: {title:'هل تريد إلغاء هذه الرحلة؟', no:'لا', yes:'نعم'},
+    ru: {title:'Отменить этот маршрут?', no:'Нет', yes:'Да'}
+  }[indoorLang] || {
+    title:'Cancel this journey?', no:'No', yes:'Yes'
+  };
+
+  const opener = document.activeElement;
+  const pausedAt = Date.now();
+  const pausedRide = autoDemoRide;
+  const pausedFloorDeadline = autoFloorPauseUntil;
+
+  const dialog = document.createElement('dialog');
+  dialog.id = 'cancelJourneyDialog';
+  dialog.className = 'cancel-journey-dialog';
+  dialog.lang = indoorLang;
+  dialog.dir = ['he', 'ar'].includes(indoorLang) ? 'rtl' : 'ltr';
+  dialog.setAttribute('aria-labelledby', 'cancelJourneyTitle');
+
+  const title = document.createElement('h2');
+  title.id = 'cancelJourneyTitle';
+  title.textContent = copy.title;
+
+  const actions = document.createElement('div');
+  actions.className = 'cancel-journey-actions';
+
+  const noButton = document.createElement('button');
+  noButton.type = 'button';
+  noButton.className = 'cancel-journey-no';
+  noButton.textContent = copy.no;
+  noButton.onclick = () => dialog.close('no');
+
+  const yesButton = document.createElement('button');
+  yesButton.type = 'button';
+  yesButton.className = 'cancel-journey-yes';
+  yesButton.textContent = copy.yes;
+  yesButton.onclick = () => {
+    stopNavigationMotion();
+    dialog.close('yes');
+    returnToCampusMap();
+  };
+
+  dialog.addEventListener('close', () => {
+    if(dialog.returnValue !== 'yes'){
+      const pausedFor = Date.now() - pausedAt;
+
+      // Preserve the remaining elevator/stair transition time.
+      if(pausedRide && autoDemoRide === pausedRide){
+        autoDemoRide.finishesAt += pausedFor;
+      }
+
+      if(
+        pausedFloorDeadline > pausedAt &&
+        autoFloorPauseUntil === pausedFloorDeadline
+      ){
+        autoFloorPauseUntil += pausedFor;
+      }
+    }
+
+    dialog.remove();
+
+    if(
+      dialog.returnValue !== 'yes' &&
+      opener instanceof HTMLElement &&
+      opener.isConnected
+    ){
+      opener.focus();
+    }
+  });
+
+  actions.append(noButton, yesButton);
+  dialog.append(title, actions);
+  document.body.append(dialog);
+  dialog.showModal();
+  noButton.focus();
 }
+
 function returnToCampusMap(){
   try{
     clearCompletedJourneyState();
@@ -5459,7 +5540,7 @@ function showArrivalDialog(next){
       : localizedInstruction('Continue →','تابع ←','המשך ←','Продолжить →');
     secondary.textContent=localizedInstruction('Cancel journey','إلغاء الرحلة','ביטול המסלול','Отменить маршрут');
     primary.onclick=()=>{ close(); next.run(); };
-    secondary.onclick=()=>{ close(); returnToCampusMap(); };
+    secondary.onclick = cancelIndoorJourney;
   }
 
   if(dialog.open) dialog.close();

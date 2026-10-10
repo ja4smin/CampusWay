@@ -172,7 +172,10 @@
       <section class="route-card" id="routeCard" aria-live="polite" aria-label="Route">
         <div class="route-card-head">
           <div class="route-eta" id="routeEta">4 min</div>
-          <button class="route-close" type="button" onclick="closeRoute()" aria-label="Clear route" title="Clear route">✕</button>
+         <button class="route-close" type="button" onclick="confirmCancelJourney()" aria-label="Cancel journey" title="Cancel journey">
+            <span aria-hidden="true">✕</span>
+            <span id="lbl-cancel-journey">Cancel journey</span>
+          </button>
         </div>
                <div class="route-info">
           <strong id="routeTitle">Route</strong>
@@ -2313,11 +2316,19 @@ if(settingsDoneButton){
     renderScheduleForm();
     renderScheduleList();
   }
-  const closeButton = document.querySelector('.route-close');
-  if(closeButton){
-    closeButton.title = t.clearRoute;
-    closeButton.setAttribute('aria-label', t.clearRoute);
-  }
+const closeButton = document.querySelector('.route-close');
+const cancelLabel = {
+  en: 'Cancel journey',
+  he: 'ביטול המסלול',
+  ar: 'إلغاء الرحلة',
+  ru: 'Отменить маршрут'
+}[lang] || 'Cancel journey';
+
+if(closeButton){
+  closeButton.title = cancelLabel;
+  closeButton.setAttribute('aria-label', cancelLabel);
+  closeButton.querySelector('#lbl-cancel-journey').textContent = cancelLabel;
+}
 }
 
 // ═══════════════════════════════════════════
@@ -7724,6 +7735,66 @@ nextActionReady:
 
 }
 
+function confirmCancelJourney(){
+  if(document.getElementById('cancelJourneyDialog')) return;
+
+  const copy = {
+  en: {title:'Cancel this journey?', keep:'No', cancel:'Yes'},
+  he: {title:'לבטל את המסלול?', keep:'לא', cancel:'כן'},
+  ar: {title:'هل تريد إلغاء هذه الرحلة؟', keep:'لا', cancel:'نعم'},
+  ru: {title:'Отменить этот маршрут?', keep:'Нет', cancel:'Да'}
+}[lang] || {
+  title:'Cancel this journey?',
+  keep:'No',
+  cancel:'Yes'
+};
+  const opener = document.activeElement;
+  const dialog = document.createElement('dialog');
+  dialog.id = 'cancelJourneyDialog';
+  dialog.className = 'cancel-journey-dialog';
+  dialog.lang = lang;
+  dialog.dir = ['he', 'ar'].includes(lang) ? 'rtl' : 'ltr';
+  dialog.setAttribute('aria-labelledby', 'cancelJourneyTitle');
+
+  const title = document.createElement('h2');
+  title.id = 'cancelJourneyTitle';
+  title.textContent = copy.title;
+
+  const actions = document.createElement('div');
+  actions.className = 'cancel-journey-actions';
+
+  const keepButton = document.createElement('button');
+  keepButton.type = 'button';
+  keepButton.className = 'cancel-journey-no';
+  keepButton.textContent = copy.keep;
+  keepButton.onclick = () => dialog.close();
+
+  const cancelButton = document.createElement('button');
+  cancelButton.type = 'button';
+  cancelButton.className = 'cancel-journey-yes';
+  cancelButton.textContent = copy.cancel;
+  cancelButton.onclick = () => {
+    dialog.close();
+    closeRoute();
+  };
+
+  dialog.addEventListener('close', () => {
+    dialog.remove();
+
+    if(opener instanceof HTMLElement && opener.getClientRects().length){
+      opener.focus();
+    }else{
+      document.getElementById('startInput')?.focus();
+    }
+  });
+
+  actions.append(keepButton, cancelButton);
+  dialog.append(title, actions);
+  document.body.append(dialog);
+  dialog.showModal();
+  keepButton.focus();
+}
+
 function closeRoute(){
   document.getElementById('startInput').value = '';
 document.getElementById('searchInput').value = '';
@@ -8504,7 +8575,7 @@ map.stop();
 map.invalidateSize({pan:false});
 map.setView(
   points[0],
-  Math.min(16, map.getMaxZoom()), // demo mode zoom in - might need changing
+   Math.min(18, map.getMaxZoom()),// demo mode zoom in - might need changing
   {animate:false}
 );
 
@@ -8521,7 +8592,10 @@ let previousTime = null;
 const animate = timestamp => {
   if(outdoorGuidance !== state || state.finished) return;
 
-  if(document.hidden){
+  if(
+  document.hidden ||
+  document.getElementById('cancelJourneyDialog')?.open
+){
     previousTime = null;
   }else{
     const elapsed = previousTime === null
@@ -8543,7 +8617,7 @@ while(
 const edge = result.edges?.[segmentIndex - 1];
 const onStairs = edge?.type === 'steps';
 
-const speed = onStairs ? 1 : 5;
+const speed = onStairs ? 1 : 6; //outdoor demo speed
 
 const distance = Math.min(
   state.total,
