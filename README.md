@@ -1,25 +1,30 @@
 # CampusWay
 
-CampusWay is a University of Haifa student project for indoor and outdoor campus navigation, with multilingual guidance and accessibility profiles.
+CampusWay is an accessible campus navigation app developed as a University of Haifa student project for the Accessibility and Learning Disabilities Unit. It supports the mobility, visual and sensory needs of students with disabilities through connected indoor and outdoor journeys, navigation profiles and multilingual guidance.
 
-[Open the live app](https://ja4smin.github.io/CampusWay/)
+Indoor navigation covers six buildings: Terrace (Madriga), Main, Rabin, Student House, Education and Multi-Purpose.
 
-![CampusWay campus map with a planned route and directions](docs/images/screenshots/main-03-outdoor-route.png)
+[Open the live app](https://ja4smin.github.io/CampusWay/) · [Open demonstration mode](https://ja4smin.github.io/CampusWay/?demo=1) · [User guide](docs/03-user-guide.md)
+
+![CampusWay campus map with a planned route and directions]![alt text](image.png)
 
 | Indoor navigation | Phone layout | Hebrew interface |
 |---|---|---|
-| ![Indoor route on a floor plan](docs/images/screenshots/indoor-02-route-floor-plan.png) | ![CampusWay on a phone](docs/images/screenshots/mobile-03-route-directions.png) | ![Hebrew right-to-left interface](docs/images/screenshots/main-12-hebrew-rtl.png) |
+| ![Indoor route on a floor plan]![alt text](image-1.png) | ![CampusWay on a phone]![alt text](image-2.png)| ![Hebrew right-to-left interface]![alt text](image-3.png) |
 
 ## Features
 
 - Outdoor routing along the mapped campus path network.
-- Indoor routing between rooms and across floors.
-- Connected journeys between buildings.
+- Indoor routing between rooms and across floors, using elevators and stairs.
+- Continuous indoor–outdoor journeys and shared indoor connections between buildings.
+- Five navigation profiles: General User, Mobility, Visual Impairment, Spatial / Navigation, and Sensory & Wellbeing Support.
 - English, Hebrew, Arabic and Russian interfaces.
-- Accessibility profiles, including Mobility and Spatial routing.
 - Search for rooms, buildings, food places, shops and campus services.
-- Voice search and voice guidance.
-- Saved favourites.
+- Services Near Me, including nearest restrooms and smoking areas, selectable quiet spaces, and shelter routing.
+- An “I need a break” route to a nearby rest space for Sensory & Wellbeing Support.
+- Voice search, spoken guidance, adjustable text size and high contrast.
+- Saved favourites and one-time location sharing.
+- Demonstration mode with simulated movement.
 
 ## Run locally
 
@@ -51,17 +56,21 @@ To also receive reports from the public GitHub Pages site, set up the optional f
 
 ## Plan a route
 
-Choose the start and destination on the main campus screen. A mapped indoor room can be used as either point.
+Choose your **From** and **To** locations from the search suggestions. A mapped indoor room can be used as either point.
 
-Open indoor navigation when the planned journey offers it. The indoor page restores the route automatically.
+For a journey starting indoors, select **Start indoor route**, review the indoor route, then press **Start**. Outdoor guidance begins automatically when the outdoor route is ready.
 
-Indoor navigation modes:
+Use **Continue outdoors** or **Continue indoors** when prompted to move between parts of the same journey. Completed stages are ticked off in **Your journey**.
 
-- **Auto:** simulates movement for previews and demonstrations.
-- **Phone Sensors:** estimates progress along the planned route from detected steps and calibrated phone heading.
-- **Manual / Wheelchair:** advances between checkpoints when the user confirms reaching them.
+Navigation behaviour:
 
-Elevator and stairs transitions in Phone Sensors mode require user confirmation. Shared elevator journeys preserve the pending ride when switching between buildings.
+- **Sensor-based indoor navigation:** estimates progress along the planned route using detected steps and calibrated phone heading. Confirm floor changes and arrival when prompted, after physically reaching them.
+- **Mobility profile:** avoids mapped stairs and uses manual checkpoint confirmation for indoor progress.
+- **Demonstration mode:** simulates indoor and outdoor movement without physically walking. Open the app with `?demo=1` to use it.
+
+Shared elevator journeys between Terrace (Madriga) and Rabin continue between the buildings as part of the same journey.
+
+Select **Cancel journey** to end a journey. In demonstration mode, movement pauses while the confirmation is open and resumes if you choose **No**.
 
 ## Accessibility and limitations
 
@@ -69,7 +78,7 @@ Mobility routing excludes mapped stairs. If no mapped step-free route is availab
 
 Accessibility depends on the accuracy and completeness of the mapped network. A calculated route does not verify current physical conditions.
 
-Indoor sensor positioning is an estimate. It does not detect whether the user has left the planned route, and it requires testing on real phones.
+Indoor sensor navigation is a prototype and estimates position along the planned route. It does not reliably detect whether the user has left that route.
 
 Phone sensor access requires a secure context. Use the HTTPS live app for phone testing; a local network HTTP address may not support sensors.
 
@@ -140,13 +149,19 @@ See also [`CHANGELOG.md`](CHANGELOG.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md)
 
 ## Project status
 
-CampusWay is a student project under active development. Mapping coverage, device testing and guidance continue to be refined.
+Submission version: October 2026.
 
-## Team
+CampusWay remains under active development. Mapping coverage, device testing and guidance continue to be refined. Indoor sensor navigation is a prototype.
+
+## Team and credits
 
 - Jasmin Taya ([@ja4smin](https://github.com/ja4smin))
 - Hadeel Hamodi ([@hadeel-hamodi](https://github.com/hadeel-hamodi))
-- Naseem Muhammad
-- Shady Salem
+- Naseem Muhammad ([@iNaseemMuh](https://github.com/iNaseemMuh))
+- Shady Salem ([@ShakyShako](https://github.com/ShakyShako))
+
+**Client:** Accessibility and Learning Disabilities Unit, University of Haifa.
+
+**Supervisor:** Professor Anna Zmansky.
 
 Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors. Map library: [Leaflet](https://leafletjs.com/).
