@@ -5907,13 +5907,33 @@ $('mobileIndoorEta').textContent =
 }
 
 function setMobileIndoorGuideOpen(open){
-  const panel=$('mobileIndoorGuidePanel');
-  const toggle=$('mobileIndoorGuideToggle');
+  const panel = $('mobileIndoorGuidePanel');
+  const toggle = $('mobileIndoorGuideToggle');
   if(!panel || !toggle) return;
-  panel.hidden=!open;
-  toggle.setAttribute('aria-expanded',String(open));
-  toggle.setAttribute('aria-label',mobileIndoorGuideCopy(open?'hide':'show'));
-  $('mobileIndoorGuide').classList.toggle('is-open',open);
+
+  panel.hidden = !open;
+  toggle.setAttribute('aria-expanded', String(open));
+  toggle.setAttribute(
+    'aria-label',
+    mobileIndoorGuideCopy(open ? 'hide' : 'show')
+  );
+  $('mobileIndoorGuide').classList.toggle('is-open', open);
+
+  if(open){
+    requestAnimationFrame(() => {
+      if(panel.hidden) return;
+
+      const current = panel.querySelector('li.current');
+      if(!current) return;
+
+      const panelRect = panel.getBoundingClientRect();
+      const stepRect = current.getBoundingClientRect();
+
+      panel.scrollTop +=
+        stepRect.top - panelRect.top - panel.clientTop
+        - (panel.clientHeight - stepRect.height) / 2;
+    });
+  }
 }
 
 // ── Steps: highlight where you are, tap a step to hear it ──

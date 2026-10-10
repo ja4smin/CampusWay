@@ -782,7 +782,7 @@ body.indoor-navigation-active .shell:has(.mobile-route-guide.is-open) .recenterB
   inset-inline:0;
   bottom:calc(100% + 8px);
   width:100%;
-  max-height:min(45dvh, 360px);
+  max-height:min(30dvh, 260px);
   margin:0;
   padding:14px;
   border-radius:16px;
