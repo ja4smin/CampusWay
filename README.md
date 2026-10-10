@@ -6,11 +6,11 @@ Indoor navigation covers six buildings: Terrace (Madriga), Main, Rabin, Student 
 
 [Open the live app](https://ja4smin.github.io/CampusWay/) · [Open demonstration mode](https://ja4smin.github.io/CampusWay/?demo=1) · [User guide](docs/03-user-guide.md)
 
-![CampusWay campus map with a planned route and directions]![alt text](image.png)
+![CampusWay campus map with a planned route and directions](docs/images/screenshots/main-03-outdoor-route.png)
 
 | Indoor navigation | Phone layout | Hebrew interface |
 |---|---|---|
-| ![Indoor route on a floor plan]![alt text](image-1.png) | ![CampusWay on a phone]![alt text](image-2.png)| ![Hebrew right-to-left interface]![alt text](image-3.png) |
+| ![Indoor route on a floor plan](docs/images/screenshots/indoor-02-route-floor-plan.png) | ![CampusWay on a phone](docs/images/screenshots/mobile-03-route-directions.png) | ![Hebrew right-to-left interface](docs/images/screenshots/main-12-hebrew-rtl.png) |
 
 ## Features
 
