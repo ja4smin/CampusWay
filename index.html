@@ -8011,18 +8011,131 @@ function updateReadStepsButton(){
   }
 }
 
+function automaticOutdoorSpeech(index, near = false){
+  const state = outdoorGuidance;
+  const step = state?.steps?.[index];
+
+  // The separate arrival message has no route-step object.
+  if(!state || !step){
+    return {
+      text: routeStepTexts[index],
+      minor: false
+    };
+  }
+
+  if(state.combinedSpokenSteps?.includes(index)) return null;
+
+  const remaining = Math.max(0, step.at - state.distance);
+  const compact = item =>
+    CampusRouteInstructions.formatCompactStep(item, lang);
+
+if(step.kind === 'turn' || step.kind === 'stairs'){
+  if(!near){
+    return {
+      text: CampusRouteInstructions.formatStep(
+        {...step, meters: remaining, landmark: null},
+        lang
+      ),
+      minor: true
+    };
+  }
+
+  const next = state.steps[index + 1];
+  const canCombine =
+    step.kind === 'turn' &&
+    next &&
+    ['turn', 'stairs'].includes(next.kind) &&
+    next.at >= step.at &&
+    next.at - step.at <= 15;
+
+  const first = compact(step);
+
+  if(!canCombine){
+    return {text: first, minor: false};
+  }
+
+  const then = outdoorGuidanceText(
+    ', then ',
+    ', ואז ',
+    '، ثم ',
+    ', затем '
+  );
+
+  return {
+    text: first + then + compact(next) + '.',
+    minor: false,
+    coveredIndices: [index + 1]
+  };
+}
+
+  if(step.kind === 'arrive'){
+    // Avoid starting approach speech immediately before arrival.
+    if(remaining <= 12) return null;
+
+    return {
+      text: state.options.indoorNext
+        ? outdoorGuidanceText(
+            'Continue to the entrance.',
+            'המשך אל הכניסה.',
+            'تابع إلى المدخل.',
+            'Продолжайте ко входу.'
+          )
+        : outdoorGuidanceText(
+            'Continue to your destination.',
+            'המשך אל היעד.',
+            'تابع إلى وجهتك.',
+            'Продолжайте к месту назначения.'
+          ),
+      minor: true
+    };
+  }
+
+ if(step.kind === 'pass'){
+  const next = state.steps[index + 1];
+
+  if(next && next.at - state.distance <= 12) return null;
+
+  return {
+    text: routeStepTexts[index],
+    minor: true
+  };
+}
+
+  return {
+  text: routeStepTexts[index],
+  minor: true
+};
+}
+
 // Always speaks one instruction, never the entire list.
-function speakRouteSteps(index = 0){
+function speakRouteSteps(index = 0, options = {}){
   if(!window.speechSynthesis || !routeStepTexts[index]) return;
+
+  const guidance = options.automatic
+    ? automaticOutdoorSpeech(index, options.near === true)
+    : {text: routeStepTexts[index], minor: false};
+
+  if(!guidance?.text) return;
+
+  if(
+    options.automatic &&
+    guidance.minor &&
+    (
+      window.speechSynthesis.speaking ||
+      window.speechSynthesis.pending ||
+      readingSteps
+    )
+  ){
+    return;
+  }
 
   stopReadingSteps();
 
   const token = ++outdoorSpeechToken;
   const speechState = outdoorGuidance;
   const utterance = new SpeechSynthesisUtterance(
-    routeStepTexts[index]
+    guidance.text
   );
-
   const voice = getVoice();
   utterance.rate = 0.95;
   utterance.lang = voice?.lang || languageSpeechLocale();
@@ -8063,19 +8176,55 @@ const speechStartTimer = setTimeout(() => {
   }
 }, 1200);
 
-  utterance.onstart = () => {
-    speechStarted = true;
-    clearTimeout(speechStartTimer);
+ utterance.onstart = () => {
+  speechStarted = true;
+  clearTimeout(speechStartTimer);
+
+  if(
+    token !== outdoorSpeechToken ||
+    !speechState ||
+    outdoorGuidance !== speechState
+  ) return;
+
+  speechState.speechBlocked = false;
+  speechState.stairsSpeechPlaying = Boolean(
+  options.automatic &&
+  (
+    speechState.steps[index]?.kind === 'stairs' ||
+    guidance.coveredIndices?.some(
+      i => speechState.steps[i]?.kind === 'stairs'
+    )
+  )
+);
+
+if(
+  options.automatic &&
+  guidance.coveredIndices?.length
+){
+  speechState.combinedSpokenSteps = [
+    ...new Set([
+      ...(speechState.combinedSpokenSteps || []),
+      ...guidance.coveredIndices
+    ])
+  ];
+}
+};
+
+  utterance.onend = () => {
   if(
     token === outdoorSpeechToken &&
     speechState &&
     outdoorGuidance === speechState
   ){
-    speechState.speechBlocked = false;
-  }
-};
+    if(speechState.stairsSpeechPlaying){
+      speechState.stairsSpeechPauseUntil = performance.now() + 2200; ///pause a bit when on stairs
+    }
 
-  utterance.onend = finish;
+    speechState.stairsSpeechPlaying = false;
+  }
+
+  finish();
+};
   utterance.onerror = event => {
     finish();
 
@@ -8377,23 +8526,51 @@ if(!state.marker){
   }
 
   if(state.currentIndex !== index){
-    state.currentIndex = index;
-    highlightRouteStep(index);
+  state.currentIndex = index;
+  highlightRouteStep(index);
+}
 
-    if(
-      (audioOn || state.readAloudEnabled) &&
-      !state.speechMuted &&
-      !document.hidden
-){
-      speakRouteSteps(index);
-    }
-  }
 syncMobileOutdoorGuide();
+
 const arrived = state.demo
   ? state.distance >= state.total
   : state.distance >= state.total - 12 &&
     outdoorMeters(point, state.points.at(-1)) <= 12;
 
+const step = state.steps[index];
+
+if(
+  !arrived &&
+  step &&
+  (audioOn || state.readAloudEnabled) &&
+  !state.speechMuted &&
+  !document.hidden
+){
+  const remaining = Math.max(0, step.at - state.distance);
+
+  const near =
+    ['turn', 'stairs'].includes(step.kind) &&
+    remaining <= 15;
+
+  const speechKey = `${index}:${near ? 'near' : 'approach'}`;
+
+const waitingOnStairs =
+  state.onStairs &&
+  !state.speechBlocked &&
+  remaining > 3 &&
+  (
+    (state.stairsSpeechPlaying && readingSteps) ||
+    performance.now() < (state.stairsSpeechPauseUntil || 0)
+  );
+
+if(
+  !waitingOnStairs &&
+  state.lastAutomaticSpeechKey !== speechKey
+){
+  state.lastAutomaticSpeechKey = speechKey;
+  speakRouteSteps(index, {automatic: true, near});
+}
+}
 if(!arrived) return;
 
 state.finished = true;
@@ -8455,7 +8632,7 @@ if(
   !state.speechMuted &&
   !document.hidden
 ){
-  speakRouteSteps(state.currentIndex);
+  speakRouteSteps(state.currentIndex, {automatic: true});
 }
 }
 
@@ -8587,17 +8764,34 @@ map.setView(
       'Автоматический режим · имитация движения'
     ));
 
+// Show and speak the opening instruction before movement begins.
+updateOutdoorGuidance(state, 0, points[0]);
+
+let openingInstructionFinished = false;
 let previousTime = null;
 
 const animate = timestamp => {
   if(outdoorGuidance !== state || state.finished) return;
 
-  if(
+const openingSpeechBusy =
+  !openingInstructionFinished &&
+  (audioOn || state.readAloudEnabled) &&
+  !state.speechMuted &&
+  !state.speechBlocked &&
+  (
+    window.speechSynthesis?.speaking ||
+    window.speechSynthesis?.pending ||
+    readingSteps
+  );
+
+if(
   document.hidden ||
-  document.getElementById('cancelJourneyDialog')?.open
+  document.getElementById('cancelJourneyDialog')?.open ||
+  openingSpeechBusy
 ){
-    previousTime = null;
-  }else{
+  previousTime = null;
+}else{
+  openingInstructionFinished = true;
     const elapsed = previousTime === null
       ? 0
       : Math.min(0.25, (timestamp - previousTime) / 1000);
@@ -8616,8 +8810,9 @@ while(
 // Graph edge k corresponds to coordinate segment k + 1.
 const edge = result.edges?.[segmentIndex - 1];
 const onStairs = edge?.type === 'steps';
+state.onStairs = onStairs;
 
-const speed = onStairs ? 1 : 6; //outdoor demo speed
+const speed = onStairs ? 1.5 : 6; //outdoor demo speed
 
 const distance = Math.min(
   state.total,

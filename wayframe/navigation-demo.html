@@ -5750,15 +5750,26 @@ const SHARED_AUDIO_KEY = 'campusway.audioEnabled';
 let indoorSpeechRequest = 0;
 const indoorSelectedVoices = new Map();
 
-async function speakIndoor(text, force = false){
+async function speakIndoor(text, force = false, options = {}){
   if(
     (!indoorVoiceOn && !force) ||
     !text ||
     !('speechSynthesis' in window)
   ) return;
 
-  const request = ++indoorSpeechRequest;
   const synth = window.speechSynthesis;
+
+  // Automatic minor guidance must not interrupt existing speech.
+  // Tapped instructions still replay immediately.
+  if(
+    !force &&
+    options.minor &&
+    (synth.speaking || synth.pending)
+  ){
+    return;
+  }
+
+  const request = ++indoorSpeechRequest;
   const locale = indoorLang === 'he' ? 'he-IL'
     : indoorLang === 'ar' ? 'ar'
     : indoorLang === 'ru' ? 'ru-RU'
@@ -5820,17 +5831,16 @@ if(voice){
 }
 
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.voice = voice;
-  utterance.lang = voice.lang;
+  if(voice) utterance.voice = voice;
+  utterance.lang = voice?.lang || locale;
   utterance.rate = 0.97;
   utterance.pitch = 1;
 
-  console.log('[Indoor speech]', {
-    text,
-    voice: voice.name,
-    language: voice.lang
-  });
-
+console.log('[Indoor speech]', {
+  text,
+  voice: voice?.name || 'browser default',
+  language: utterance.lang
+});
   synth.speak(utterance);
 }
 
@@ -5846,6 +5856,144 @@ function setIndoorVoice(on, announce=true){
     speakIndoor(routeNodes.length ? currentGuidanceText() : it('voiceOn'));
   }
   if(!on && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+}
+
+let indoorAutoSpeechRoute = null;
+let indoorAutoSpeechIndex = -1;
+let indoorAutoSpeechKey = '';
+let indoorCombinedTurn = -1;
+
+function indoorSpeechTurnAt(index){
+  const a = routeNodes[index - 1];
+  const b = routeNodes[index];
+  const c = routeNodes[index + 1];
+
+  if(!a || !b || !c ||
+     a.floor !== b.floor || b.floor !== c.floor){
+    return 0;
+  }
+
+  const pA = mapPoint(a);
+  const pB = mapPoint(b);
+  const pC = mapPoint(c);
+
+  const x1 = pB.x - pA.x;
+  const y1 = pB.y - pA.y;
+  const x2 = pC.x - pB.x;
+  const y2 = pC.y - pB.y;
+  const angle = Math.atan2(
+    x1 * y2 - y1 * x2,
+    x1 * x2 + y1 * y2
+  ) * 180 / Math.PI;
+
+  return Math.abs(angle) < 25 ? 0 : Math.sign(angle);
+}
+
+function automaticIndoorSpeech(){
+  if(
+    indoorAutoSpeechRoute !== routeNodes ||
+    progressIndex < indoorAutoSpeechIndex
+  ){
+    indoorAutoSpeechRoute = routeNodes;
+    indoorAutoSpeechKey = '';
+    indoorCombinedTurn = -1;
+  }
+
+  indoorAutoSpeechIndex = progressIndex;
+
+  const text = currentGuidanceText();
+  const icon = $('turnIcon').textContent.trim();
+  const minor = icon === '↑';
+
+  // Preserve profile-specific and floor-change guidance.
+  if(
+    navMode === 'wheelchair' ||
+    selectedRoutingProfile() === 'spatial' ||
+    !['↑', '↱', '↰'].includes(icon)
+  ){
+    return {text, key: text, minor: false};
+  }
+
+  const firstIndex = progressIndex + 1;
+  const firstTurn = indoorSpeechTurnAt(firstIndex);
+
+  if(firstTurn && ['↱', '↰'].includes(icon)){
+    // This turn was already included in the previous announcement.
+    if(firstIndex === indoorCombinedTurn) return null;
+
+    let distance = 0;
+
+    for(let i = firstIndex + 1; i < routeNodes.length - 1; i++){
+      const previous = routeNodes[i - 1];
+      const node = routeNodes[i];
+
+      if(previous.floor !== node.floor) break;
+
+      distance += indoorDistanceMeters(previous, node);
+      if(distance > 6) break;
+
+      const secondTurn = indoorSpeechTurnAt(i);
+      if(!secondTurn) continue;
+
+      // Do not combine across stairs or elevator entry points.
+      const includesConnector = routeNodes
+        .slice(firstIndex, i + 2)
+        .some(n => ['elevator', 'stairs'].includes(n.type));
+
+      if(includesConnector) break;
+
+      indoorCombinedTurn = i;
+
+      const first = indoorTurnWords(firstTurn);
+      const second = indoorTurnWords(secondTurn);
+
+      return {
+        text: localizedInstruction(
+          `${first}, then ${second}.`,
+          `${first}، ثم ${second}.`,
+          `${first}, ואז ${second}.`,
+          `${first}, затем ${second}.`
+        ),
+        key: `turns:${firstIndex}:${i}`,
+        minor: false
+      };
+    }
+
+    return {
+      text,
+      key: `turn:${firstIndex}:${text}`,
+      minor: false
+    };
+  }
+
+  if(minor){
+    let distance = 0;
+
+    for(let i = progressIndex + 1; i < routeNodes.length; i++){
+      const previous = routeNodes[i - 1];
+      const node = routeNodes[i];
+
+      // Keep floor-change guidance available.
+      if(previous.floor !== node.floor) break;
+
+      const fraction = i === progressIndex + 1
+        ? 1 - Math.max(0, Math.min(1, progressT))
+        : 1;
+
+      distance += indoorDistanceMeters(previous, node) * fraction;
+      if(distance > 6) break;
+
+      if(
+        indoorSpeechTurnAt(i) ||
+        i === routeNodes.length - 1 ||
+        ['elevator', 'stairs'].includes(node.type)
+      ){
+        return null;
+      }
+    }
+  }
+
+  return {text, key: text, minor};
 }
 
 function currentGuidanceText(){
@@ -6215,14 +6363,21 @@ new MutationObserver(() => {
       return;
     }
 
-    const text = currentGuidanceText();
+    const guidance = automaticIndoorSpeech();
 
-    if(text && text !== lastSpokenGuidance){
-      lastSpokenGuidance = text;
-      speakIndoor(text);
+    if(
+      guidance?.text &&
+      guidance.key !== indoorAutoSpeechKey
+    ){
+      indoorAutoSpeechKey = guidance.key;
+      lastSpokenGuidance = guidance.text;
+
+      speakIndoor(guidance.text, false, {
+        minor: guidance.minor
+      });
     }
-  }, 150);
-}).observe($('instruction'), {
+      }, 150);
+    }).observe($('instruction'), {
   childList: true,
   characterData: true,
   subtree: true
