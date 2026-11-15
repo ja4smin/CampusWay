@@ -47,67 +47,147 @@
     return adapter.point ? adapter.point(nodeId) : null;
   }
 
-  function turnMagnitudeDegrees(adapter, previousId, currentId, nextId) {
-    if (previousId === null || previousId === undefined) return 0;
-
-    const previous = point(adapter, previousId);
-    const current = point(adapter, currentId);
-    const next = point(adapter, nextId);
-
-    if (!previous || !current || !next) return 0;
-    if (
-      previous.floor !== undefined &&
-      current.floor !== undefined &&
-      next.floor !== undefined &&
-      (previous.floor !== current.floor || current.floor !== next.floor)
-    ) return 0;
-
-    const incoming = {
-      x: current.x - previous.x,
-      y: current.y - previous.y
-    };
-    const outgoing = {
-      x: next.x - current.x,
-      y: next.y - current.y
-    };
-    const incomingLength = Math.hypot(incoming.x, incoming.y);
-    const outgoingLength = Math.hypot(outgoing.x, outgoing.y);
-
-    if (incomingLength <= EPSILON || outgoingLength <= EPSILON) return 0;
-
-    const cross = incoming.x * outgoing.y - incoming.y * outgoing.x;
-    const dot = incoming.x * outgoing.x + incoming.y * outgoing.y;
-    return Math.atan2(Math.abs(cross), dot) * 180 / Math.PI;
+function turnMagnitudeDegrees(
+  adapter,
+  previousNodeId,
+  currentNodeId,
+  nextNodeId
+){
+  // At the starting node, there is no incoming direction to compare.
+  if(previousNodeId === null || previousNodeId === undefined){
+    return 0;
   }
 
-  function routingOptions(options = {}) {
-    return {
-      preferFewerTurns: options.preferFewerTurns === true,
-      turnThresholdDegrees: Number.isFinite(options.turnThresholdDegrees)
-        ? options.turnThresholdDegrees
-        : DEFAULT_TURN_THRESHOLD_DEGREES,
-      turnPenaltyMeters: Number.isFinite(options.turnPenaltyMeters)
-        ? options.turnPenaltyMeters
-        : DEFAULT_TURN_PENALTY_METERS
-    };
+  const previousPoint = point(adapter, previousNodeId);
+  const currentPoint = point(adapter, currentNodeId);
+  const nextPoint = point(adapter, nextNodeId);
+
+  // An angle cannot be calculated without all three positions.
+  if(!previousPoint || !currentPoint || !nextPoint){
+    return 0;
   }
 
-  function turnDetails(adapter, previousId, currentId, nextId, options) {
-    const magnitude = turnMagnitudeDegrees(
-      adapter,
-      previousId,
-      currentId,
-      nextId
-    );
-    const isTurn = magnitude >= options.turnThresholdDegrees;
-    return {
-      magnitude,
-      isTurn,
-      penalty: options.preferFewerTurns && isTurn
-        ? options.turnPenaltyMeters
-        : 0
-    };
+  // When all three floors are known, exclude floor changes
+  // from ordinary walking-turn calculations.
+  if(
+    previousPoint.floor !== undefined &&
+    currentPoint.floor !== undefined &&
+    nextPoint.floor !== undefined &&
+    (
+      previousPoint.floor !== currentPoint.floor ||
+      currentPoint.floor !== nextPoint.floor
+    )
+  ){
+    return 0;
   }
+
+  // Direction of travel into the current node.
+  const incomingDirection = {
+    x: currentPoint.x - previousPoint.x,
+    y: currentPoint.y - previousPoint.y
+  };
+
+  // Direction of travel out of the current node.
+  const outgoingDirection = {
+    x: nextPoint.x - currentPoint.x,
+    y: nextPoint.y - currentPoint.y
+  };
+
+  const incomingLength = Math.hypot(
+    incomingDirection.x,
+    incomingDirection.y
+  );
+
+  const outgoingLength = Math.hypot(
+    outgoingDirection.x,
+    outgoingDirection.y
+  );
+
+  // Coincident or extremely close points do not define a reliable direction.
+  if(incomingLength <= EPSILON || outgoingLength <= EPSILON){
+    return 0;
+  }
+
+  // The 2D cross product captures the signed sideways change.
+  const crossProduct =
+    incomingDirection.x * outgoingDirection.y -
+    incomingDirection.y * outgoingDirection.x;
+
+  // The dot product captures how strongly the directions align.
+  const dotProduct =
+    incomingDirection.x * outgoingDirection.x +
+    incomingDirection.y * outgoingDirection.y;
+
+  // Absolute cross product removes the left/right distinction.
+  // atan2 returns the unsigned angle in radians, from 0 to PI.
+  const angleRadians = Math.atan2(
+    Math.abs(crossProduct),
+    dotProduct
+  );
+
+  // Convert radians to degrees.
+  return angleRadians * 180 / Math.PI;
+}
+
+function routingOptions(options = {}){
+  // Enable fewer-turns routing only for the Boolean value true.
+  const preferFewerTurns = options.preferFewerTurns === true;
+
+  // Use the default turn threshold unless a finite number was supplied.
+  let turnThresholdDegrees = DEFAULT_TURN_THRESHOLD_DEGREES;
+
+  if(Number.isFinite(options.turnThresholdDegrees)){
+    turnThresholdDegrees = options.turnThresholdDegrees;
+  }
+
+  // Use the default turn penalty unless a finite number was supplied.
+  let turnPenaltyMeters = DEFAULT_TURN_PENALTY_METERS;
+
+  if(Number.isFinite(options.turnPenaltyMeters)){
+    turnPenaltyMeters = options.turnPenaltyMeters;
+  }
+
+  return {
+    preferFewerTurns,
+    turnThresholdDegrees,
+    turnPenaltyMeters
+  };
+}
+
+function turnDetails(
+  adapter,
+  previousNodeId,
+  currentNodeId,
+  nextNodeId,
+  options
+){
+  // Measure the change in direction along:
+  // previous node → current node → next node.
+  const turnAngleDegrees = turnMagnitudeDegrees(
+    adapter,
+    previousNodeId,
+    currentNodeId,
+    nextNodeId
+  );
+
+  // Only angles at or above the threshold count as turns.
+  const isTurn = turnAngleDegrees >= options.turnThresholdDegrees;
+
+  // Add a cost only when fewer-turns routing is enabled
+  // and this direction change qualifies as a turn.
+  let turnPenalty = 0;
+
+  if(options.preferFewerTurns && isTurn){
+    turnPenalty = options.turnPenaltyMeters;
+  }
+
+  // Preserve the property names expected by the search algorithm.
+  return {
+    magnitude: turnAngleDegrees,
+    isTurn,
+    penalty: turnPenalty
+  };
+}
 
   function pathMetrics(adapter, path, rawOptions = {}) {
     if (!Array.isArray(path) || !path.length) return null;
@@ -150,196 +230,455 @@
     };
   }
 
-  function reconstructNodePath(startId, endId, previous, previousEdge) {
-    if (startId === endId) {
-      return { nodes: [startId], edges: [] };
-    }
-    if (!previous.has(endId)) return null;
-
-    const nodes = [endId];
-    const edges = [];
-    let current = endId;
-    while (current !== startId) {
-      const prior = previous.get(current);
-      const edge = previousEdge.get(current);
-      if (prior === undefined || !edge) return null;
-      edges.unshift(edge);
-      nodes.unshift(prior);
-      current = prior;
-    }
-    return { nodes, edges };
-  }
-
-  function shortestDistancePath(adapter, startId, endId, options) {
-    const ids = nodeIds(adapter);
-    const idSet = new Set(ids);
-    if (!idSet.has(startId) || !idSet.has(endId)) return null;
-
-    const distances = new Map(ids.map(id => [id, Infinity]));
-    const previous = new Map();
-    const previousEdge = new Map();
-    const unvisited = new Set(ids);
-    distances.set(startId, 0);
-
-    while (unvisited.size) {
-      let current = null;
-      let bestDistance = Infinity;
-      for (const id of unvisited) {
-        const distance = distances.get(id);
-        if (distance < bestDistance) {
-          current = id;
-          bestDistance = distance;
-        }
-      }
-      if (current === null || bestDistance === Infinity) break;
-      if (current === endId) break;
-      unvisited.delete(current);
-
-      for (const edge of neighbors(adapter, current)) {
-        if (!edgeAllowed(adapter, edge, current)) continue;
-        const nextId = edgeTarget(adapter, edge);
-        const weight = edgeWeight(adapter, edge);
-        if (!unvisited.has(nextId) || !Number.isFinite(weight) || weight < 0) continue;
-        const candidate = bestDistance + weight;
-        if (candidate < distances.get(nextId)) {
-          distances.set(nextId, candidate);
-          previous.set(nextId, current);
-          previousEdge.set(nextId, edge);
-        }
-      }
-    }
-
-    if (distances.get(endId) === Infinity) return null;
-    const path = reconstructNodePath(startId, endId, previous, previousEdge);
-    if (!path) return null;
-    const metrics = pathMetrics(adapter, path.nodes, options);
-    return metrics ? { ...path, ...metrics } : null;
-  }
-
-  function stateKey(previousId, currentId) {
-    return JSON.stringify([previousId, currentId]);
-  }
-
-  function better(candidate, existing) {
-    if (!existing) return true;
-    if (candidate.score < existing.score - EPSILON) return true;
-    if (Math.abs(candidate.score - existing.score) > EPSILON) return false;
-    if (candidate.turns < existing.turns) return true;
-    if (candidate.turns > existing.turns) return false;
-    return candidate.distance < existing.distance - EPSILON;
-  }
-
-  function simplerPath(adapter, startId, endId, options) {
-    const ids = nodeIds(adapter);
-    const idSet = new Set(ids);
-    if (!idSet.has(startId) || !idSet.has(endId)) return null;
-    if (startId === endId) {
-      return { nodes: [startId], edges: [], distance: 0, turns: 0, score: 0 };
-    }
-
-    const startKey = stateKey(null, startId);
-    const records = new Map([[startKey, {
-      previousId: null,
-      currentId: startId,
-      distance: 0,
-      turns: 0,
-      score: 0
-    }]]);
-    const pending = new Set([startKey]);
-    const visited = new Set();
-    const previousState = new Map();
-    const previousEdge = new Map();
-    let endKey = null;
-
-    while (pending.size) {
-      let currentKey = null;
-      let currentRecord = null;
-      for (const key of pending) {
-        const record = records.get(key);
-        if (better(record, currentRecord)) {
-          currentKey = key;
-          currentRecord = record;
-        }
-      }
-      if (!currentRecord) break;
-      pending.delete(currentKey);
-      if (visited.has(currentKey)) continue;
-      visited.add(currentKey);
-
-      if (currentRecord.currentId === endId) {
-        endKey = currentKey;
-        break;
-      }
-
-      for (const edge of neighbors(adapter, currentRecord.currentId)) {
-        if (!edgeAllowed(adapter, edge, currentRecord.currentId)) continue;
-        const nextId = edgeTarget(adapter, edge);
-        const weight = edgeWeight(adapter, edge);
-        if (!idSet.has(nextId) || !Number.isFinite(weight) || weight < 0) continue;
-
-        const details = turnDetails(
-          adapter,
-          currentRecord.previousId,
-          currentRecord.currentId,
-          nextId,
-          options
-        );
-        const nextRecord = {
-          previousId: currentRecord.currentId,
-          currentId: nextId,
-          distance: currentRecord.distance + weight,
-          turns: currentRecord.turns + (details.isTurn ? 1 : 0),
-          score: currentRecord.score + weight + details.penalty
-        };
-        const nextKey = stateKey(currentRecord.currentId, nextId);
-        if (visited.has(nextKey) || !better(nextRecord, records.get(nextKey))) continue;
-        records.set(nextKey, nextRecord);
-        previousState.set(nextKey, currentKey);
-        previousEdge.set(nextKey, edge);
-        pending.add(nextKey);
-      }
-    }
-
-    if (!endKey) return null;
-    const nodes = [];
-    const edges = [];
-    let currentKey = endKey;
-    while (currentKey) {
-      const record = records.get(currentKey);
-      if (!record) return null;
-      nodes.unshift(record.currentId);
-      const edge = previousEdge.get(currentKey);
-      if (edge) edges.unshift(edge);
-      currentKey = previousState.get(currentKey);
-    }
-    const result = records.get(endKey);
+function reconstructNodePath(startId, endId, previousNode, previousEdge){
+  // If both endpoints are the same, no connections are needed.
+  if(startId === endId){
     return {
-      nodes,
-      edges,
-      distance: result.distance,
-      turns: result.turns,
-      score: result.score
+      nodes: [startId],
+      edges: []
     };
   }
 
-  function findPath(adapter, startId, endId, rawOptions = {}) {
-    const options = routingOptions(rawOptions);
-    if (!options.preferFewerTurns) {
-      return shortestDistancePath(adapter, startId, endId, options);
-    }
-
-    const result = simplerPath(adapter, startId, endId, options);
-    if (!result) return null;
-
-    // A direction-aware cost can theoretically prefer a tiny loop to avoid a
-    // turn penalty when a map contains duplicate or nearly identical nodes.
-    // Never show that kind of route to a user; fall back to the shortest path.
-    if (new Set(result.nodes).size !== result.nodes.length) {
-      return shortestDistancePath(adapter, startId, endId, options);
-    }
-
-    return result;
+  // Without a predecessor for the destination, we cannot rebuild a route.
+  if(!previousNode.has(endId)){
+    return null;
   }
+
+  // Start at the destination and trace the route backwards.
+  const routeNodes = [endId];
+  const routeEdges = [];
+  let currentNodeId = endId;
+
+  while(currentNodeId !== startId){
+    const predecessorId = previousNode.get(currentNodeId);
+    const incomingEdge = previousEdge.get(currentNodeId);
+
+    // Stop if the predecessor chain is incomplete.
+    if(predecessorId === undefined || !incomingEdge){
+      return null;
+    }
+
+    // Add at the beginning so the result is ordered from start to end.
+    routeNodes.unshift(predecessorId);
+    routeEdges.unshift(incomingEdge);
+
+    // Move backwards to the preceding node.
+    currentNodeId = predecessorId;
+  }
+
+  // Keep the property names expected by the rest of the planner.
+  return {
+    nodes: routeNodes,
+    edges: routeEdges
+  };
+}
+  //contains the dijkstra algorithm
+ function shortestDistancePath(adapter, startId, endId, options){
+  const allNodeIds = nodeIds(adapter);
+  const existingNodeIds = new Set(allNodeIds);
+
+  // Both endpoints must exist in the graph.
+  if(!existingNodeIds.has(startId) || !existingNodeIds.has(endId)){
+    return null;
+  }
+
+  // Store the cheapest cost discovered so far for each node.
+  // Infinity means that no route to the node has been discovered yet.
+  const bestKnownCosts = new Map(
+    allNodeIds.map(nodeId => [nodeId, Infinity])
+  );
+
+  // Remember how we reached each node along its best known route.
+  const previousNode = new Map();
+  const previousEdge = new Map();
+
+  // These nodes have not had their shortest costs finalised yet.
+  const unvisitedNodes = new Set(allNodeIds);
+
+  // Reaching the starting node requires no travel.
+  bestKnownCosts.set(startId, 0);
+
+  while(unvisitedNodes.size > 0){
+    let currentNodeId = null;
+    let currentCost = Infinity;
+
+    // Find the unvisited node with the smallest known cost.
+    for(const nodeId of unvisitedNodes){
+      const nodeCost = bestKnownCosts.get(nodeId);
+
+      if(nodeCost < currentCost){
+        currentNodeId = nodeId;
+        currentCost = nodeCost;
+      }
+    }
+
+    // Stop if no reachable unvisited node remains.
+    if(currentNodeId === null || currentCost === Infinity){
+      break;
+    }
+
+    // Once the destination is selected as the cheapest unvisited node,
+    // its shortest cost is established.
+    if(currentNodeId === endId){
+      break;
+    }
+
+    // Finalise this node: later steps will not update its cost.
+    unvisitedNodes.delete(currentNodeId);
+
+    // Examine every outgoing connection from the current node.
+    for(const edge of neighbors(adapter, currentNodeId)){
+      // Skip connections forbidden by the adapter's routing rules.
+      if(!edgeAllowed(adapter, edge, currentNodeId)){
+        continue;
+      }
+
+      const neighborId = edgeTarget(adapter, edge);
+      const connectionCost = edgeWeight(adapter, edge);
+
+      // Skip finalised or unknown neighbours, invalid costs,
+      // and negative costs, which this Dijkstra implementation excludes.
+      if(
+        !unvisitedNodes.has(neighborId) ||
+        !Number.isFinite(connectionCost) ||
+        connectionCost < 0
+      ){
+        continue;
+      }
+
+      // Calculate the cost of reaching this neighbour
+      // through the current node.
+      const candidateCost = currentCost + connectionCost;
+
+      // Keep this route only if it improves the neighbour's known cost.
+      if(candidateCost < bestKnownCosts.get(neighborId)){
+        bestKnownCosts.set(neighborId, candidateCost);
+
+        previousNode.set(neighborId, currentNodeId);
+        previousEdge.set(neighborId, edge);
+      }
+    }
+  }
+
+  // Infinity means the destination could not be reached.
+  if(bestKnownCosts.get(endId) === Infinity){
+    return null;
+  }
+
+  // Follow the predecessor records to rebuild the ordered route.
+  const path = reconstructNodePath(
+    startId,
+    endId,
+    previousNode,
+    previousEdge
+  );
+
+  if(!path){
+    return null;
+  }
+
+  // Calculate the route's distance, turn count and score.
+  const metrics = pathMetrics(adapter, path.nodes, options);
+
+  if(!metrics){
+    return null;
+  }
+
+  // Combine the node/edge sequence with its calculated metrics.
+  return {
+    ...path,
+    ...metrics
+  };
+}
+
+function stateKey(previousNodeId, currentNodeId){
+  // JSON preserves the order and boundaries of both IDs.
+  // The starting state uses null for the previous node.
+  return JSON.stringify([
+    previousNodeId,
+    currentNodeId
+  ]);
+}
+//better() decides whether a candidate record should replace an existing one
+function better(candidateRecord, existingRecord){
+  // A candidate wins if there is no existing record to compete with.
+  if(!existingRecord){
+    return true;
+  }
+
+  // First preference: a lower total score.
+  // EPSILON provides a tolerance for floating-point rounding.
+  if(
+    candidateRecord.score <
+    existingRecord.score - EPSILON
+  ){
+    return true;
+  }
+
+  // If the scores differ beyond the tolerance, and the candidate
+  // did not win above, the existing record has the better score.
+  if(
+    Math.abs(candidateRecord.score - existingRecord.score) >
+    EPSILON
+  ){
+    return false;
+  }
+
+  // Scores are effectively tied: prefer fewer turns.
+  if(candidateRecord.turns < existingRecord.turns){
+    return true;
+  }
+
+  if(candidateRecord.turns > existingRecord.turns){
+    return false;
+  }
+
+  // Scores and turn counts are tied:
+  // prefer a lower total edge cost, excluding turn penalties.
+  return (
+    candidateRecord.distance <
+    existingRecord.distance - EPSILON
+  );
+}
+
+function simplerPath(adapter, startId, endId, options){
+  const allNodeIds = nodeIds(adapter);
+  const existingNodeIds = new Set(allNodeIds);
+
+  // Both endpoints must exist in the graph.
+  if(!existingNodeIds.has(startId) || !existingNodeIds.has(endId)){
+    return null;
+  }
+
+  // No travel is needed when both endpoints are the same.
+  if(startId === endId){
+    return {
+      nodes: [startId],
+      edges: [],
+      distance: 0,
+      turns: 0,
+      score: 0
+    };
+  }
+
+  // A search state represents:
+  // "We arrived at currentId from previousId."
+  // The starting state has no previous node.
+  const startingStateKey = stateKey(null, startId);
+
+  const stateRecords = new Map([
+    [
+      startingStateKey,
+      {
+        previousId: null,
+        currentId: startId,
+        distance: 0,
+        turns: 0,
+        score: 0
+      }
+    ]
+  ]);
+
+  // Discovered states still waiting to be processed.
+  const pendingStates = new Set([startingStateKey]);
+
+  // States whose best records have already been finalised.
+  const visitedStates = new Set();
+
+  // Remember the preceding state and connection for reconstruction.
+  const previousState = new Map();
+  const previousEdge = new Map();
+
+  let destinationStateKey = null;
+
+  while(pendingStates.size > 0){
+    let currentStateKey = null;
+    let currentRecord = null;
+
+    // Select the best pending state using the existing comparison rules.
+    for(const candidateStateKey of pendingStates){
+      const candidateRecord = stateRecords.get(candidateStateKey);
+
+      if(better(candidateRecord, currentRecord)){
+        currentStateKey = candidateStateKey;
+        currentRecord = candidateRecord;
+      }
+    }
+
+    if(!currentRecord){
+      break;
+    }
+
+    pendingStates.delete(currentStateKey);
+
+    if(visitedStates.has(currentStateKey)){
+      continue;
+    }
+
+    visitedStates.add(currentStateKey);
+
+    // The selected state has reached the destination.
+    if(currentRecord.currentId === endId){
+      destinationStateKey = currentStateKey;
+      break;
+    }
+
+    // Examine connections leaving the current node.
+    for(const edge of neighbors(adapter, currentRecord.currentId)){
+      if(!edgeAllowed(adapter, edge, currentRecord.currentId)){
+        continue;
+      }
+
+      const neighborId = edgeTarget(adapter, edge);
+      const connectionCost = edgeWeight(adapter, edge);
+
+      // Skip unknown nodes and invalid or negative connection costs.
+      if(
+        !existingNodeIds.has(neighborId) ||
+        !Number.isFinite(connectionCost) ||
+        connectionCost < 0
+      ){
+        continue;
+      }
+
+      // Measure the turn made by travelling:
+      // previous node → current node → neighbour.
+      const turnInformation = turnDetails(
+        adapter,
+        currentRecord.previousId,
+        currentRecord.currentId,
+        neighborId,
+        options
+      );
+
+      const nextRecord = {
+        previousId: currentRecord.currentId,
+        currentId: neighborId,
+
+        // Total edge cost, without turn penalties.
+        distance: currentRecord.distance + connectionCost,
+
+        // Number of recognised turns along this route.
+        turns:
+          currentRecord.turns +
+          (turnInformation.isTurn ? 1 : 0),
+
+        // Total edge cost plus turn penalties.
+        score:
+          currentRecord.score +
+          connectionCost +
+          turnInformation.penalty
+      };
+
+      // Arriving at this neighbour from a different node
+      // would represent a different search state.
+      const nextStateKey = stateKey(
+        currentRecord.currentId,
+        neighborId
+      );
+
+      // Keep the original rule: do not reopen finalised states,
+      // and replace a record only when the candidate is better.
+      if(
+        visitedStates.has(nextStateKey) ||
+        !better(nextRecord, stateRecords.get(nextStateKey))
+      ){
+        continue;
+      }
+
+      stateRecords.set(nextStateKey, nextRecord);
+      previousState.set(nextStateKey, currentStateKey);
+      previousEdge.set(nextStateKey, edge);
+      pendingStates.add(nextStateKey);
+    }
+  }
+
+  // No destination state was reached.
+  if(!destinationStateKey){
+    return null;
+  }
+
+  // Reconstruct the route by following states backwards.
+  const routeNodes = [];
+  const routeEdges = [];
+  let reconstructionStateKey = destinationStateKey;
+
+  while(reconstructionStateKey){
+    const record = stateRecords.get(reconstructionStateKey);
+
+    if(!record){
+      return null;
+    }
+
+    routeNodes.unshift(record.currentId);
+
+    const incomingEdge = previousEdge.get(reconstructionStateKey);
+
+    if(incomingEdge){
+      routeEdges.unshift(incomingEdge);
+    }
+
+    reconstructionStateKey =
+      previousState.get(reconstructionStateKey);
+  }
+
+  const destinationRecord = stateRecords.get(destinationStateKey);
+
+  return {
+    nodes: routeNodes,
+    edges: routeEdges,
+    distance: destinationRecord.distance,
+    turns: destinationRecord.turns,
+    score: destinationRecord.score
+  };
+}
+
+    function findPath(adapter, startId, endId, rawOptions = {}){
+      // Apply the routing defaults to the supplied options.
+      const options = routingOptions(rawOptions);
+
+      // Without a preference for fewer turns, minimise total edge cost.
+      if(!options.preferFewerTurns){
+        return shortestDistancePath(
+          adapter,
+          startId,
+          endId,
+          options
+        );
+      }
+
+      // Otherwise, search using both travel cost and turn penalties.
+      const routeWithFewerTurns = simplerPath(
+        adapter,
+        startId,
+        endId,
+        options
+      );
+
+      // No permitted route was found.
+      if(!routeWithFewerTurns){
+        return null;
+      }
+
+      // A Set keeps only unique IDs.
+      // Fewer unique IDs than route entries means a node was visited twice.
+      const uniqueNodeCount = new Set(routeWithFewerTurns.nodes).size;
+      const routeNodeCount = routeWithFewerTurns.nodes.length;
+      const hasRepeatedNode = uniqueNodeCount !== routeNodeCount;
+
+      // Turn penalties can sometimes favour a loop.
+      // If that happens, fall back to the ordinary shortest-cost route.
+      if(hasRepeatedNode){
+        return shortestDistancePath(
+          adapter,
+          startId,
+          endId,
+          options
+        );
+      }
+
+      return routeWithFewerTurns;
+    }
 
   return {
     findPath,

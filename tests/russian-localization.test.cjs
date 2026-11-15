@@ -217,31 +217,69 @@ test('generic mapped places keep Russian labels while brand names stay unchanged
     assert.ok(navigation.includes(name), `indoor page is missing ${name}`);
   }
 });
-
 test('indoor Russian dictionaries match English and every dynamic instruction has Russian', () => {
   for (const marker of [
     'const INDOOR_T =',
     'const INDOOR_T_EXTRA =',
-    'const INDOOR_T_MORE='
+    'const INDOOR_T_MORE ='
   ]) {
     const dictionary = objectAfter(navigation, marker);
-    assert.deepEqual(sortedKeys(dictionary.ru), sortedKeys(dictionary.en), marker);
+
+    assert.deepEqual(
+      sortedKeys(dictionary.ru),
+      sortedKeys(dictionary.en),
+      marker
+    );
   }
 
   const callName = 'localizedInstruction';
   let offset = 0;
   let count = 0;
-  while ((offset = navigation.indexOf(`${callName}(`, offset)) >= 0) {
+
+  while (
+    (offset = navigation.indexOf(`${callName}(`, offset)) >= 0
+  ) {
     const args = parseCall(navigation, offset, callName);
-    assert.equal(args.length, 4, `localizedInstruction at offset ${offset}`);
-    assert.ok(args[3], `Russian argument is empty at offset ${offset}`);
+
+    // A trailing comma is formatting, not an extra argument.
+    if (args.at(-1) === '') {
+      args.pop();
+    }
+
+    assert.equal(
+      args.length,
+      4,
+      `localizedInstruction at offset ${offset}`
+    );
+
+    assert.ok(
+      args[3],
+      `Russian argument is empty at offset ${offset}`
+    );
+
     count += 1;
     offset += callName.length + 1;
   }
-  assert.ok(count > 150, 'expected all indoor dynamic guidance calls to be checked');
-  assert.match(navigation, /const rtl=indoorLang==='ar'\|\|indoorLang==='he'/);
-  assert.match(navigation, /const arrow=\(indoorLang==='ar'\|\|indoorLang==='he'\) \? '←' : '→'/);
-  assert.match(navigation, /indoorLang\s*===\s*'ru'\s*\?\s*'ru-RU'/);
+
+  assert.ok(
+    count > 150,
+    'expected all indoor dynamic guidance calls to be checked'
+  );
+
+  assert.match(
+    navigation,
+    /const\s+rtl\s*=\s*indoorLang\s*===\s*["']ar["']\s*\|\|\s*indoorLang\s*===\s*["']he["']/
+  );
+
+  assert.match(
+    navigation,
+    /const\s+arrow\s*=\s*\(?\s*indoorLang\s*===\s*["']ar["']\s*\|\|\s*indoorLang\s*===\s*["']he["']\s*\)?\s*\?\s*["']←["']\s*:\s*["']→["']/
+  );
+
+  assert.match(
+    navigation,
+    /indoorLang\s*===\s*["']ru["']\s*\?\s*["']ru-RU["']/
+  );
 });
 
 test('four language choices fit the UI and the new release refreshes cached files', () => {

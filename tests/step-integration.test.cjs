@@ -4,8 +4,40 @@ const root=path.join(__dirname,'..');
 const nav=fs.readFileSync(path.join(root,'wayframe/navigation-demo.html'),'utf8');
 const tester=fs.readFileSync(path.join(root,'wayframe/sensor-test.html'),'utf8');
   const modules=['step-detector.js','heading-tracker.js','route-progress.js','wheelchair-navigation.js','route-planner.js'];
-function between(source,start,end){
-  const a=source.indexOf(start),b=source.indexOf(end,a);assert.ok(a>=0&&b>a,start);return source.slice(a,b);
+function between(source, start, end){
+  // Allow spacing and quote-style differences in JavaScript markers.
+  function markerPattern(marker){
+    const tokens = marker.match(
+      /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[A-Za-z_$][\w$]*|\d+|[^\s]/g
+    ) || [];
+
+    const escapeRegex = text =>
+      text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const parts = tokens.map(token => {
+      // Accept either single or double quotes around the same text.
+      if(token.startsWith("'") || token.startsWith('"')){
+        return `["']${escapeRegex(token.slice(1, -1))}["']`;
+      }
+
+      return escapeRegex(token);
+    });
+
+    return new RegExp(parts.join('\\s*'), 'g');
+  }
+
+  const startMatch = markerPattern(start).exec(source);
+
+  assert.ok(startMatch, `Missing start marker: ${start}`);
+
+  const endPattern = markerPattern(end);
+  endPattern.lastIndex = startMatch.index + startMatch[0].length;
+
+  const endMatch = endPattern.exec(source);
+
+  assert.ok(endMatch, `Missing end marker: ${end}`);
+
+  return source.slice(startMatch.index, endMatch.index);
 }
 function harness(testPage=false,permission){
   const elements=new Map(),listeners=new Map(),timers=new Map(),frames=new Map();let clock=0,serial=0;
@@ -99,16 +131,24 @@ window.clearTimeout = clearTimeoutMock;
     // Actual route, signed movement, instructions, sensor and lifecycle code; only drawing/loading are stubbed.
     run(between(nav,'function route(){',"$('fromFloor').onchange="));
     run(
-  between(
-    nav,
-    "let navMode = indoorDemoMode ? 'auto' : 'sensor';",
-    "$('routeBtn').onclick=route;"
-  ).replace(
-    "let navMode = indoorDemoMode ? 'auto' : 'sensor';",
-    "let navMode = 'auto';"
-  )
-);
-    run(between(nav,"document.getElementById('building').onchange =",'function floorLabel('));
+      between(
+        nav,
+        "let navMode = indoorDemoMode ? 'auto' : 'sensor';",
+        "$('routeBtn').onclick=route;"
+      ).replace(
+        /let\s+navMode\s*=\s*indoorDemoMode\s*\?\s*['"]auto['"]\s*:\s*['"]sensor['"]\s*;/,
+        "let navMode = 'auto';"
+      )
+    );
+
+    run(
+      between(
+        nav,
+        "document.getElementById('building').onchange =",
+        "function floorLabel("
+      )
+    );
+
     run('routeNodes=testNodes.slice();sensorsEnabled=true;');
   }
   const orient=(time,bearing,extra={})=>{

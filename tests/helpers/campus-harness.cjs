@@ -13,12 +13,42 @@ const GRAPH_GLOBALS = {
   main:'MAIN_GRAPH', rabin:'RABIN_GRAPH', student:'STUDENT_GRAPH',
   madriga:'MADRIGA_GRAPH', education:'EDUCATION_GRAPH', 'multi-purpose':'MULTI_PURPOSE_GRAPH'
 };
+function between(source, start, end) {
+  function markerPattern(marker) {
+    const tokens = marker.match(
+      /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[A-Za-z_$][\w$]*|\d+|[^\s]/g
+    ) || [];
 
-function between(source, start, end){
-  const a = source.indexOf(start);
-  const b = source.indexOf(end, a + start.length);
-  if(a < 0 || b < 0) throw new Error(`index.html changed: cannot find "${start}" … "${end}"`);
-  return source.slice(a, b);
+    const escapeRegex = text =>
+      text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    const parts = tokens.map(token => {
+      if (token.startsWith("'") || token.startsWith('"')) {
+        return `["']${escapeRegex(token.slice(1, -1))}["']`;
+      }
+
+      return escapeRegex(token);
+    });
+
+    return new RegExp(parts.join("\\s*"), "g");
+  }
+
+  const startMatch = markerPattern(start).exec(source);
+
+  if (!startMatch) {
+    throw new Error(`Missing start marker: ${start}`);
+  }
+
+  const endPattern = markerPattern(end);
+  endPattern.lastIndex = startMatch.index + startMatch[0].length;
+
+  const endMatch = endPattern.exec(source);
+
+  if (!endMatch) {
+    throw new Error(`Missing end marker: ${end}`);
+  }
+
+  return source.slice(startMatch.index, endMatch.index);
 }
 
 function graph(key){

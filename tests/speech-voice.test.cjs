@@ -75,6 +75,9 @@ test('both pages load the helper and use it before speaking', () => {
   assert.match(indoor, /<script src="\.\.\/app\/ui\/speech-voice\.js"><\/script>/);
   assert.match(index, /function speechVoiceMissing\(\)/);
   assert.match(index, /CampusSpeech\.checkVoice\(lang, \{force: announce\}\)/);
-  assert.match(indoor, /CampusSpeech\.checkVoice\(indoorLang, \{force: announce\}\)/);
+  assert.match(
+  indoor,
+  /CampusSpeech\.checkVoice\(\s*indoorLang\s*,\s*\{\s*force:\s*announce\s*,?\s*\}\s*\)/
+);
   assert.match(indoor, /CampusSpeech\.speechText\(text, indoorLang\)/);
 });

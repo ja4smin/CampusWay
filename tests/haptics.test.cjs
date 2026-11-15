@@ -10,12 +10,7 @@ const index = read('index.html');
 const nav = read('wayframe/navigation-demo.html');
 const source = read('app/ui/haptics.js');
 
-function between(text, start, end){
-  const a = text.indexOf(start);
-  const b = text.indexOf(end, a);
-  assert.ok(a >= 0 && b > a, start);
-  return text.slice(a, b);
-}
+const {between} = require('./helpers/campus-harness.cjs');
 
 // Loads app/ui/haptics.js as the browser does, with or without navigator.vibrate.
 function haptics(vibrate){
@@ -95,7 +90,10 @@ test('a new route starts counting turns again', () => {
 
 test('arrival vibrates indoors and outdoors for the Visual profile only', () => {
   // Indoors the arrival message vibrates: the longer pattern for Visual, a short buzz for the rest.
-  assert.match(nav, /primary\.focus\(\);[\s\S]{0,200}selectedRoutingProfile\(\) === 'visual'[^\n]*CampusHaptics\.arrive\(\);\s*else try\{ navigator\.vibrate\?\.\(\[60,40,60\]\)/);
+  assert.match(
+  nav,
+  /primary\.focus\(\);[\s\S]{0,500}?selectedRoutingProfile\(\)\s*===\s*["']visual["'][\s\S]{0,150}?CampusHaptics\.arrive\(\);\s*else\s*try\s*\{\s*navigator\.vibrate\?\.\(\[60,\s*40,\s*60\]\)/
+);
   const outdoor = between(index, 'function updateOutdoorGuidance(state, distance, point){', '\nfunction ');
   assert.match(outdoor, /state\.finished = true;\s*\r?\n\s*if\(currentProfile === 'visual'[^\n]*CampusHaptics\.arrive\(\)/);
   assert.match(outdoor, /currentProfile === 'visual' &&\s*\r?\n\s*\['turn', 'stairs'\]\.includes\(step\.kind\) &&\s*\r?\n\s*step\.at - state\.distance <= 15 &&\s*\r?\n\s*state\.lastHapticStep !== index/);

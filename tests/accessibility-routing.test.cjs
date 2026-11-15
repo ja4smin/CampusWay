@@ -13,10 +13,11 @@ const outdoor = fs.readFileSync(path.join(root, 'app', 'prototype', 'outdoor-rou
 const routePlanner = require('../wayframe/route-planner.js');
 
 function between(source, start, end) {
-  const a = source.indexOf(start);
-  const b = source.indexOf(end, a);
-  assert.ok(a >= 0 && b > a, `missing ${start}`);
-  return source.slice(a, b);
+  return require('./helpers/campus-harness.cjs').between(
+    source,
+    start,
+    end
+  );
 }
 
 test('profile choice moved from the route planner into onboarding and Settings', () => {
@@ -34,14 +35,35 @@ test('profile choice moved from the route planner into onboarding and Settings',
 });
 
 test('display and audio controls live in Settings and share audio with indoor navigation', () => {
-  const topbar = between(index, '<header class="topbar"', '</header>');
-  const settings = between(index, '<div class="settings-dialog"', '<div class="toast-region"');
+  const topbar = between(
+    index,
+    '<header class="topbar"',
+    '</header>'
+  );
 
-  assert.doesNotMatch(topbar, /id="contrastBtn"|id="audioBtn"/);
+  const settings = between(
+    index,
+    '<div class="settings-dialog"',
+    '<div class="toast-region"'
+  );
+
+  assert.doesNotMatch(
+    topbar,
+    /id="contrastBtn"|id="audioBtn"/
+  );
+
   assert.match(settings, /id="contrastBtn"[^>]+role="switch"/);
   assert.match(settings, /id="audioBtn"[^>]+role="switch"/);
-  assert.match(navigation, /SHARED_AUDIO_KEY\s*=\s*'campusway\.audioEnabled'/);
-  assert.match(navigation, /sharedVoice!==null[\s\S]+savedVoice!==null[\s\S]+selectedRoutingProfile\(\)==='visual'/);
+
+  assert.match(
+    navigation,
+    /SHARED_AUDIO_KEY\s*=\s*["']campusway\.audioEnabled["']/
+  );
+
+  assert.match(
+    navigation,
+    /sharedVoice\s*!==\s*null[\s\S]+savedVoice\s*!==\s*null[\s\S]+selectedRoutingProfile\(\)\s*===\s*["']visual["']/
+  );
 });
 
 test('Settings offers a persistent normal or large text size choice', () => {

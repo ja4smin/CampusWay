@@ -11,10 +11,12 @@ const nav = read('wayframe/navigation-demo.html');
 const Planner = require('../wayframe/route-planner.js');
 const keys = ['main','rabin','student','madriga','education','multi-purpose'];
 const graphs = Object.fromEntries(keys.map(key => [key, JSON.parse(read(`buildings/${key}/${key}-indoor-graph.json`))]));
-function section(source, start, end){
-  const a = source.indexOf(start), b = source.indexOf(end, a + start.length);
-  assert.ok(a >= 0 && b > a, `Cannot find app section: ${start} → ${end}`);
-  return source.slice(a, b);
+function section(source, start, end) {
+  return require('./helpers/campus-harness.cjs').between(
+    source,
+    start,
+    end
+  );
 }
 function storage(){
   const data = new Map();
@@ -71,7 +73,13 @@ function makeHarness(status = {}){
   `);
   run(section(nav,'const ORDER = [','const FLOOR_PLAN_FLOORS='));
   run(section(nav,'function cid(n){','function esc('));
-  run(section(nav,'function indoorDistanceMeters(a, b){','let indoorProgressRoute='));
+  run(
+  section(
+    nav,
+    'function indoorDistanceMeters(',
+    'let indoorProgressRoute='
+  )
+);
   run(section(nav,'function buildGraph(){','function selectedRoutingProfile(){'));
   run(section(nav,'function indoorRouteAdapter(graph){','function indoorPathPreference('));
   return {

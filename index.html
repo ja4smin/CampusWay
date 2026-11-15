@@ -5875,77 +5875,100 @@ async function getJourneyEtaSeconds({
     : null;
 }
 
-async function routeTo(name, lat, lng, options={}){
-    clearOutdoorEndpointMarkers();
-  window.CampusStatus?.track?.('route', options.emergency === true ? 'Nearest shelter' : name);
+async function routeTo(name, lat, lng, options = {}) {
+  // Remove the start and destination markers from the previous route.
+  clearOutdoorEndpointMarkers();
+
+  // Record the route request when the status module is available.
+  window.CampusStatus?.track?.(
+    'route',
+    options.emergency === true ? 'Nearest shelter' : name
+  );
+
+  // The Sensory & Wellbeing profile avoids noise for ordinary journeys.
+  // Emergency journeys do not apply this preference.
   const avoidNoise =
-  currentProfile === 'mental' && options.emergency !== true;  const keepIndoorContext = options.keepIndoorContext === true;  keepIndoorContextForCurrentRoute = keepIndoorContext;
+    currentProfile === 'mental' && options.emergency !== true;
+
+  // Preserve a selected indoor destination when routing to its building.
+  const keepIndoorContext = options.keepIndoorContext === true;
+  keepIndoorContextForCurrentRoute = keepIndoorContext;
+
+  // Remember the destination and options for the current journey.
   currentOutdoorDestination = {
-  name,
-  lat,
-  lng,
-  keepIndoorContext,
-  emergency: options.emergency === true
-};
-  if(!keepIndoorContext) sessionStorage.removeItem('indoorContext');
-  // Building transfers are worked out again below for this route; ones left
-  // by an earlier, unfinished journey must not be reused.
+    name,
+    lat,
+    lng,
+    keepIndoorContext,
+    emergency: options.emergency === true
+  };
+
+  if (!keepIndoorContext) {
+    sessionStorage.removeItem('indoorContext');
+  }
+
+  // Recalculate building transfers instead of reusing an earlier journey.
   sessionStorage.removeItem('sharedIndoorTransfer');
   sessionStorage.removeItem('intermediateIndoorTransfer');
-  // No start chosen: the route begins at the default gate, so a saved indoor
-  // start (room → exit) belongs to an earlier, unfinished journey.
-  if(!customStart){
+
+  // Without a custom start, the journey begins at the default gate.
+  // Any saved indoor starting leg therefore belongs to an earlier journey.
+  if (!customStart) {
     sessionStorage.removeItem('indoorStartContext');
     sessionStorage.removeItem('originIndoorComplete');
   }
-  if(typeof renderRouteSteps === 'function') renderRouteSteps(null);
-  if(typeof emergencyRouteActive !== 'undefined') emergencyRouteActive = options.emergency === true;
 
+  // Clear the previous written directions.
+  if (typeof renderRouteSteps === 'function') {
+    renderRouteSteps(null);
+  }
+
+  if (typeof emergencyRouteActive !== 'undefined') {
+    emergencyRouteActive = options.emergency === true;
+  }
+
+  // Later asynchronous operations check this ID so an older request
+  // cannot overwrite a newer route.
   const requestId = ++outdoorRouteRequestId;
-  if(routeLine){ map.removeLayer(routeLine); routeLine=null; }
+
+  // Remove the previous route line and stop its dash animation.
+  if (routeLine) {
+    map.removeLayer(routeLine);
+    routeLine = null;
+  }
+
   clearInterval(window._dashAnim);
 
-    if(gpsMarker && customStart?.buildingKey){
+  // Remove the GPS marker when the selected start is inside a building.
+  if (gpsMarker && customStart?.buildingKey) {
     map.removeLayer(gpsMarker);
   }
 // Student rooms use the Floor 4 exit when travelling to Main.
-// --------------------------------------------------
-// STUDENT HOUSE → MAIN BUILDING
-// --------------------------------------------------
-// Whether the user starts from a room inside Student
-// House OR selects Student House itself, leave through
-// floor4_n3.
-//
-// This puts the outdoor route onto the same upper path
-// used by Main → Student House.
-// --------------------------------------------------
-
-if(
+if (
   (
     customStart?.buildingKey === 'student' ||
     customStart?.label === 'Student House'
   ) &&
   name === 'Main Building'
-){
-  const floor4Exit = (
-    BUILDING_ENTRANCES.student || []
-  ).find(
+) {
+  // Find the exit that connects to the upper outdoor path.
+  const floor4Exit = (BUILDING_ENTRANCES.student || []).find(
     entrance => entrance.nodeId === 'floor4_n3'
   );
 
-  if(floor4Exit){
+  if (floor4Exit) {
+    // Start the outdoor leg at this exit.
     customStart.lat = floor4Exit.lat;
     customStart.lng = floor4Exit.lng;
     customStart.entranceId = floor4Exit.nodeId;
 
-    // If this started from an indoor room, tell the
-    // indoor route which Student House exit to use.
-    try{
+    // If an indoor starting leg exists, end it at the same exit.
+    try {
       const startContext = JSON.parse(
         sessionStorage.getItem('indoorStartContext') || 'null'
       );
 
-      if(startContext){
+      if (startContext) {
         startContext.exitEntranceId = floor4Exit.nodeId;
 
         sessionStorage.setItem(
@@ -5953,11 +5976,8 @@ if(
           JSON.stringify(startContext)
         );
       }
-    }catch(error){
-      console.warn(
-        'Could not update Student House exit:',
-        error
-      );
+    } catch (error) {
+      console.warn('Could not update Student House exit:', error);
     }
   }
 }
@@ -6164,48 +6184,58 @@ let usesMainToMadrigaChain =
   // The chain rides the shared Rabin ↔ Terrace elevator.
   !sharedElevatorOutOfService();
 
-if(entranceKey){
+if (entranceKey) {
+  // Read the indoor destination saved when the user selected a room or service.
   let destinationContext = {};
 
-try{
-  destinationContext = JSON.parse(
-    sessionStorage.getItem('indoorContext') || '{}'
-  );
-}catch(error){}
-
-const destinationNodeIds =
-  destinationContext.buildingKey === entranceKey
-    ? [...new Set([
-        destinationContext.destinationNodeId,
-        ...(destinationContext.destinationNodeIds || [])
-      ].filter(Boolean))]
-    : [];
-
-const destinationGraph = destinationNodeIds.length
-  ? await loadIndoorGraphForEta(entranceKey)
-  : null;
-
-const destinationNodes =
-  Object.values(destinationGraph?.floors || {})
-    .flatMap(floor => floor.nodes || []);
-
-const destinationServiceType =
-  destinationContext.destinationType ||
-  destinationNodes.find(
-    node => destinationNodeIds.includes(node.id)
-  )?.type;
-  const entrances = BUILDING_ENTRANCES[entranceKey] || [];
-const profileEntrances =
-  entrances.filter(entrance => {
-if(entrance.onlyForService){
-  return entrance.onlyForService === destinationServiceType &&
-    (
-      currentProfile !== 'mobility' ||
-      (!entrance.requiresStairs && !entrance.avoidForMobility)
+  try {
+    destinationContext = JSON.parse(
+      sessionStorage.getItem('indoorContext') || '{}'
     );
-}
+  } catch (error) {}
 
-    if(currentProfile === 'mobility'){
+  // A destination can have multiple entrance nodes.
+  // Keep only IDs belonging to the selected destination building,
+  // remove missing values, and remove duplicate IDs.
+  const destinationNodeIds =
+    destinationContext.buildingKey === entranceKey
+      ? [...new Set([
+          destinationContext.destinationNodeId,
+          ...(destinationContext.destinationNodeIds || [])
+        ].filter(Boolean))]
+      : [];
+
+  // Load the indoor graph only when there is a specific indoor destination.
+  const destinationGraph = destinationNodeIds.length
+    ? await loadIndoorGraphForEta(entranceKey)
+    : null;
+
+  const destinationNodes =
+    Object.values(destinationGraph?.floors || {})
+      .flatMap(floor => floor.nodes || []);
+
+  // Service-specific entrances are allowed only for the matching service.
+  // Prefer the saved destination type; otherwise read it from its graph node.
+  const destinationServiceType =
+    destinationContext.destinationType ||
+    destinationNodes.find(
+      node => destinationNodeIds.includes(node.id)
+    )?.type;
+
+  const entrances = BUILDING_ENTRANCES[entranceKey] || [];
+
+  const profileEntrances = entrances.filter(entrance => {
+    if (entrance.onlyForService) {
+      return (
+        entrance.onlyForService === destinationServiceType &&
+        (
+          currentProfile !== 'mobility' ||
+          (!entrance.requiresStairs && !entrance.avoidForMobility)
+        )
+      );
+    }
+
+    if (currentProfile === 'mobility') {
       return (
         !entrance.requiresStairs &&
         !entrance.avoidForMobility
@@ -6215,135 +6245,129 @@ if(entrance.onlyForService){
     return true;
   });
 
-const originBuildingKey =
-  customStart?.buildingKey ||
-  entranceKeyByBuilding[customStart?.label] ||
-  null;
+  // Identify the starting building, whether selected directly or via a room.
+  const originBuildingKey =
+    customStart?.buildingKey ||
+    entranceKeyByBuilding[customStart?.label] ||
+    null;
 
-let sharedTransfer =
-  typeof chooseSharedIndoorTransfer === 'function'
-    ? await chooseSharedIndoorTransfer(
-        originBuildingKey,
-        entranceKey
-      )
-    : sharedIndoorTransfer(
-        originBuildingKey,
-        entranceKey
-      );
+  // Check for a direct indoor connection between the two buildings.
+  let sharedTransfer =
+    typeof chooseSharedIndoorTransfer === 'function'
+      ? await chooseSharedIndoorTransfer(
+          originBuildingKey,
+          entranceKey
+        )
+      : sharedIndoorTransfer(
+          originBuildingKey,
+          entranceKey
+        );
 
-  // Check whether the shared connection can reach the destination.
-const transferArrivalNode =
-  sharedTransfer?.destinationNodeId ||
-  (
-    usesMainToMadrigaChain && entranceKey === 'madriga'
-      ? 'floor4_n43'
-      : null
-  );
+  // Determine where the shared connection enters the destination building.
+  // Main → Terrace uses Rabin as an intermediate building.
+  const transferArrivalNode =
+    sharedTransfer?.destinationNodeId ||
+    (
+      usesMainToMadrigaChain && entranceKey === 'madriga'
+        ? 'floor4_n43'
+        : null
+    );
 
-if(transferArrivalNode && destinationNodeIds.length){
-  const costs = await Promise.all(
-    destinationNodeIds.map(nodeId =>
-      getIndoorLegEtaSeconds(
-        entranceKey,
-        transferArrivalNode,
-        nodeId,
-        currentProfile === 'mobility'
-      )
-    )
-  );
-
-  if(!costs.some(cost => cost !== null && Number.isFinite(cost))){
-    sharedTransfer = null;
-    usesMainToMadrigaChain = false;
-  }
-}
-
-  activeSharedTransfer = sharedTransfer;
-
-// --------------------------------------------------
-// SELECT DESTINATION ENTRANCE
-// --------------------------------------------------
-//
-// ==================================================
-// SHORTEST BUILDING ENTRANCE / EXIT SELECTION
-// ==================================================
-//
-// For normal building-to-building outdoor routing:
-//
-// 1. Test every usable exit from the origin building.
-// 2. Test every usable entrance to the destination building.
-// 3. Use the real outdoor routing graph for every combination.
-// 4. Choose the combination with the shortest walking route.
-//
-// This avoids destination-specific hard-coding.
-// ==================================================
-
-let selectedEntrance = null;
-let selectedOriginExit = null;
-
-
-// --------------------------------------------------
-// Get usable destination entrances
-// --------------------------------------------------
-const destinationEntrances = [];
-
-for(const entrance of profileEntrances){
-  if(
-    destinationNodeIds.length &&
-    !sharedTransfer &&
-    !usesMainToMadrigaChain
-  ){
-    const costs = await Promise.all(
+  // A shared connection is useful only if its arrival node can reach
+  // at least one entrance node of the selected indoor destination.
+  if (transferArrivalNode && destinationNodeIds.length) {
+    const indoorTravelTimes = await Promise.all(
       destinationNodeIds.map(nodeId =>
         getIndoorLegEtaSeconds(
           entranceKey,
-          entrance.nodeId,
+          transferArrivalNode,
           nodeId,
           currentProfile === 'mobility'
         )
       )
     );
 
-    if(!costs.some(cost => cost !== null && Number.isFinite(cost))){
-      continue;
+    if (
+      !indoorTravelTimes.some(
+        seconds => seconds !== null && Number.isFinite(seconds)
+      )
+    ) {
+      sharedTransfer = null;
+      usesMainToMadrigaChain = false;
     }
   }
 
-  destinationEntrances.push(entrance);
-}
+  activeSharedTransfer = sharedTransfer;
 
-if(!destinationEntrances.length){
-  const message = currentProfile === 'mobility'
-    ? t.noAccessibleRoute
-    : visualVoiceText(
-        'No mapped indoor route was found from an entrance to this destination.',
-        'לא נמצא מסלול פנימי ממופה מכניסה אל היעד הזה.',
-        'لم يتم العثور على مسار داخلي مرسوم من مدخل إلى هذه الوجهة.'
+  // ==================================================
+  // SELECT DESTINATION ENTRANCE
+  // ==================================================
+  // First reject entrances that cannot reach the indoor destination.
+  // The later route comparison evaluates the remaining entrance/exit pairs.
+
+  let selectedEntrance = null;
+  let selectedOriginExit = null;
+
+  const destinationEntrances = [];
+
+  for (const entrance of profileEntrances) {
+    // Shared indoor transfers and the Main ↔ Terrace chain have
+    // their own arrival-node check above.
+    if (
+      destinationNodeIds.length &&
+      !sharedTransfer &&
+      !usesMainToMadrigaChain
+    ) {
+      const indoorTravelTimes = await Promise.all(
+        destinationNodeIds.map(nodeId =>
+          getIndoorLegEtaSeconds(
+            entranceKey,
+            entrance.nodeId,
+            nodeId,
+            currentProfile === 'mobility'
+          )
+        )
       );
 
-  document.getElementById('continueIndoorBtn').style.display = 'none';
-  document.getElementById('routeTitle').textContent = message;
-  document.getElementById('routeSub').textContent = '';
-  document.getElementById('routeEta').textContent = '—';
-  document.getElementById('routeCard').classList.add('show');
+      // Being geographically close is not enough:
+      // this entrance must actually connect to the destination indoors.
+      if (
+        !indoorTravelTimes.some(
+          seconds => seconds !== null && Number.isFinite(seconds)
+        )
+      ) {
+        continue;
+      }
+    }
 
-  speak(message);
-  return {ok:false, message};
-}
+    destinationEntrances.push(entrance);
+  }
 
+  // Stop if no eligible entrance can serve this destination.
+  if (!destinationEntrances.length) {
+    const message = currentProfile === 'mobility'
+      ? t.noAccessibleRoute
+      : visualVoiceText(
+          'No mapped indoor route was found from an entrance to this destination.',
+          'לא נמצא מסלול פנימי ממופה מכניסה אל היעד הזה.',
+          'لم يتم العثور على مسار داخلي مرسوم من مدخل إلى هذه الوجهة.'
+        );
 
+    document.getElementById('continueIndoorBtn').style.display = 'none';
+    document.getElementById('routeTitle').textContent = message;
+    document.getElementById('routeSub').textContent = '';
+    document.getElementById('routeEta').textContent = '—';
+    document.getElementById('routeCard').classList.add('show');
+
+    speak(message);
+
+    return {ok: false, message};
+  }
 // ==================================================
 // GET USABLE ORIGIN EXITS
 // ==================================================
-//
-// If the user selected only a building as the origin,
-// use that building's primary entrance as the default.
-//
-// If the trip starts from a specific indoor location,
-// keep all usable exits so indoor routing can determine
-// which exit makes sense from the user's actual position.
-// ==================================================
 
+// For Mobility, exclude exits that require stairs or are marked unsuitable.
 const allOriginEntrances =
   originBuildingKey && BUILDING_ENTRANCES[originBuildingKey]
     ? BUILDING_ENTRANCES[originBuildingKey].filter(
@@ -6356,143 +6380,84 @@ const allOriginEntrances =
       )
     : [];
 
-
-// --------------------------------------------------
-// Detect whether the origin is only a building
-// --------------------------------------------------
-//
-// Specific indoor-room starts contain entranceId.
-// Building-only selections do not.
-//
+// This existing check distinguishes a building-only selection
+// from a start carrying a specific entrance ID.
 const buildingOnlyOrigin =
   Boolean(originBuildingKey) &&
   !customStart?.entranceId;
 
-
-// --------------------------------------------------
-// Prefer the primary entrance for building-only starts
-// --------------------------------------------------
+// For a building-only start, use the primary entrance as the assumed
+// starting position. Other exits can still be considered.
 const primaryOriginEntrance =
   buildingOnlyOrigin
-    ? allOriginEntrances.find(
-        entrance => entrance.primary
-      )
+    ? allOriginEntrances.find(entrance => entrance.primary)
     : null;
 
-
-// --------------------------------------------------
-// Final origin exits to test
-// --------------------------------------------------
 const originEntrances = allOriginEntrances;
 
 // ==================================================
-// COMPARE COMPLETE ROUTES THROUGH EACH ORIGIN EXIT
-// ==================================================
-//
-// Do NOT choose an exit using outdoor distance alone.
-//
-// The route cost is:
-//
-//   indoor start → candidate origin exit
-//   +
-//   candidate origin exit → destination entrance
-//
-// For a specific room:
-//   use the actual room node as the indoor start.
-//
-// For a building-only start:
-//   use the building's primary entrance/node as the
-//   assumed indoor starting position.
+// COMPARE ROUTES THROUGH ORIGIN AND DESTINATION ENTRANCES
 // ==================================================
 
-if(
+// Shared indoor transfers and the Main ↔ Terrace chain
+// are handled separately.
+if (
   originEntrances.length &&
   destinationEntrances.length &&
   !sharedTransfer &&
   !usesMainToMadrigaChain
-){
+) {
   let shortestJourneySeconds = Infinity;
-
-  // --------------------------------------------------
-  // Determine the indoor starting node
-  // --------------------------------------------------
-
   let indoorStartNodeId = null;
 
-  if(buildingOnlyOrigin){
-
-    // Building selected without a specific room:
-    // treat its primary entrance as the default
-    // position inside the building.
-    indoorStartNodeId =
-      primaryOriginEntrance?.nodeId || null;
-
-  }else{
-
-    // Specific indoor room:
-    // use the actual room/node selected by the user.
-    indoorStartNodeId =
-      customStart?.nodeId || null;
+  if (buildingOnlyOrigin) {
+    // No specific room was selected: assume the primary entrance.
+    indoorStartNodeId = primaryOriginEntrance?.nodeId || null;
+  } else {
+    // Use the actual selected indoor node.
+    indoorStartNodeId = customStart?.nodeId || null;
   }
 
+  // Evaluate every usable origin-exit / destination-entrance pair.
+  for (const originExit of originEntrances) {
+    for (const destinationEntrance of destinationEntrances) {
+      try {
+        // 1. Find the outdoor route between this pair of entrances.
+        const candidateRoute = await CampusOutdoorRouting.route(
+          originExit.lat,
+          originExit.lng,
+          destinationEntrance.lat,
+          destinationEntrance.lng,
+          {
+            avoidSteps: currentProfile === 'mobility',
+            avoidNoise
+          }
+        );
 
-  // --------------------------------------------------
-  // Test every origin exit + destination entrance
-  // --------------------------------------------------
-
-  for(const originExit of originEntrances){
-
-    for(const destinationEntrance of destinationEntrances){
-
-      try{
-
-        // ----------------------------------------------
-        // 1. Outdoor part of this candidate journey
-        // ----------------------------------------------
-
-        const candidateRoute =
-          await CampusOutdoorRouting.route(
-            originExit.lat,
-            originExit.lng,
-            destinationEntrance.lat,
-            destinationEntrance.lng,
-            {
-              avoidSteps: currentProfile === 'mobility',
-              avoidNoise
-            }
-          );
-
-        if(
+        // Reject missing routes or routes without a usable coordinate pair.
+        if (
           !candidateRoute ||
           !candidateRoute.coordinates?.length ||
           candidateRoute.coordinates.length < 2
-        ){
+        ) {
           continue;
         }
 
+        // 2. Estimate the outdoor walking time.
+        const outdoorSeconds = getOutdoorEtaSeconds(
+          candidateRoute.coordinates,
+          currentProfile === 'mobility'
+        );
 
-        // ----------------------------------------------
-        // 2. Outdoor walking time
-        // ----------------------------------------------
+        // 3. Estimate the indoor journey from the start to this exit.
+        // No indoor travel is needed when the start is already at the exit.
+        let originIndoorSeconds = 0;
 
-        const outdoorSeconds =
-          getOutdoorEtaSeconds(
-            candidateRoute.coordinates,
-            currentProfile === 'mobility'
-          );
-
-
-        // ----------------------------------------------
-        // 3. Indoor start → candidate exit
-        // ----------------------------------------------
-
-        let indoorSeconds = 0;
-
-        if(
+        if (
           originBuildingKey &&
           indoorStartNodeId &&
           indoorStartNodeId !== originExit.nodeId
-        ){
+        ) {
           const candidateIndoorSeconds =
             await getIndoorLegEtaSeconds(
               originBuildingKey,
@@ -6501,50 +6466,37 @@ if(
               currentProfile === 'mobility'
             );
 
-          // If this exit cannot actually be reached from
-          // the indoor starting point, reject it.
-          if(candidateIndoorSeconds === null){
+          // An outdoor route is useless if the user cannot reach its exit.
+          if (candidateIndoorSeconds === null) {
             continue;
           }
 
-          indoorSeconds = candidateIndoorSeconds;
+          originIndoorSeconds = candidateIndoorSeconds;
         }
 
-
-        // ----------------------------------------------
-        // 4. Complete candidate journey cost
-        // ----------------------------------------------
+        // 4. Convert the noise penalty into seconds for the comparison.
+        // This affects route preference; it is not actual walking time.
         const noisePenaltySeconds = avoidNoise
           ? (candidateRoute.noisePenaltyMeters || 0) / 1.2
           : 0;
 
+        // This comparison includes the origin indoor leg, outdoor leg,
+        // and noise penalty. Destination indoor reachability was checked
+        // earlier; its travel time is not added in this block.
         const totalJourneySeconds =
-          indoorSeconds + outdoorSeconds + noisePenaltySeconds;
+          originIndoorSeconds +
+          outdoorSeconds +
+          noisePenaltySeconds;
 
-
-
-
-        // ----------------------------------------------
-        // 5. Keep the shortest COMPLETE journey
-        // ----------------------------------------------
-
-        if(totalJourneySeconds < shortestJourneySeconds){
-
-          shortestJourneySeconds =
-            totalJourneySeconds;
-
-          selectedOriginExit =
-            originExit;
-
-          selectedEntrance =
-            destinationEntrance;
-
-          selectedOutdoorRoute =
-            candidateRoute;
+        // 5. Keep the lowest-cost pair and its outdoor route.
+        if (totalJourneySeconds < shortestJourneySeconds) {
+          shortestJourneySeconds = totalJourneySeconds;
+          selectedOriginExit = originExit;
+          selectedEntrance = destinationEntrance;
+          selectedOutdoorRoute = candidateRoute;
         }
-
-      }catch(error){
-
+      } catch (error) {
+        // A failed candidate does not prevent testing the remaining pairs.
         console.warn(
           'Could not test entrance combination:',
           originExit.nodeId,
@@ -6689,6 +6641,7 @@ if(entranceKey === 'eshkol' && madrigaToRabin.method === 'stairs'){
           )
       );
 
+      
 
     // ------------------------------------------------
     // Starting point inside Madriga
