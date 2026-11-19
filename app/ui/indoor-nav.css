@@ -1321,12 +1321,33 @@ body.hc.emergency-route .route-flow{stroke:#FFF;}
   display: none;
 }
 
-/* Phones: zoom buttons sit below the floor buttons so every floor stays
-   tappable; a long floor list scrolls sideways instead. */
+/* Phones: keep floor and zoom controls aligned in the top corners. */
 @media (max-width:640px){
-  .zoomPill{top:72px;}
-  .floorPill{max-width:calc(100% - 28px);box-sizing:border-box;}
-  #floorButtons{min-width:0;overflow-x:auto;scrollbar-width:none;}
+  .zoomPill{
+    top:14px;
+    inset-inline-end:14px;
+  }
+
+  .floorPill{
+    top:14px;
+    max-width:calc(100% - 144px);
+    box-sizing:border-box;
+    min-width:0;
+  }
+
+  .floorPill strong{
+    flex-shrink:0;
+  }
+
+  #floorButtons{
+    min-width:0;
+    overflow-x:auto;
+    scrollbar-width:none;
+  }
+
+  #floorButtons button{
+    flex-shrink:0;
+  }
 }
 
 @media (max-width:900px){
